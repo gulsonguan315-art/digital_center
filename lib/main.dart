@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
-import 'core/focus/focus_manager.dart';
-import 'ui/kitchen/kitchen_view.dart';
-import 'ui/living_room/living_room_view.dart';
-import 'ui/corridor/corridor_view.dart';
-import 'ui/gym/gym_view.dart';
-import 'ui/bedroom/bedroom_view.dart';
-import 'ui/sky_garden/sky_garden_view.dart';
+import 'core/control/superfocus/focus_manager.dart';
+import '_deprecated_ui/kitchen/kitchen_view.dart';
+import '_deprecated_ui/corridor/corridor_view.dart';
+import '_deprecated_ui/gym/gym_view.dart';
+import '_deprecated_ui/sky_garden/sky_garden_view.dart';
 
 void main() {
   runApp(const MyApp());
@@ -68,9 +66,7 @@ class BuildingPage extends StatelessWidget {
                 alignment: WrapAlignment.center,
                 children: const [
                   KitchenView(),
-                  LivingRoomView(),
                   GymView(),
-                  BedroomView(),
                   SkyGardenView(),
                 ],
               ),

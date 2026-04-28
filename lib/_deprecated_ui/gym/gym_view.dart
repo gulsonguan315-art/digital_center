@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import '../../core/base_ui/super_focus_button.dart';
-import '../../core/focus/focus_widgets.dart';
-import '../../core/focus/focus_manager.dart';
+import '../../ui/base/input/super_focus_button.dart';
+import '../../core/control/superfocus/focus_widgets.dart';
+import '../../core/control/superfocus/focus_manager.dart';
 import 'gym_room.dart';
 import 'gym_mock_data.dart';
 

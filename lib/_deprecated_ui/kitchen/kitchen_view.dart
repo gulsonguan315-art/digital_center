@@ -1,16 +1,17 @@
 import 'package:flutter/material.dart';
-import '../../core/base_ui/super_focus_button.dart';
-import '../../core/focus/focus_widgets.dart';
-import 'bedroom_room.dart';
+import '../../ui/base/input/super_focus_button.dart';
+import '../../core/control/superfocus/focus_widgets.dart';
+import 'kitchen_room.dart';
 
-class BedroomView extends StatelessWidget {
-  const BedroomView({super.key});
+class KitchenView extends StatelessWidget {
+  const KitchenView({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return BedroomRoom(
+    return KitchenRoom(
       child: Builder(
         builder: (context) {
+          // 在 KitchenRoom (SuperFocusRoom) 内部获取状态
           final bool isActive = RoomScope.of(context)?.isActive ?? false;
 
           return AnimatedOpacity(
@@ -21,17 +22,17 @@ class BedroomView extends StatelessWidget {
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
                 color: isActive
-                    ? Colors.purple.withOpacity(0.05)
+                    ? Colors.green.withOpacity(0.05)
                     : Colors.transparent,
                 border: Border.all(
-                  color: isActive ? Colors.purple : Colors.transparent,
+                  color: isActive ? Colors.green : Colors.transparent,
                   width: isActive ? 3 : 1,
                 ),
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: isActive
                     ? [
                         BoxShadow(
-                          color: Colors.purple.withOpacity(0.2),
+                          color: Colors.green.withOpacity(0.2),
                           blurRadius: 20,
                         ),
                       ]
@@ -40,28 +41,29 @@ class BedroomView extends StatelessWidget {
               child: Column(
                 children: [
                   Text(
-                    '卧室',
+                    '厨房',
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
-                      color: isActive ? Colors.purple : Colors.grey,
+                      color: isActive ? Colors.green : Colors.grey,
                     ),
                   ),
                   const SizedBox(height: 15),
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      SuperFocusButton(
-                        id: BedroomRoom.bedId,
-                        label: '大床',
-                        onPressed: () => print('睡觉'),
-                      ),
-                      const SizedBox(width: 15),
-                      SuperFocusButton(
-                        id: BedroomRoom.wardrobeId,
-                        label: '衣柜',
-                        onPressed: () => print('换衣服'),
-                      ),
-                    ],
+                  SuperFocusButton(
+                    id: KitchenRoom.stoveId,
+                    label: '灶台',
+                    onPressed: () => print('点火'),
+                  ),
+                  const SizedBox(height: 10),
+                  SuperFocusButton(
+                    id: KitchenRoom.fridgeId,
+                    label: '冰箱',
+                    onPressed: () => print('开冰箱'),
+                  ),
+                  const SizedBox(height: 10),
+                  SuperFocusButton(
+                    id: '空中花园',
+                    label: '✿ 空中花园',
+                    onPressed: () {},
                   ),
                 ],
               ),

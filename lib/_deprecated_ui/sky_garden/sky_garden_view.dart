@@ -1,17 +1,16 @@
 import 'package:flutter/material.dart';
-import '../../core/base_ui/super_focus_button.dart';
-import '../../core/focus/focus_widgets.dart';
-import 'kitchen_room.dart';
+import '../../ui/base/input/super_focus_button.dart';
+import '../../core/control/superfocus/focus_widgets.dart';
+import 'sky_garden_room.dart';
 
-class KitchenView extends StatelessWidget {
-  const KitchenView({super.key});
+class SkyGardenView extends StatelessWidget {
+  const SkyGardenView({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return KitchenRoom(
+    return SkyGardenRoom(
       child: Builder(
         builder: (context) {
-          // 在 KitchenRoom (SuperFocusRoom) 内部获取状态
           final bool isActive = RoomScope.of(context)?.isActive ?? false;
 
           return AnimatedOpacity(
@@ -22,17 +21,17 @@ class KitchenView extends StatelessWidget {
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
                 color: isActive
-                    ? Colors.green.withOpacity(0.05)
+                    ? Colors.pink.withOpacity(0.05)
                     : Colors.transparent,
                 border: Border.all(
-                  color: isActive ? Colors.green : Colors.transparent,
+                  color: isActive ? Colors.pink : Colors.transparent,
                   width: isActive ? 3 : 1,
                 ),
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: isActive
                     ? [
                         BoxShadow(
-                          color: Colors.green.withOpacity(0.2),
+                          color: Colors.pink.withOpacity(0.2),
                           blurRadius: 20,
                         ),
                       ]
@@ -41,29 +40,28 @@ class KitchenView extends StatelessWidget {
               child: Column(
                 children: [
                   Text(
-                    '厨房',
+                    '✿ 空中花园 ✿',
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
-                      color: isActive ? Colors.green : Colors.grey,
+                      color: isActive ? Colors.pink : Colors.grey,
                     ),
                   ),
                   const SizedBox(height: 15),
-                  SuperFocusButton(
-                    id: KitchenRoom.stoveId,
-                    label: '灶台',
-                    onPressed: () => print('点火'),
-                  ),
-                  const SizedBox(height: 10),
-                  SuperFocusButton(
-                    id: KitchenRoom.fridgeId,
-                    label: '冰箱',
-                    onPressed: () => print('开冰箱'),
-                  ),
-                  const SizedBox(height: 10),
-                  SuperFocusButton(
-                    id: '空中花园',
-                    label: '✿ 空中花园',
-                    onPressed: () {},
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      SuperFocusButton(
+                        id: SkyGardenRoom.swingId,
+                        label: '秋千',
+                        onPressed: () => print('摇啊摇'),
+                      ),
+                      const SizedBox(width: 15),
+                      SuperFocusButton(
+                        id: SkyGardenRoom.flowersId,
+                        label: '花盆',
+                        onPressed: () => print('浇花'),
+                      ),
+                    ],
                   ),
                 ],
               ),

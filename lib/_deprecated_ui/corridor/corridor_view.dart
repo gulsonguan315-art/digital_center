@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../core/base_ui/super_focus_button.dart';
+import '../../ui/base/input/super_focus_button.dart';
 import 'corridor_room.dart';
 
 class CorridorView extends StatelessWidget {

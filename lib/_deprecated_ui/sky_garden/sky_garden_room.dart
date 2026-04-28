@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../core/focus/focus_widgets.dart';
-import '../../core/focus/building_map.dart';
+import '../../core/control/superfocus/focus_widgets.dart';
+import '../../core/control/superfocus/building_map.dart';
 
 class SkyGardenRoom extends StatelessWidget {
   final Widget child;
