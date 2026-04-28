@@ -36,16 +36,12 @@ class Scoped2dScanner extends FocusTraversalPolicy {
       final target = node.rect;
       final source = currentNode.rect;
 
-      switch (direction) {
-        case TraversalDirection.up:
-          return target.bottom <= source.top + 1.0;
-        case TraversalDirection.down:
-          return target.top >= source.bottom - 1.0;
-        case TraversalDirection.left:
-          return target.right <= source.left + 1.0;
-        case TraversalDirection.right:
-          return target.left >= source.right - 1.0;
-      }
+      return switch (direction) {
+        TraversalDirection.up => target.bottom <= source.top + 1.0,
+        TraversalDirection.down => target.top >= source.bottom - 1.0,
+        TraversalDirection.left => target.right <= source.left + 1.0,
+        TraversalDirection.right => target.left >= source.right - 1.0,
+      };
     }).toList();
 
     if (candidates.isEmpty) return null;
@@ -65,13 +61,10 @@ class Scoped2dScanner extends FocusTraversalPolicy {
       final dx = (target.dx - source.dx).abs();
       final dy = (target.dy - source.dy).abs();
 
-      double score;
-      if (direction == TraversalDirection.up ||
-          direction == TraversalDirection.down) {
-        score = dy + (dx * 2.0);
-      } else {
-        score = dx + (dy * 2.0);
-      }
+      final score = switch (direction) {
+        TraversalDirection.up || TraversalDirection.down => dy + (dx * 2.0),
+        TraversalDirection.left || TraversalDirection.right => dx + (dy * 2.0),
+      };
 
       if (score < minScore) {
         minScore = score;

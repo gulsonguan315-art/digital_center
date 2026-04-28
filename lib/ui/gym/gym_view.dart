@@ -14,9 +14,10 @@ class GymView extends StatelessWidget {
     // （含子 Zone 如有氧区、力量区），健身房视图都保持挂载，不卸载节点。
     // 修复：原来用 currentRoomId == 健身房 判断，进入子 zone 后条件变假，
     // 导致整棵树被卸载，焦点被踢回走廊。
-    return ValueListenableBuilder<Set<String>>(
-      valueListenable: SuperFocusManager.instance.activeRoomPathNotifier,
-      builder: (context, activePath, _) {
+    return ValueListenableBuilder<FocusTopology>(
+      valueListenable: SuperFocusManager.instance.topologyNotifier,
+      builder: (context, topology, _) {
+        final activePath = topology.activePath;
         return ValueListenableBuilder<String?>(
           valueListenable: SuperFocusManager.instance.intentionRoomId,
           builder: (context, intentionId, _) {

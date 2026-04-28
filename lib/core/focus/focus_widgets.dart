@@ -49,9 +49,10 @@ class _SuperFocusRoomState extends State<SuperFocusRoom> {
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<Set<String>>(
-      valueListenable: SuperFocusManager.instance.activeRoomPathNotifier,
-      builder: (context, activePath, _) {
+    return ValueListenableBuilder<FocusTopology>(
+      valueListenable: SuperFocusManager.instance.topologyNotifier,
+      builder: (context, topology, _) {
+        final activePath = topology.activePath;
         final parentScope = RoomScope.of(context);
 
         final bool isActive = _isZone
@@ -188,7 +189,14 @@ class _SuperFocusItemState extends State<SuperFocusItem> {
             (event.logicalKey == LogicalKeyboardKey.enter ||
                 event.logicalKey == LogicalKeyboardKey.select)) {
           if (widget.onPressed != null) widget.onPressed!();
-          SuperFocusManager.instance.onAction(context, widget.id);
+
+          final String sourceRoom =
+              RoomScope.of(context)?.roomId ??
+              SuperFocusManager.instance.currentRoomId ??
+              '未知';
+          if (sourceRoom != '未知') {
+            SuperFocusManager.instance.onAction(sourceRoom, widget.id);
+          }
           return KeyEventResult.handled;
         }
         return KeyEventResult.ignored;

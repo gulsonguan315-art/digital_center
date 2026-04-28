@@ -11,6 +11,15 @@
 /// | `*`     | `*`                | 动态叶子节点通配符                | 共用父 Room  |
 /// | `->`    | `->空中花园`       | 静态传送门按钮（back 弹栈飞回）   | 共用父 Room  |
 /// | `*->`   | `*->播放器`        | 动态传送门（`*` 节点统一传送）    | 共用父 Room  |
+
+abstract class FocusSyntax {
+  static const String dynamicPortal = '*->';
+  static const String staticPortal = '->';
+  static const String room = '/';
+  static const String zone = '+';
+  static const String staticNode = '*';
+}
+
 class BuildingMap {
   /// 根房间集合：这些房间是导航树的最顶层边界，不允许继续 Back。
   static const Set<String> roots = {'走廊'};
@@ -35,51 +44,59 @@ class BuildingMap {
   // 查询 API
   // ---------------------------------------------------------------------------
 
-  /// 某个 ID 是否在地图中定义为房间/Zone（即作为 key 存在）。
-  static bool isRoom(String id) => structure.containsKey(id);
+  // --- O(1) 缓存表 ---
+  static final Map<String, String> _parentCache = {};
+  static final Set<String> _zoneCache = {};
+  static bool _initialized = false;
 
-  /// 某个 ID 是否被声明为 Zone（父房间列表中有 `+$id`）。
-  static bool isZone(String id) {
-    return structure.values.any((list) => list.contains('+$id'));
-  }
-
-  /// 获取某房间/Zone 的直接父房间 ID。
-  /// 扫描所有房间列表，找包含 `/$id` 或 `+$id` 的那个。
-  static String? getParentRoom(String id) {
-    for (final entry in structure.entries) {
-      for (final item in entry.value) {
-        if (item == '/$id' || item == '+$id') return entry.key;
+  static void _ensureInitialized() {
+    if (_initialized) return;
+    for (final MapEntry(key: parentId, value: items) in structure.entries) {
+      for (final item in items) {
+        if (item.startsWith(FocusSyntax.room)) {
+          _parentCache[item.substring(FocusSyntax.room.length)] = parentId;
+        } else if (item.startsWith(FocusSyntax.zone)) {
+          final childId = item.substring(FocusSyntax.zone.length);
+          _parentCache[childId] = parentId;
+          _zoneCache.add(childId);
+        }
       }
     }
-    return null;
+    _initialized = true;
   }
 
-  /// 获取某房间的所有成员 ID（已归一化，去掉前缀）。
-  /// `*->X` 归一化为 `*`（视为动态节点）。
+  static bool isRoom(String id) => structure.containsKey(id);
+  static bool isZone(String id) {
+    _ensureInitialized();
+    return _zoneCache.contains(id);
+  }
+
+  static String? getParentRoom(String id) {
+    _ensureInitialized();
+    return _parentCache[id];
+  }
+
   static List<String> getMembers(String roomId) {
     final items = structure[roomId];
     if (items == null) return [];
     return items.map((item) => _normalizeMember(item)).toList();
   }
 
-  /// [虫洞传送] 检查当前房间是否允许通过 buttonId 传送到另一个房间。
-  /// 仅 `->X` 或 `*->X`（动态节点）才授权，返回目标房间 ID。
   static String? resolvePortalDestination(
     String currentRoomId,
     String buttonId,
   ) {
     final items = structure[currentRoomId];
     if (items == null) return null;
-
-    // 静态传送门：->buttonId
-    if (items.contains('->$buttonId')) return buttonId;
-
-    // 动态传送门：*->X，当前按下的是 * 节点（ID 不在静态列表中）
+    if (items.contains('${FocusSyntax.staticPortal}$buttonId')) return buttonId;
     for (final item in items) {
-      if (item.startsWith('*->')) {
-        final destination = item.substring(3);
+      if (item.startsWith(FocusSyntax.dynamicPortal)) {
+        final destination = item.substring(FocusSyntax.dynamicPortal.length);
         final isStaticId = items.any(
-          (i) => i == '*$buttonId' || i == '/$buttonId' || i == '+$buttonId',
+          (i) =>
+              i == '${FocusSyntax.staticNode}$buttonId' ||
+              i == '${FocusSyntax.room}$buttonId' ||
+              i == '${FocusSyntax.zone}$buttonId',
         );
         if (!isStaticId) return destination;
       }
@@ -87,28 +104,31 @@ class BuildingMap {
     return null;
   }
 
-  /// [普通推门] 检查 buttonId 是否为当前房间的直接子房间或子 Zone。
   static String? resolveRoomEntry(String currentRoomId, String buttonId) {
     final items = structure[currentRoomId];
     if (items == null) return null;
-    if (items.contains('/$buttonId') || items.contains('+$buttonId')) {
+    if (items.contains('${FocusSyntax.room}$buttonId') ||
+        items.contains('${FocusSyntax.zone}$buttonId')) {
       return buttonId;
     }
     return null;
   }
 
-  // ---------------------------------------------------------------------------
   // 内部工具
-  // ---------------------------------------------------------------------------
-
-  /// 将列表项归一化为节点 ID（去掉前缀）。
-  /// `*->X` → `*`（动态节点，目标在 resolvePortalDestination 里解析）
   static String _normalizeMember(String item) {
-    if (item.startsWith('*->')) return '*'; // 动态传送门 → 通配符
-    if (item.startsWith('->')) return item.substring(2); // 静态传送门按钮 ID
-    if (item.startsWith('/') || item.startsWith('+') || item.startsWith('*')) {
-      return item.substring(1); // 子房间 / Zone / 静态项
-    }
-    return item;
+    return switch (item) {
+      _ when item.startsWith(FocusSyntax.dynamicPortal) =>
+        FocusSyntax.staticNode,
+      _ when item.startsWith(FocusSyntax.staticPortal) => item.substring(
+        FocusSyntax.staticPortal.length,
+      ),
+      _ when item == FocusSyntax.staticNode => FocusSyntax.staticNode,
+      _
+          when item.startsWith(FocusSyntax.room) ||
+              item.startsWith(FocusSyntax.zone) ||
+              item.startsWith(FocusSyntax.staticNode) =>
+        item.substring(1),
+      _ => item,
+    };
   }
 }
