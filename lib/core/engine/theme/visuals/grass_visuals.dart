@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
 import '../theme_visuals.dart';
 
-/// 扁平化风格预设 (类似 Apple 极简设计)
-final flatVisuals = ThemeVisuals(
+final grassVisuals = ThemeVisuals(
   glassBlur: 0.0,
   surfaceOpacity: 1.0,
-  defaultRadius: BorderRadius.circular(12),
-  borderThickness: 1.5,
-  focusGlowRadius: 15.0,
-  focusGlowOpacity: 0.4,
+  defaultRadius: BorderRadius.circular(16),
+  borderThickness: 1.0,
+  focusGlowRadius: 12.0,
+  focusGlowOpacity: 0.25,
   sidebar: const SidebarVisual(
     surfaceEffect: NoSidebarSurfaceEffect(),
     activeContentEffect: NoSidebarContentEffect(),

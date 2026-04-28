@@ -328,6 +328,20 @@ class SuperFocusManager with FocusTraceLogger {
 
       intentionRoomId.value = targetId;
 
+      final entryNodeId = room != null
+          ? BuildingMap.getEntryNodeForRoom(targetId, room)
+          : null;
+      final entryNodeInfo = entryNodeId != null
+          ? _nodeRegistry[entryNodeId]
+          : null;
+      if (entryNodeId != null &&
+          entryNodeInfo != null &&
+          entryNodeInfo.roomId == targetId &&
+          entryNodeInfo.node.canRequestFocus) {
+        _applyLanding(entryNodeId, entryNodeInfo, targetId, '(nav entry)');
+        return;
+      }
+
       final doorNodeInfo = room != null ? _nodeRegistry[room] : null;
       if (doorNodeInfo != null &&
           doorNodeInfo.roomId == targetId &&
@@ -373,6 +387,14 @@ class SuperFocusManager with FocusTraceLogger {
       logRoomAction(sourceRoom, id, roomTarget);
       intentionRoomId.value = roomTarget;
       _executeSearch(roomTarget);
+      return;
+    }
+
+    final String? navTarget = BuildingMap.resolveNavTarget(sourceRoom, id);
+    if (navTarget != null) {
+      logRoomAction(sourceRoom, id, navTarget);
+      intentionRoomId.value = navTarget;
+      _executeSearch(navTarget);
       return;
     }
 

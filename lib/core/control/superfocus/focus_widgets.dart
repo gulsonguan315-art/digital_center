@@ -1,7 +1,7 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter/services.dart';
 import 'focus_manager.dart';
-import '../../../ui/visual/cursor/focus_geometry.dart';
+import 'focus_geometry.dart';
 import 'focus_report.dart';
 
 /// 房间上下文，用于让内部组件感知自己属于哪个房间及其状态
@@ -164,6 +164,14 @@ class _SuperFocusItemState extends State<SuperFocusItem> {
         room.roomId,
       );
       _registeredRoomId = room.roomId;
+    }
+  }
+
+  @override
+  void didUpdateWidget(SuperFocusItem oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (_hasFocus && oldWidget.focusGeometry != widget.focusGeometry) {
+      _reportFocus();
     }
   }
 

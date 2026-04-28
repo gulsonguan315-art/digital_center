@@ -9,4 +9,9 @@ final glassVisuals = ThemeVisuals(
   borderThickness: 1.5,
   focusGlowRadius: 40.0,
   focusGlowOpacity: 0.45,
+  sidebar: const SidebarVisual(
+    surfaceEffect: NoSidebarSurfaceEffect(),
+    activeContentEffect: NoSidebarContentEffect(),
+    activeScale: 1.0,
+  ),
 );

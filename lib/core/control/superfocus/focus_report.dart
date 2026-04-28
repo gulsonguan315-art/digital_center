@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../ui/visual/cursor/focus_geometry.dart';
+import 'focus_geometry.dart';
 
 class FocusReport {
   final Rect rect;

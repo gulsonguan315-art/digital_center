@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
+import '../../../core/engine/theme/theme_colors.dart';
 
 /// 纹理簇数据模型
 class SilkCluster {
@@ -39,8 +40,10 @@ class SilkLine {
 }
 
 class SilkBackground extends StatefulWidget {
-  final Color color;
-  const SilkBackground({super.key, required this.color});
+  final Color? color;
+  final Widget? child;
+
+  const SilkBackground({super.key, this.color, this.child});
 
   @override
   State<SilkBackground> createState() => _SilkBackgroundState();
@@ -58,8 +61,9 @@ class _SilkBackgroundState extends State<SilkBackground> {
   }
 
   void _generateArt(Size size, Color color) {
-    if (_lastSize == size && _lastColor == color && _cachedPicture != null)
+    if (_lastSize == size && _lastColor == color && _cachedPicture != null) {
       return;
+    }
 
     _lastSize = size;
     _lastColor = color;
@@ -173,27 +177,54 @@ class _SilkBackgroundState extends State<SilkBackground> {
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final size = constraints.biggest;
-        if (size.width > 0 && size.height > 0) {
-          _generateArt(size, widget.color);
-        }
+    final themeColors = Theme.of(context).extension<ThemeColors>()!;
+    final silkColor = widget.color ?? themeColors.silk;
 
-        return GestureDetector(
-          onTap: () {
-            setState(() {
-              _lastSize = null; // Force refresh
-            });
-          },
-          child: RepaintBoundary(
-            child: CustomPaint(
-              size: size,
-              painter: _SilkPicturePainter(picture: _cachedPicture),
+    return Stack(
+      children: [
+        // 1. 底层背景色
+        Positioned.fill(child: Container(color: themeColors.backgroundCustom)),
+        // 2. 丝织纹理层
+        Positioned.fill(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final size = constraints.biggest;
+              if (size.width > 0 && size.height > 0) {
+                _generateArt(size, silkColor);
+              }
+
+              return GestureDetector(
+                onTap: () {
+                  setState(() {
+                    _lastSize = null; // Force refresh
+                  });
+                },
+                child: RepaintBoundary(
+                  child: CustomPaint(
+                    size: size,
+                    painter: _SilkPicturePainter(picture: _cachedPicture),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+        // 3. 装饰元素
+        Positioned(
+          top: 100,
+          left: -50,
+          child: Container(
+            width: 400,
+            height: 400,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: themeColors.adormColor.withValues(alpha: 0.08),
             ),
           ),
-        );
-      },
+        ),
+        // 4. 内容槽位
+        if (widget.child != null) widget.child!,
+      ],
     );
   }
 }

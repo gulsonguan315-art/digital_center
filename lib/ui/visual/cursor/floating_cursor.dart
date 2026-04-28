@@ -5,7 +5,7 @@ import 'package:flutter/scheduler.dart';
 import '../../../core/control/superfocus/focus_manager.dart';
 import '../../../core/engine/theme/theme_colors.dart';
 import '../../../core/engine/theme/theme_visuals.dart';
-import 'focus_geometry.dart';
+import '../../../core/control/superfocus/focus_geometry.dart';
 
 class FloatingHighlightBox extends StatefulWidget {
   const FloatingHighlightBox({super.key});

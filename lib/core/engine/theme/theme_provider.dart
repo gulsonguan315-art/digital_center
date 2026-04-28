@@ -8,7 +8,7 @@ class ThemeProvider extends ChangeNotifier {
   ThemeMode _themeMode = ThemeMode.system;
   ThemeMode get themeMode => _themeMode;
 
-  VisualStyle _visualStyle = VisualStyle.flat;
+  VisualStyle _visualStyle = VisualStyle.neumorphic;
   VisualStyle get visualStyle => _visualStyle;
 
   void setThemeMode(ThemeMode mode) {
