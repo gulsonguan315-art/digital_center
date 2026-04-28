@@ -28,4 +28,4 @@ linter:
 # https://dart.dev/guides/language/analysis-options
 analyzer:
   exclude:
-    - lib/Reference/** # 排除 Reference 文件夹下所有文件的语法检查
+    - Reference/** # 👈 去掉前面的 lib/，直接指向根目录下的文件夹
