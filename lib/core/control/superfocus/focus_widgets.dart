@@ -1,6 +1,8 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter/services.dart';
 import 'focus_manager.dart';
+import '../../../ui/visual/cursor/focus_geometry.dart';
+import 'focus_report.dart';
 
 /// 房间上下文，用于让内部组件感知自己属于哪个房间及其状态
 class RoomScope extends InheritedWidget {
@@ -120,6 +122,7 @@ class SuperFocusItem extends StatefulWidget {
   final VoidCallback? onPressed;
   final bool autofocus;
   final FocusNode? focusNode;
+  final FocusGeometry? focusGeometry;
 
   const SuperFocusItem({
     super.key,
@@ -128,6 +131,7 @@ class SuperFocusItem extends StatefulWidget {
     this.onPressed,
     this.autofocus = false,
     this.focusNode,
+    this.focusGeometry,
   });
 
   @override
@@ -170,12 +174,39 @@ class _SuperFocusItemState extends State<SuperFocusItem> {
     super.dispose();
   }
 
+  void _reportFocus() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_hasFocus) return;
+      final renderBox = context.findRenderObject() as RenderBox?;
+      if (renderBox == null || !renderBox.hasSize) return;
+
+      final offset = renderBox.localToGlobal(Offset.zero);
+      final size = renderBox.size;
+
+      SuperFocusManager.instance.reportCursor(
+        FocusReport(
+          rect: offset & size,
+          geometry:
+              widget.focusGeometry ??
+              const RoundedRectFocusGeometry(
+                borderRadius: BorderRadius.all(Radius.circular(12)),
+              ),
+          isFocused: _hasFocus,
+          context: context,
+        ),
+      );
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Focus(
       focusNode: _focusNode,
       autofocus: widget.autofocus,
-      onFocusChange: (focus) => setState(() => _hasFocus = focus),
+      onFocusChange: (focus) {
+        setState(() => _hasFocus = focus);
+        if (focus) _reportFocus();
+      },
       onKeyEvent: (node, event) {
         // 先检查导航协议拦截
         final protocolResult = SuperFocusManager.instance.handleKeyEvent(

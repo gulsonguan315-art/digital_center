@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../../ui/base/input/super_focus_button.dart';
 import '../../core/control/superfocus/focus_widgets.dart';
 import '../../core/control/superfocus/focus_manager.dart';
+import '../../core/engine/theme/theme_colors.dart';
+import '../../core/engine/theme/theme_visuals.dart';
 import 'gym_room.dart';
 import 'gym_mock_data.dart';
 
@@ -38,23 +40,27 @@ class GymView extends StatelessWidget {
                 final data = snapshot.data;
                 // 健身房高亮：activePath 包含健身房时点亮（含子 zone 场景）
                 final bool isActive = activePath.contains(GymRoom.roomId);
+                final themeColors = Theme.of(context).extension<ThemeColors>()!;
+                final themeVisuals = Theme.of(
+                  context,
+                ).extension<ThemeVisuals>()!;
 
                 return GymRoom(
                   child: AnimatedOpacity(
                     duration: const Duration(milliseconds: 300),
-                    opacity: isActive ? 1.0 : 0.15,
+                    opacity: isActive ? 1.0 : 0.4,
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 300),
                       padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
-                        color: isActive
-                            ? Colors.orange.withOpacity(0.02)
-                            : Colors.transparent,
+                        color: Colors.transparent,
                         border: Border.all(
-                          color: isActive ? Colors.orange : Colors.transparent,
-                          width: isActive ? 3 : 1,
+                          color: isActive
+                              ? themeColors.adormColor.withValues(alpha: 0.3)
+                              : Colors.transparent,
+                          width: 2,
                         ),
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: themeVisuals.defaultRadius,
                       ),
                       child: Column(
                         children: [
@@ -139,12 +145,17 @@ class GymView extends StatelessWidget {
             width: 220,
             padding: const EdgeInsets.all(15),
             decoration: BoxDecoration(
-              color: isSubActive
-                  ? Colors.orange.withOpacity(0.1)
-                  : Colors.white.withOpacity(0.02),
-              borderRadius: BorderRadius.circular(12),
+              color: Colors.transparent,
+              borderRadius: Theme.of(
+                context,
+              ).extension<ThemeVisuals>()!.defaultRadius,
               border: Border.all(
-                color: isSubActive ? Colors.orange : Colors.white10,
+                color: isSubActive
+                    ? Theme.of(context)
+                          .extension<ThemeColors>()!
+                          .adormColor
+                          .withValues(alpha: 0.3)
+                    : Colors.white10,
                 width: isSubActive ? 2 : 1,
               ),
               boxShadow: isSubActive

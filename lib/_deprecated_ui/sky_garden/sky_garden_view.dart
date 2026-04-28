@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../ui/base/input/super_focus_button.dart';
 import '../../core/control/superfocus/focus_widgets.dart';
+import '../../core/engine/theme/theme_colors.dart';
+import '../../core/engine/theme/theme_visuals.dart';
 import 'sky_garden_room.dart';
 
 class SkyGardenView extends StatelessWidget {
@@ -12,6 +14,8 @@ class SkyGardenView extends StatelessWidget {
       child: Builder(
         builder: (context) {
           final bool isActive = RoomScope.of(context)?.isActive ?? false;
+          final themeColors = Theme.of(context).extension<ThemeColors>()!;
+          final themeVisuals = Theme.of(context).extension<ThemeVisuals>()!;
 
           return AnimatedOpacity(
             duration: const Duration(milliseconds: 300),
@@ -20,14 +24,14 @@ class SkyGardenView extends StatelessWidget {
               duration: const Duration(milliseconds: 300),
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: isActive
-                    ? Colors.pink.withOpacity(0.05)
-                    : Colors.transparent,
+                color: Colors.transparent,
                 border: Border.all(
-                  color: isActive ? Colors.pink : Colors.transparent,
-                  width: isActive ? 3 : 1,
+                  color: isActive
+                      ? themeColors.adormColor.withValues(alpha: 0.3)
+                      : Colors.transparent,
+                  width: 2,
                 ),
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: themeVisuals.defaultRadius,
                 boxShadow: isActive
                     ? [
                         BoxShadow(

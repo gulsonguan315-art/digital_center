@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter/services.dart';
 import 'scoped_2d_scanner.dart';
 import 'building_map.dart';
+import 'focus_report.dart';
 
 /// 当前焦点拓扑状态快照
 class FocusTopology {
@@ -101,6 +102,26 @@ class SuperFocusManager with FocusTraceLogger {
   final ValueNotifier<FocusTopology> topologyNotifier = ValueNotifier(
     const FocusTopology(),
   );
+
+  final ValueNotifier<FocusReport?> cursorReportNotifier = ValueNotifier(null);
+  final ValueNotifier<bool> cursorHiddenNotifier = ValueNotifier(false);
+
+  void reportCursor(FocusReport report) {
+    if (cursorReportNotifier.value == report) return;
+    cursorReportNotifier.value = report;
+  }
+
+  void hideCursor() {
+    cursorHiddenNotifier.value = true;
+  }
+
+  void showCursor() {
+    cursorHiddenNotifier.value = false;
+  }
+
+  void clearCursor() {
+    cursorReportNotifier.value = null;
+  }
 
   String? get currentRoomId => topologyNotifier.value.activeRoom;
 
