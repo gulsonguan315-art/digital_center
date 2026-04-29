@@ -275,7 +275,7 @@ class SuperFocusManager with FocusTraceLogger {
 
   void onBack(BuildContext context) {
     final String? focusedId = _nodeRegistry.entries
-        .where((e) => e.value.node.hasFocus)
+        .where((e) => e.value.node.hasPrimaryFocus)
         .firstOrNull
         ?.key;
 

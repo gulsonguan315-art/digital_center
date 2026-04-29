@@ -28,18 +28,6 @@ class BuildingPage extends StatelessWidget {
                 title: null,
                 backgroundColor: Colors.transparent,
                 elevation: 0,
-                actions: [
-                  IconButton(
-                    tooltip: '切换颜色模式',
-                    icon: const Icon(Icons.brightness_6),
-                    onPressed: () => ThemeProvider.instance.toggleMode(),
-                  ),
-                  IconButton(
-                    tooltip: '切换视觉风格 (扁平/玻璃/拟态)',
-                    icon: const Icon(Icons.palette_outlined),
-                    onPressed: () => ThemeProvider.instance.nextVisualStyle(),
-                  ),
-                ],
               ),
               body: _MainContent(),
             ),
@@ -60,11 +48,11 @@ class _MainContent extends StatelessWidget {
           valueListenable: SuperFocusManager.instance.intentionRoomId,
           builder: (context, intentionId, _) {
             final showSettings =
-                topology.activePath.contains(SettingPage.roomId) ||
-                intentionId == SettingPage.roomId;
+                topology.activePath.contains(SettingPageRoom.roomId) ||
+                intentionId == SettingPageRoom.roomId;
 
             if (showSettings) {
-              return const SettingPage();
+              return const SettingPageRoom();
             }
 
             return Center(

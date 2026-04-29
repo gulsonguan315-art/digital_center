@@ -1,23 +1,35 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 
-enum VisualStyle { flat, glass, neumorphic, grass }
+enum VisualStyle { flat, glass, neumorphic }
+
+abstract class SurfaceEffect {
+  const SurfaceEffect();
+
+  Widget apply(
+    BuildContext context,
+    Widget child, {
+    required bool isFocused,
+    bool isWaiting = false,
+    BorderRadiusGeometry? borderRadius,
+  });
+
+  SurfaceEffect lerp(SurfaceEffect other, double t);
+}
 
 @immutable
 class ThemeVisuals extends ThemeExtension<ThemeVisuals> {
-  final double glassBlur;
-  final double surfaceOpacity;
+  final SurfaceEffect buttonSurface;
+  final SurfaceEffect switchSurface;
   final BorderRadiusGeometry defaultRadius;
-  final double borderThickness;
   final double focusGlowRadius;
   final double focusGlowOpacity;
   final SidebarVisual sidebar;
 
   const ThemeVisuals({
-    required this.glassBlur,
-    required this.surfaceOpacity,
+    required this.buttonSurface,
+    required this.switchSurface,
     required this.defaultRadius,
-    required this.borderThickness,
     required this.focusGlowRadius,
     required this.focusGlowOpacity,
     required this.sidebar,
@@ -25,19 +37,17 @@ class ThemeVisuals extends ThemeExtension<ThemeVisuals> {
 
   @override
   ThemeVisuals copyWith({
-    double? glassBlur,
-    double? surfaceOpacity,
+    SurfaceEffect? buttonSurface,
+    SurfaceEffect? switchSurface,
     BorderRadiusGeometry? defaultRadius,
-    double? borderThickness,
     double? focusGlowRadius,
     double? focusGlowOpacity,
     SidebarVisual? sidebar,
   }) {
     return ThemeVisuals(
-      glassBlur: glassBlur ?? this.glassBlur,
-      surfaceOpacity: surfaceOpacity ?? this.surfaceOpacity,
+      buttonSurface: buttonSurface ?? this.buttonSurface,
+      switchSurface: switchSurface ?? this.switchSurface,
       defaultRadius: defaultRadius ?? this.defaultRadius,
-      borderThickness: borderThickness ?? this.borderThickness,
       focusGlowRadius: focusGlowRadius ?? this.focusGlowRadius,
       focusGlowOpacity: focusGlowOpacity ?? this.focusGlowOpacity,
       sidebar: sidebar ?? this.sidebar,
@@ -50,15 +60,11 @@ class ThemeVisuals extends ThemeExtension<ThemeVisuals> {
       return this;
     }
     return ThemeVisuals(
-      glassBlur: lerpDouble(glassBlur, other.glassBlur, t) ?? glassBlur,
-      surfaceOpacity:
-          lerpDouble(surfaceOpacity, other.surfaceOpacity, t) ?? surfaceOpacity,
+      buttonSurface: buttonSurface.lerp(other.buttonSurface, t),
+      switchSurface: switchSurface.lerp(other.switchSurface, t),
       defaultRadius:
           BorderRadiusGeometry.lerp(defaultRadius, other.defaultRadius, t) ??
           defaultRadius,
-      borderThickness:
-          lerpDouble(borderThickness, other.borderThickness, t) ??
-          borderThickness,
       focusGlowRadius:
           lerpDouble(focusGlowRadius, other.focusGlowRadius, t) ??
           focusGlowRadius,

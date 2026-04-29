@@ -3,7 +3,6 @@ import 'theme_colors.dart';
 import 'theme_visuals.dart';
 import 'visuals/flat_visuals.dart';
 import 'visuals/glass_visuals.dart';
-import 'visuals/grass_visuals.dart';
 import 'visuals/neumorph_visuals.dart';
 
 class ThemeFactory {
@@ -23,9 +22,6 @@ class ThemeFactory {
         break;
       case VisualStyle.neumorphic:
         visuals = neumorphicVisuals;
-        break;
-      case VisualStyle.grass:
-        visuals = grassVisuals;
         break;
     }
 

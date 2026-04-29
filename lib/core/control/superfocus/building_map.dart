@@ -37,7 +37,11 @@ class BuildingMap {
       '*exit',
     ],
     'media': ['*mov', '*tv', '*ani', '*doc', '*adt'],
-    'settingPage': ['*settingAction'],
+
+    'settingPage': ['/themeColor', '/themeVisual', '*test'],
+    'themeColor': ['*'],
+    'themeVisual': ['*'],
+
     'music': ['*宫', '*商', '*角', '*徵', '*羽'],
 
     '公共区域': ['/空中花园'],

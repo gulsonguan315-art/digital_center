@@ -229,7 +229,8 @@ class _SidebarViewState extends State<SidebarView> {
             onTap: () {
               setState(() {
                 if (hasChildren) {
-                  _expandedZoneId = item.id;
+                  // 如果点击的是已经展开的菜单，将其折叠；否则展开新菜单
+                  _expandedZoneId = isExpanded ? null : item.id;
                 } else {
                   _activeId = item.id;
                 }
@@ -237,15 +238,23 @@ class _SidebarViewState extends State<SidebarView> {
             },
           ),
         ),
-        if (hasChildren && isExpanded)
-          SuperFocusRoom(
-            id: item.id,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: item.children!
-                  .map((child) => _buildItem(child, isChild: true))
-                  .toList(),
-            ),
+        // 使用 AnimatedSize 实现丝滑的折叠展开动画
+        if (hasChildren)
+          AnimatedSize(
+            duration: const Duration(milliseconds: 350),
+            curve: Curves.easeInOutCubic,
+            alignment: Alignment.topCenter,
+            child: isExpanded
+                ? SuperFocusRoom(
+                    id: item.id,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: item.children!
+                          .map((child) => _buildItem(child, isChild: true))
+                          .toList(),
+                    ),
+                  )
+                : const SizedBox(width: double.infinity, height: 0),
           ),
       ],
     );

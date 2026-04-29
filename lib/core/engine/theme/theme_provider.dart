@@ -29,4 +29,10 @@ class ThemeProvider extends ChangeNotifier {
     _visualStyle = VisualStyle.values[nextIndex];
     notifyListeners();
   }
+
+  void setVisualStyle(VisualStyle style) {
+    if (_visualStyle == style) return;
+    _visualStyle = style;
+    notifyListeners();
+  }
 }

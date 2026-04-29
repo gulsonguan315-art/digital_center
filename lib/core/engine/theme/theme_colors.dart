@@ -50,7 +50,7 @@ class ThemeColors extends ThemeExtension<ThemeColors> {
 
   factory ThemeColors.light() => const ThemeColors(
     adormColor: Color(0xFF673AB7),
-    surfaceBase: Color(0xFFF5F5F7),
+    surfaceBase: Color(0xFFD3D3D3),
     surfacePanel: Color(0xFFFFFFFF),
     surfaceOverlay: Color(0xFFFFFFFF),
     textPrimary: Color(0xDD000000),
@@ -58,8 +58,8 @@ class ThemeColors extends ThemeExtension<ThemeColors> {
     borderIdle: Color(0xFFE0E0E0),
     surfaceBorder: Color(0x1F000000),
     silk: Colors.black,
-    backgroundCustom: Colors.white,
-    sidebarMain: Color(0xFFF1F2F5),
+    backgroundCustom: Color(0xFFD3D3D3),
+    sidebarMain: Color(0xFF778899),
     sidebarForeground: Color(0xE0121826),
     sidebarForegroundActive: Color(0xFF673AB7),
     sidebarForegroundDisabled: Color(0x66121826),

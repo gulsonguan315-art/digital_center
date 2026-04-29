@@ -42,103 +42,48 @@ class SuperFocusButton extends StatelessWidget {
             final themeColors = Theme.of(context).extension<ThemeColors>()!;
             final themeVisuals = Theme.of(context).extension<ThemeVisuals>()!;
 
-            // 统一透明度处理：全员玻璃化
-            final Color baseSurface = isWaiting
-                ? themeColors.borderIdle
-                : (hasFocus
-                      ? themeColors.adormColor
-                      : themeColors.surfacePanel);
-
-            final bgColor = baseSurface.withValues(
-              alpha: themeVisuals.surfaceOpacity,
-            );
-
-            return ClipRRect(
-              borderRadius: themeVisuals.defaultRadius,
-              child: BackdropFilter(
-                filter: ui.ImageFilter.blur(
-                  sigmaX: themeVisuals.glassBlur,
-                  sigmaY: themeVisuals.glassBlur,
+            return themeVisuals.buttonSurface.apply(
+              context,
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 14,
                 ),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 14,
-                  ),
-                  decoration: BoxDecoration(
-                    color: bgColor,
-                    borderRadius: themeVisuals.defaultRadius,
-                    border: Border.all(
-                      color: isWaiting
-                          ? themeColors.adormColor.withValues(alpha: 0.4)
-                          : (hasFocus
-                                ? themeColors.adormColor.withValues(alpha: 0.8)
-                                : themeColors.surfaceBorder),
-                      width: themeVisuals.borderThickness,
-                    ),
-                    boxShadow: themeVisuals.glassBlur > 0
-                        ? [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.05),
-                              blurRadius: 10,
-                              offset: const Offset(0, 4),
-                            ),
-                          ]
-                        : [],
-                  ),
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      // 高光反射层 (仅在玻璃模式下显示)
-                      if (themeVisuals.glassBlur > 0)
-                        Positioned.fill(
-                          child: Container(
-                            decoration: BoxDecoration(
-                              borderRadius: themeVisuals.defaultRadius,
-                              gradient: LinearGradient(
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                                colors: [
-                                  Colors.white.withValues(alpha: 0.15),
-                                  Colors.transparent,
-                                  Colors.black.withValues(alpha: 0.02),
-                                ],
-                              ),
-                            ),
-                          ),
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    // 正常文字
+                    Opacity(
+                      opacity: isWaiting ? 0.0 : 1.0,
+                      child: Text(
+                        label,
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: hasFocus
+                              ? themeColors.adormColor
+                              : themeColors.textPrimary,
+                          fontWeight:
+                              hasFocus ? FontWeight.bold : FontWeight.normal,
                         ),
-                      // 正常文字
-                      Opacity(
-                        opacity: isWaiting ? 0.0 : 1.0,
-                        child: Text(
-                          label,
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: hasFocus
-                                ? themeColors.adormColor
-                                : themeColors.textPrimary,
-                            fontWeight: hasFocus
-                                ? FontWeight.bold
-                                : FontWeight.normal,
+                      ),
+                    ),
+                    // Loading 动画
+                    if (isWaiting)
+                      SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation(
+                            themeColors.adormColor,
                           ),
                         ),
                       ),
-                      // Loading 动画
-                      if (isWaiting)
-                        SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation(
-                              themeColors.adormColor,
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
+                  ],
                 ),
               ),
+              isFocused: hasFocus,
+              isWaiting: isWaiting,
             );
           },
         );
