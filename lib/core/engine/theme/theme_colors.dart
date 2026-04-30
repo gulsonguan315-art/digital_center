@@ -51,7 +51,7 @@ class ThemeColors extends ThemeExtension<ThemeColors> {
   factory ThemeColors.light() => const ThemeColors(
     adormColor: Color(0xFF673AB7),
     surfaceBase: Color(0xFFD3D3D3),
-    surfacePanel: Color(0xFFFFFFFF),
+    surfacePanel: Color(0xFF778899),
     surfaceOverlay: Color(0xFFFFFFFF),
     textPrimary: Color(0xDD000000),
     textSecondary: Color(0x8A000000),

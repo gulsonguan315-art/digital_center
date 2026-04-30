@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../core/control/superfocus/focus_manager.dart';
-import '../../core/engine/theme/theme_provider.dart';
 import '../../core/engine/theme/theme_colors.dart';
-import '../../modules/resident/sidebar/sidebar_view.dart';
 import '../../modules/resident/settings/setting_page.dart';
+import '../../modules/resident/sidebar/sidebar_view.dart';
 
 class BuildingPage extends StatelessWidget {
   const BuildingPage({super.key});
@@ -17,10 +16,7 @@ class BuildingPage extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // 侧边栏：现在处于 Row 的顶层，实现上下顶满视窗
           const SidebarView(),
-
-          // 内容区
           Expanded(
             child: Scaffold(
               backgroundColor: Colors.transparent,
@@ -29,7 +25,7 @@ class BuildingPage extends StatelessWidget {
                 backgroundColor: Colors.transparent,
                 elevation: 0,
               ),
-              body: _MainContent(),
+              body: const _MainContent(),
             ),
           ),
         ],
@@ -39,8 +35,12 @@ class BuildingPage extends StatelessWidget {
 }
 
 class _MainContent extends StatelessWidget {
+  const _MainContent();
+
   @override
   Widget build(BuildContext context) {
+    final themeColors = Theme.of(context).extension<ThemeColors>()!;
+
     return ValueListenableBuilder<FocusTopology>(
       valueListenable: SuperFocusManager.instance.topologyNotifier,
       builder: (context, topology, _) {
@@ -62,13 +62,13 @@ class _MainContent extends StatelessWidget {
                   Icon(
                     Icons.dashboard_customize_outlined,
                     size: 64,
-                    color: Colors.white.withValues(alpha: 0.1),
+                    color: themeColors.textPrimary.withValues(alpha: 0.12),
                   ),
                   const SizedBox(height: 24),
                   Text(
                     '中心轴心就绪',
                     style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.2),
+                      color: themeColors.textSecondary.withValues(alpha: 0.6),
                       fontSize: 20,
                       letterSpacing: 4,
                       fontWeight: FontWeight.w200,

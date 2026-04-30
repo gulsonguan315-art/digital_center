@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
-import '../../../core/control/superfocus/focus_manager.dart';
 import '../../../core/control/superfocus/focus_geometry.dart';
+import '../../../core/control/superfocus/focus_manager.dart';
 import '../../../core/control/superfocus/focus_widgets.dart';
+import '../../../core/engine/theme/theme_colors.dart';
 import 'sidebar_metrics.dart';
+import 'sidebar_room.dart';
 import 'sidebar_surface.dart';
 import 'sidebar_tile.dart';
-import 'sidebar_room.dart';
 
 class SidebarView extends StatefulWidget {
   const SidebarView({super.key});
@@ -16,7 +17,7 @@ class SidebarView extends StatefulWidget {
 
 class _SidebarViewState extends State<SidebarView> {
   String _activeId = SidebarRoom.dashboardId;
-  String? _expandedZoneId; // 当前展开的区域 ID
+  String? _expandedZoneId;
   final Map<String, GlobalKey> _tileKeys = {};
 
   final List<SidebarItemData> _items = [
@@ -106,7 +107,7 @@ class _SidebarViewState extends State<SidebarView> {
   }
 
   void _registerKeys(List<SidebarItemData> items) {
-    for (var item in items) {
+    for (final item in items) {
       _tileKeys[item.id] = GlobalKey();
       if (item.children != null) {
         _registerKeys(item.children!);
@@ -116,6 +117,7 @@ class _SidebarViewState extends State<SidebarView> {
 
   bool _isLeafId(String id) {
     if (id == SidebarRoom.exitId) return true;
+
     bool visit(List<SidebarItemData> items) {
       for (final item in items) {
         final hasChildren = item.children != null && item.children!.isNotEmpty;
@@ -167,37 +169,38 @@ class _SidebarViewState extends State<SidebarView> {
 
   @override
   Widget build(BuildContext context) {
-    // 监听全局拓扑：当焦点在侧边栏内部切换时，通知 SidebarSurface 更新缺口位置
     return ValueListenableBuilder<FocusTopology>(
       valueListenable: SuperFocusManager.instance.topologyNotifier,
       builder: (context, topology, _) {
         return SidebarRoom(
-          child: SidebarSurface(
-            notchPath: _calculateNotchPath(),
-            child: Container(
-              width: SidebarMetrics.width,
-              padding: SidebarMetrics.contentPadding,
-              child: Column(
-                children: [
-                  const SizedBox(height: SidebarMetrics.brandTopGap),
-                  _SidebarBrandHeader(),
-                  const SizedBox(height: SidebarMetrics.headerItemsGap),
-                  ..._items.map(_buildItem),
-                  const Spacer(),
-                  SidebarTile(
-                    key: _tileKeys[SidebarRoom.exitId],
-                    id: SidebarRoom.exitId,
-                    label: 'exit',
-                    icon: Icons.power_settings_new_rounded,
-                    isActive: _activeId == SidebarRoom.exitId,
-                    autofocus: _activeId == SidebarRoom.exitId,
-                    onTap: () {
-                      setState(() {
-                        _activeId = SidebarRoom.exitId;
-                      });
-                    },
-                  ),
-                ],
+          child: SizedBox(
+            width: SidebarMetrics.width,
+            child: SidebarSurface(
+              notchPath: _calculateNotchPath(),
+              child: Padding(
+                padding: SidebarMetrics.contentPadding,
+                child: Column(
+                  children: [
+                    const SizedBox(height: SidebarMetrics.brandTopGap),
+                    const _SidebarBrandHeader(),
+                    const SizedBox(height: SidebarMetrics.headerItemsGap),
+                    ..._items.map(_buildItem),
+                    const Spacer(),
+                    SidebarTile(
+                      key: _tileKeys[SidebarRoom.exitId],
+                      id: SidebarRoom.exitId,
+                      label: 'exit',
+                      icon: Icons.power_settings_new_rounded,
+                      isActive: _activeId == SidebarRoom.exitId,
+                      autofocus: _activeId == SidebarRoom.exitId,
+                      onTap: () {
+                        setState(() {
+                          _activeId = SidebarRoom.exitId;
+                        });
+                      },
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -207,9 +210,9 @@ class _SidebarViewState extends State<SidebarView> {
   }
 
   Widget _buildItem(SidebarItemData item, {bool isChild = false}) {
-    final bool isExpanded = _expandedZoneId == item.id;
-    final bool hasChildren = item.children != null && item.children!.isNotEmpty;
-    final bool isLeaf = !hasChildren;
+    final isExpanded = _expandedZoneId == item.id;
+    final hasChildren = item.children != null && item.children!.isNotEmpty;
+    final isLeaf = !hasChildren;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -229,7 +232,6 @@ class _SidebarViewState extends State<SidebarView> {
             onTap: () {
               setState(() {
                 if (hasChildren) {
-                  // 如果点击的是已经展开的菜单，将其折叠；否则展开新菜单
                   _expandedZoneId = isExpanded ? null : item.id;
                 } else {
                   _activeId = item.id;
@@ -238,7 +240,6 @@ class _SidebarViewState extends State<SidebarView> {
             },
           ),
         ),
-        // 使用 AnimatedSize 实现丝滑的折叠展开动画
         if (hasChildren)
           AnimatedSize(
             duration: const Duration(milliseconds: 350),
@@ -278,8 +279,12 @@ class SidebarItemData {
 }
 
 class _SidebarBrandHeader extends StatelessWidget {
+  const _SidebarBrandHeader();
+
   @override
   Widget build(BuildContext context) {
+    final themeColors = Theme.of(context).extension<ThemeColors>()!;
+
     return Container(
       height: SidebarMetrics.brandHeaderHeight,
       padding: const EdgeInsets.symmetric(
@@ -287,21 +292,22 @@ class _SidebarBrandHeader extends StatelessWidget {
         vertical: SidebarMetrics.brandPanelPaddingVertical,
       ),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.05),
+        color: themeColors.surfaceOverlay.withValues(alpha: 0.72),
         borderRadius: BorderRadius.circular(SidebarMetrics.brandPanelRadius),
+        border: Border.all(color: themeColors.surfaceBorder),
       ),
       child: Row(
         children: [
-          const Icon(Icons.blur_on_rounded, size: 32, color: Colors.blueAccent),
+          Icon(Icons.blur_on_rounded, size: 32, color: themeColors.adormColor),
           const SizedBox(width: 12),
           Column(
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: const [
+            children: [
               Text(
                 'Digital',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: themeColors.textPrimary,
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
                 ),
@@ -309,7 +315,7 @@ class _SidebarBrandHeader extends StatelessWidget {
               Text(
                 'CENTER',
                 style: TextStyle(
-                  color: Colors.white54,
+                  color: themeColors.textSecondary,
                   fontSize: 10,
                   letterSpacing: 2,
                 ),

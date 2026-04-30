@@ -23,17 +23,20 @@ class GlassSurfaceEffect extends SurfaceEffect {
     required bool isFocused,
     bool isWaiting = false,
     BorderRadiusGeometry? borderRadius,
+    Color? fillColor,
   }) {
     final themeColors = Theme.of(context).extension<ThemeColors>()!;
     final themeVisuals = Theme.of(context).extension<ThemeVisuals>()!;
     final radius = borderRadius ?? themeVisuals.defaultRadius;
+    final surfaceColor = fillColor ?? themeColors.surfacePanel;
 
     final Color baseSurface = isWaiting
         ? themeColors.adormColor
-        : (transparentIdle ? Colors.transparent : themeColors.surfacePanel);
+        : (transparentIdle ? Colors.transparent : surfaceColor);
 
-    final double effectiveOpacity =
-        (isWaiting || !transparentIdle) ? (isWaiting ? 0.8 : surfaceOpacity) : 0.0;
+    final double effectiveOpacity = (isWaiting || !transparentIdle)
+        ? (isWaiting ? 0.8 : surfaceOpacity)
+        : 0.0;
     final Color bgColor = baseSurface.withValues(alpha: effectiveOpacity);
 
     return ClipRRect(
@@ -52,8 +55,8 @@ class GlassSurfaceEffect extends SurfaceEffect {
               color: isWaiting
                   ? themeColors.adormColor.withValues(alpha: 0.8)
                   : (transparentIdle
-                      ? Colors.transparent
-                      : themeColors.surfaceBorder),
+                        ? Colors.transparent
+                        : themeColors.surfaceBorder),
               width: borderThickness,
             ),
           ),
@@ -101,24 +104,24 @@ class GlassSurfaceEffect extends SurfaceEffect {
 }
 
 /// 玻璃拟态/亚克力风格预设
-final glassVisuals = ThemeVisuals(
+ThemeVisuals get glassVisuals => ThemeVisuals(
   buttonSurface: const GlassSurfaceEffect(
-    glassBlur: 1.65,
-    surfaceOpacity: 0.5,
+    glassBlur: 12.0,
+    surfaceOpacity: 0.28,
     borderThickness: 1.5,
   ),
   switchSurface: const GlassSurfaceEffect(
-    glassBlur: 1.65,
-    surfaceOpacity: 0.5,
+    glassBlur: 10.0,
+    surfaceOpacity: 0.24,
     borderThickness: 1.5,
     transparentIdle: true,
   ),
-  defaultRadius: BorderRadius.circular(6),
+  panelSurface: const GlassSurfaceEffect(
+    glassBlur: 18.0,
+    surfaceOpacity: 0.38,
+    borderThickness: 1.0,
+  ),
+  defaultRadius: BorderRadius.circular(18),
   focusGlowRadius: 40.0,
   focusGlowOpacity: 0.45,
-  sidebar: const SidebarVisual(
-    surfaceEffect: NoSidebarSurfaceEffect(),
-    activeContentEffect: NoSidebarContentEffect(),
-    activeScale: 1.0,
-  ),
 );

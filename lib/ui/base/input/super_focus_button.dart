@@ -1,4 +1,3 @@
-import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import '../../../core/control/superfocus/focus_widgets.dart';
 import '../../../core/control/superfocus/focus_manager.dart';
@@ -62,8 +61,9 @@ class SuperFocusButton extends StatelessWidget {
                           color: hasFocus
                               ? themeColors.adormColor
                               : themeColors.textPrimary,
-                          fontWeight:
-                              hasFocus ? FontWeight.bold : FontWeight.normal,
+                          fontWeight: hasFocus
+                              ? FontWeight.bold
+                              : FontWeight.normal,
                         ),
                       ),
                     ),

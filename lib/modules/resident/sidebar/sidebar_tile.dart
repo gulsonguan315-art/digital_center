@@ -28,13 +28,12 @@ class SidebarTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final themeColors = Theme.of(context).extension<ThemeColors>()!;
-    final sidebarVisual = Theme.of(context).extension<ThemeVisuals>()!.sidebar;
+    final themeVisuals = Theme.of(context).extension<ThemeVisuals>()!;
 
     return SuperFocusItem(
       id: id,
       autofocus: autofocus,
       onPressed: isDisabled ? null : () => onTap?.call(),
-      // 侧边栏专属的几何形状：激活项右侧开口，与 Surface 的缺口对接
       focusGeometry: SidebarTileFocusGeometry(
         borderRadius: BorderRadius.circular(SidebarMetrics.tileRadius),
         openRightness: isActive ? 1.0 : 0.0,
@@ -43,6 +42,14 @@ class SidebarTile extends StatelessWidget {
       builder: (context, isFocused) {
         final foreground = _resolveForeground(themeColors);
         final background = _resolveBackground(themeColors, isFocused);
+        final activeShadows = isActive && !isDisabled
+            ? themeVisuals.panelSurface.foregroundShadows(
+                context: context,
+                foregroundColor: foreground,
+                isFocused: true,
+                fillColor: themeColors.sidebarMain,
+              )
+            : null;
 
         return AnimatedContainer(
           duration: const Duration(milliseconds: 200),
@@ -57,21 +64,27 @@ class SidebarTile extends StatelessWidget {
           ),
           child: Row(
             children: [
-              _SidebarIcon(
-                icon: icon ?? Icons.circle,
+              Icon(
+                icon ?? Icons.circle,
+                size: SidebarMetrics.iconSize,
                 color: foreground,
-                isActive: isActive,
-                enabled: !isDisabled,
-                visual: sidebarVisual,
+                shadows: activeShadows,
               ),
               const SizedBox(width: SidebarMetrics.iconGap),
               Expanded(
-                child: _SidebarLabel(
-                  label: label,
-                  color: foreground,
-                  isActive: isActive,
-                  enabled: !isDisabled,
-                  visual: sidebarVisual,
+                child: AnimatedDefaultTextStyle(
+                  duration: const Duration(milliseconds: 200),
+                  style: TextStyle(
+                    color: foreground,
+                    fontSize: SidebarMetrics.labelSize,
+                    fontWeight: isActive ? FontWeight.w700 : FontWeight.w600,
+                    shadows: activeShadows,
+                  ),
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
               ),
             ],
@@ -91,72 +104,5 @@ class SidebarTile extends StatelessWidget {
     if (isActive) return Colors.transparent;
     if (isFocused) return themeColors.sidebarBackgroundFocused;
     return Colors.transparent;
-  }
-}
-
-class _SidebarIcon extends StatelessWidget {
-  const _SidebarIcon({
-    required this.icon,
-    required this.color,
-    required this.isActive,
-    required this.enabled,
-    required this.visual,
-  });
-
-  final IconData icon;
-  final Color color;
-  final bool isActive;
-  final bool enabled;
-  final SidebarVisual visual;
-
-  @override
-  Widget build(BuildContext context) {
-    if (!isActive || !enabled) {
-      return Icon(icon, size: SidebarMetrics.iconSize, color: color);
-    }
-
-    return Transform.scale(
-      scale: visual.activeScale,
-      child: Icon(
-        icon,
-        size: SidebarMetrics.iconSize,
-        color: color,
-        shadows: visual.activeContentEffect.shadowsFor(color),
-      ),
-    );
-  }
-}
-
-class _SidebarLabel extends StatelessWidget {
-  const _SidebarLabel({
-    required this.label,
-    required this.color,
-    required this.isActive,
-    required this.enabled,
-    required this.visual,
-  });
-
-  final String label;
-  final Color color;
-  final bool isActive;
-  final bool enabled;
-  final SidebarVisual visual;
-
-  @override
-  Widget build(BuildContext context) {
-    final style = TextStyle(
-      color: color,
-      fontSize: SidebarMetrics.labelSize,
-      fontWeight: isActive ? FontWeight.w700 : FontWeight.w600,
-      shadows: isActive && enabled
-          ? visual.activeContentEffect.shadowsFor(color)
-          : null,
-    );
-
-    return AnimatedDefaultTextStyle(
-      duration: const Duration(milliseconds: 200),
-      style: style,
-      child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
-    );
   }
 }

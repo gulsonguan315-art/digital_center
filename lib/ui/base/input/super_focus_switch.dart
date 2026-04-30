@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
+import '../../../core/control/superfocus/focus_geometry.dart';
 import '../../../core/control/superfocus/focus_widgets.dart';
 import '../../../core/engine/theme/theme_colors.dart';
 import '../../../core/engine/theme/theme_visuals.dart';
 
-/// 选项原子项 - 属于子房间
 class _OptionItem<T> extends StatelessWidget {
   final String id;
   final String label;
@@ -24,14 +24,16 @@ class _OptionItem<T> extends StatelessWidget {
     return SuperFocusItem(
       id: id,
       onPressed: onToggle,
+      focusGeometry: RoundedRectFocusGeometry(
+        borderRadius: BorderRadius.circular(8),
+      ),
       builder: (context, hasFocus) {
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(8),
-            // 选项获得焦点时可以有微弱背景
             color: hasFocus
-                ? themeColors.textPrimary.withOpacity(0.05)
+                ? themeColors.textPrimary.withValues(alpha: 0.05)
                 : Colors.transparent,
           ),
           child: Row(
@@ -45,7 +47,7 @@ class _OptionItem<T> extends StatelessWidget {
                   border: Border.all(
                     color: isSelected
                         ? themeColors.adormColor
-                        : themeColors.textPrimary.withOpacity(0.2),
+                        : themeColors.textPrimary.withValues(alpha: 0.2),
                     width: 2,
                   ),
                 ),
@@ -68,7 +70,7 @@ class _OptionItem<T> extends StatelessWidget {
                   fontSize: 15,
                   color: isSelected
                       ? themeColors.textPrimary
-                      : themeColors.textPrimary.withOpacity(0.7),
+                      : themeColors.textPrimary.withValues(alpha: 0.7),
                   fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                 ),
               ),
@@ -80,8 +82,6 @@ class _OptionItem<T> extends StatelessWidget {
   }
 }
 
-/// 区域级选择器 - 组件即房间 (Component as Room)
-/// 区域级选择器 - 组件即房间 (Component as Room)
 class SuperFocusSelect<T> extends StatefulWidget {
   final String id;
   final String title;
@@ -105,7 +105,6 @@ class SuperFocusSelect<T> extends StatefulWidget {
 }
 
 class _SuperFocusSelectState<T> extends State<SuperFocusSelect<T>> {
-  // 神奇的 GlobalKey，用来在 UI 包装结构剧变时，保住内部选项与 FocusNode 的命
   final GlobalKey _contentKey = GlobalKey();
 
   @override
@@ -113,12 +112,13 @@ class _SuperFocusSelectState<T> extends State<SuperFocusSelect<T>> {
     final themeColors = Theme.of(context).extension<ThemeColors>()!;
     final themeVisuals = Theme.of(context).extension<ThemeVisuals>()!;
 
-    // 1. 最外层是大门，它注册在父房间中（不受 apply 结构变化的影响）
     return SuperFocusItem(
       id: widget.id,
       onPressed: () {},
+      focusGeometry: RoundedRectFocusGeometry(
+        borderRadius: themeVisuals.defaultRadius as BorderRadius,
+      ),
       builder: (context, isGateFocused) {
-        // 2. 大门内部，开启子房间作用域
         return widget.roomBuilder(
           _buildInternalContent(
             context,
@@ -137,11 +137,10 @@ class _SuperFocusSelectState<T> extends State<SuperFocusSelect<T>> {
     ThemeColors themeColors,
     ThemeVisuals themeVisuals,
   ) {
-    final bool isRoomActive = RoomScope.of(context)?.isActive ?? false;
+    final isRoomActive = RoomScope.of(context)?.isActive ?? false;
 
-    // 将核心内容单独抽出来，并挂上 GlobalKey
     final coreContent = Padding(
-      key: _contentKey, // 👈 护身符在这里
+      key: _contentKey,
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -179,7 +178,7 @@ class _SuperFocusSelectState<T> extends State<SuperFocusSelect<T>> {
               final index = entry.key;
               final option = entry.value;
               return _OptionItem<T>(
-                id: "${widget.id}_opt_$index",
+                id: '${widget.id}_opt_$index',
                 label: option.value,
                 isSelected: widget.selectedValues.contains(option.key),
                 onToggle: () => widget.onToggle(option.key),
@@ -195,7 +194,7 @@ class _SuperFocusSelectState<T> extends State<SuperFocusSelect<T>> {
       opacity: isRoomActive || isGateFocused ? 1.0 : 0.5,
       child: themeVisuals.buttonSurface.apply(
         context,
-        coreContent, // 将挂有护身符的 content 丢进加工机
+        coreContent,
         isFocused: isGateFocused,
       ),
     );

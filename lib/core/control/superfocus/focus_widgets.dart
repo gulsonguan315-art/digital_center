@@ -182,9 +182,13 @@ class _SuperFocusItemState extends State<SuperFocusItem> {
     super.dispose();
   }
 
+  // 修改后
   void _reportFocus() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted || !_hasFocus) return;
+      // 【核心修复】：将 !_hasFocus 替换为 !_focusNode.hasPrimaryFocus
+      // 绝对禁止父级“大门”因为焦点冒泡而抢夺子节点的游标！
+      if (!mounted || !_focusNode.hasPrimaryFocus) return;
+
       final renderBox = context.findRenderObject() as RenderBox?;
       if (renderBox == null || !renderBox.hasSize) return;
 
@@ -199,7 +203,7 @@ class _SuperFocusItemState extends State<SuperFocusItem> {
               const RoundedRectFocusGeometry(
                 borderRadius: BorderRadius.all(Radius.circular(12)),
               ),
-          isFocused: _hasFocus,
+          isFocused: true, // 既然有 PrimaryFocus，必定为 true
           context: context,
         ),
       );

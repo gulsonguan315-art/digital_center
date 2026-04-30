@@ -13,115 +13,214 @@ class SidebarSurface extends StatelessWidget {
   Widget build(BuildContext context) {
     final themeColors = Theme.of(context).extension<ThemeColors>()!;
     final themeVisuals = Theme.of(context).extension<ThemeVisuals>()!;
+    final chrome = themeVisuals.panelSurface.chrome(
+      context: context,
+      isFocused: false,
+      fillColor: themeColors.sidebarMain,
+    );
+    final borderRadius = const BorderRadius.only(
+      topRight: Radius.circular(SidebarMetrics.surfaceRadius),
+      bottomRight: Radius.circular(SidebarMetrics.surfaceRadius),
+    );
 
-    return CustomPaint(
-      painter: SidebarNotchPainter(
-        surfaceColor: themeColors.sidebarMain,
-        surfaceEffect: themeVisuals.sidebar.surfaceEffect,
-        notchPath: notchPath,
-      ),
-      child: child,
+    if (chrome == null) {
+      return Stack(
+        fit: StackFit.expand,
+        clipBehavior: Clip.none,
+        children: [
+          Positioned.fill(
+            child: ClipPath(
+              clipper: _SidebarSurfaceClipper(notchPath: notchPath),
+              child: themeVisuals.panelSurface.apply(
+                context,
+                const SizedBox.expand(),
+                isFocused: false,
+                borderRadius: borderRadius,
+                fillColor: themeColors.sidebarMain,
+              ),
+            ),
+          ),
+          child,
+        ],
+      );
+    }
+
+    return Stack(
+      fit: StackFit.expand,
+      clipBehavior: Clip.none,
+      children: [
+        if (chrome.outerShadows.isNotEmpty)
+          Positioned.fill(
+            child: IgnorePointer(
+              child: CustomPaint(
+                painter: _SidebarShadowPainter(
+                  notchPath: notchPath,
+                  shadows: chrome.outerShadows,
+                ),
+              ),
+            ),
+          ),
+        Positioned.fill(
+          child: IgnorePointer(
+            child: CustomPaint(
+              painter: _SidebarSurfacePainter(
+                notchPath: notchPath,
+                fillColor: themeColors.sidebarMain,
+                borderColor: chrome.borderColor ?? Colors.transparent,
+                borderWidth: chrome.borderWidth,
+                borderBlur: chrome.borderBlur,
+                innerHighlightColor: chrome.innerHighlightColor,
+                innerHighlightWidth: chrome.innerHighlightWidth,
+                innerHighlightBlur: chrome.innerHighlightBlur,
+              ),
+            ),
+          ),
+        ),
+        child,
+      ],
     );
   }
 }
 
-class SidebarNotchPainter extends CustomPainter {
-  SidebarNotchPainter({
-    required this.surfaceColor,
-    required this.surfaceEffect,
-    required this.notchPath,
-  });
+class _SidebarSurfaceClipper extends CustomClipper<Path> {
+  const _SidebarSurfaceClipper({required this.notchPath});
 
-  final Color surfaceColor;
-  final SidebarSurfaceEffect surfaceEffect;
   final Path? notchPath;
 
   @override
+  Path getClip(Size size) {
+    return _SidebarSurfacePainter(
+      notchPath: notchPath,
+      fillColor: Colors.transparent,
+      borderColor: Colors.transparent,
+    ).buildPath(size);
+  }
+
+  @override
+  bool shouldReclip(_SidebarSurfaceClipper oldClipper) {
+    return oldClipper.notchPath != notchPath;
+  }
+}
+
+class _SidebarSurfacePainter extends CustomPainter {
+  const _SidebarSurfacePainter({
+    required this.notchPath,
+    required this.fillColor,
+    required this.borderColor,
+    this.borderWidth = 0,
+    this.borderBlur = 0,
+    this.innerHighlightColor,
+    this.innerHighlightWidth = 0,
+    this.innerHighlightBlur = 0,
+  });
+
+  final Path? notchPath;
+  final Color fillColor;
+  final Color borderColor;
+  final double borderWidth;
+  final double borderBlur;
+  final Color? innerHighlightColor;
+  final double innerHighlightWidth;
+  final double innerHighlightBlur;
+
+  @override
   void paint(Canvas canvas, Size size) {
-    final platePath = _getPlatePath(size);
-    final finalPath = _getFinalPath(platePath);
+    final path = buildPath(size);
+    final fillPaint = Paint()..color = fillColor;
 
-    _paintSurfaceEffect(canvas, finalPath);
+    canvas.drawPath(path, fillPaint);
 
-    final fillPaint = Paint()..color = surfaceColor;
-    canvas.drawPath(finalPath, fillPaint);
+    if (borderWidth > 0) {
+      final borderPaint = Paint()
+        ..color = borderColor
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = borderWidth
+        ..maskFilter = borderBlur > 0
+            ? MaskFilter.blur(BlurStyle.normal, borderBlur)
+            : null;
+      canvas.save();
+      canvas.clipPath(path);
+      canvas.drawPath(path, borderPaint);
+      canvas.restore();
+    }
 
-    _paintSurfaceOverlay(canvas, finalPath);
-  }
-
-  void _paintSurfaceEffect(Canvas canvas, Path path) {
-    switch (surfaceEffect) {
-      case NoSidebarSurfaceEffect():
-        return;
-      case NeumorphSidebarSurfaceEffect effect:
-        final keyShadowPaint = Paint()
-          ..color = effect.keyShadowColor
-          ..maskFilter = MaskFilter.blur(
-            BlurStyle.normal,
-            effect.keyShadowBlur,
-          );
-
-        final ambientShadowPaint = Paint()
-          ..color = effect.ambientShadowColor
-          ..maskFilter = MaskFilter.blur(
-            BlurStyle.normal,
-            effect.ambientShadowBlur,
-          );
-
-        canvas.save();
-        canvas.translate(effect.keyShadowOffset.dx, effect.keyShadowOffset.dy);
-        canvas.drawPath(path, keyShadowPaint);
-        canvas.restore();
-
-        canvas.save();
-        canvas.translate(
-          effect.ambientShadowOffset.dx,
-          effect.ambientShadowOffset.dy,
-        );
-        canvas.drawPath(path, ambientShadowPaint);
-        canvas.restore();
+    if (innerHighlightColor != null && innerHighlightWidth > 0) {
+      final innerHighlightPaint = Paint()
+        ..color = innerHighlightColor!
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = innerHighlightWidth
+        ..maskFilter = innerHighlightBlur > 0
+            ? MaskFilter.blur(BlurStyle.normal, innerHighlightBlur)
+            : null;
+      canvas.save();
+      canvas.clipPath(path);
+      canvas.drawPath(path, innerHighlightPaint);
+      canvas.restore();
     }
   }
 
-  void _paintSurfaceOverlay(Canvas canvas, Path path) {
-    switch (surfaceEffect) {
-      case NoSidebarSurfaceEffect():
-        return;
-      case NeumorphSidebarSurfaceEffect effect:
-        if (effect.borderWidth <= 0) return;
-        final rimPaint = Paint()
-          ..color = effect.borderColor
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = effect.borderWidth;
-        canvas.drawPath(path, rimPaint);
-    }
-  }
+  Path buildPath(Size size) {
+    final platePath = Path()
+      ..addRRect(
+        RRect.fromLTRBAndCorners(
+          0,
+          0,
+          SidebarMetrics.width,
+          size.height,
+          topRight: const Radius.circular(SidebarMetrics.surfaceRadius),
+          bottomRight: const Radius.circular(SidebarMetrics.surfaceRadius),
+        ),
+      );
 
-  Path _getPlatePath(Size size) {
-    final r = SidebarMetrics.surfaceRadius;
-    return Path()..addRRect(
-      RRect.fromLTRBAndCorners(
-        0,
-        0,
-        SidebarMetrics.width,
-        size.height,
-        topRight: Radius.circular(r),
-        bottomRight: Radius.circular(r),
-      ),
-    );
-  }
-
-  Path _getFinalPath(Path platePath) {
     if (notchPath == null) {
       return platePath;
     }
+
     return Path.combine(PathOperation.difference, platePath, notchPath!);
   }
 
   @override
-  bool shouldRepaint(SidebarNotchPainter oldDelegate) {
+  bool shouldRepaint(_SidebarSurfacePainter oldDelegate) {
     return oldDelegate.notchPath != notchPath ||
-        oldDelegate.surfaceEffect != surfaceEffect ||
-        oldDelegate.surfaceColor != surfaceColor;
+        oldDelegate.fillColor != fillColor ||
+        oldDelegate.borderColor != borderColor ||
+        oldDelegate.borderWidth != borderWidth ||
+        oldDelegate.borderBlur != borderBlur ||
+        oldDelegate.innerHighlightColor != innerHighlightColor ||
+        oldDelegate.innerHighlightWidth != innerHighlightWidth ||
+        oldDelegate.innerHighlightBlur != innerHighlightBlur;
+  }
+}
+
+class _SidebarShadowPainter extends CustomPainter {
+  const _SidebarShadowPainter({required this.notchPath, required this.shadows});
+
+  final Path? notchPath;
+  final List<BoxShadow> shadows;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final finalPath = _SidebarSurfacePainter(
+      notchPath: notchPath,
+      fillColor: Colors.transparent,
+      borderColor: Colors.transparent,
+    ).buildPath(size);
+
+    for (final shadow in shadows) {
+      final paint = Paint()
+        ..color = shadow.color
+        ..maskFilter = shadow.blurRadius > 0
+            ? MaskFilter.blur(BlurStyle.normal, shadow.blurRadius)
+            : null;
+      canvas.save();
+      canvas.translate(shadow.offset.dx, shadow.offset.dy);
+      canvas.drawPath(finalPath, paint);
+      canvas.restore();
+    }
+  }
+
+  @override
+  bool shouldRepaint(_SidebarShadowPainter oldDelegate) {
+    return oldDelegate.notchPath != notchPath || oldDelegate.shadows != shadows;
   }
 }
