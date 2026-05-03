@@ -43,6 +43,8 @@ class SurfaceChrome {
     this.innerHighlightColor,
     this.innerHighlightWidth = 0,
     this.innerHighlightBlur = 0,
+    this.surfaceBlur = 0,
+    this.surfaceOpacity = 1.0,
   });
 
   final List<BoxShadow> outerShadows;
@@ -52,6 +54,8 @@ class SurfaceChrome {
   final Color? innerHighlightColor;
   final double innerHighlightWidth;
   final double innerHighlightBlur;
+  final double surfaceBlur;
+  final double surfaceOpacity;
 }
 
 @immutable

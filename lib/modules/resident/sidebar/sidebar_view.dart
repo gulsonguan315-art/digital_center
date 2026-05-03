@@ -3,6 +3,8 @@ import '../../../core/control/superfocus/focus_geometry.dart';
 import '../../../core/control/superfocus/focus_manager.dart';
 import '../../../core/control/superfocus/focus_widgets.dart';
 import '../../../core/engine/theme/theme_colors.dart';
+import '../../../core/engine/theme/theme_visuals.dart';
+import '../../../core/layout/grid/grid_extensions.dart';
 import 'sidebar_metrics.dart';
 import 'sidebar_room.dart';
 import 'sidebar_surface.dart';
@@ -154,14 +156,14 @@ class _SidebarViewState extends State<SidebarView> {
     final rect = Rect.fromLTRB(
       localOffset.dx,
       localOffset.dy,
-      SidebarMetrics.width,
+      context.units(SidebarMetrics.widthU),
       localOffset.dy + tileBox.size.height,
     );
 
     final geometry = SidebarTileFocusGeometry(
-      borderRadius: BorderRadius.circular(SidebarMetrics.tileRadius),
+      borderRadius: BorderRadius.circular(context.units(SidebarMetrics.tileRadiusU)),
       openRightness: 1.0,
-      concaveRadius: SidebarMetrics.surfaceRadius,
+      concaveRadius: context.units(SidebarMetrics.surfaceRadiusU),
     );
 
     return geometry.buildCutoutPath(rect);
@@ -174,35 +176,40 @@ class _SidebarViewState extends State<SidebarView> {
       builder: (context, topology, _) {
         return SidebarRoom(
           child: SizedBox(
-            width: SidebarMetrics.width,
+            width: context.units(SidebarMetrics.widthU),
             child: SidebarSurface(
-              notchPath: _calculateNotchPath(),
-              child: Padding(
-                padding: SidebarMetrics.contentPadding,
-                child: Column(
-                  children: [
-                    const SizedBox(height: SidebarMetrics.brandTopGap),
-                    const _SidebarBrandHeader(),
-                    const SizedBox(height: SidebarMetrics.headerItemsGap),
-                    ..._items.map(_buildItem),
-                    const Spacer(),
-                    SidebarTile(
-                      key: _tileKeys[SidebarRoom.exitId],
-                      id: SidebarRoom.exitId,
-                      label: 'exit',
-                      icon: Icons.power_settings_new_rounded,
-                      isActive: _activeId == SidebarRoom.exitId,
-                      autofocus: _activeId == SidebarRoom.exitId,
-                      onTap: () {
-                        setState(() {
-                          _activeId = SidebarRoom.exitId;
-                        });
-                      },
-                    ),
-                  ],
-                ),
+            notchPath: _calculateNotchPath(),
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(
+                context.units(SidebarMetrics.contentPaddingLeftU),
+                context.units(SidebarMetrics.contentPaddingTopU),
+                context.units(SidebarMetrics.contentPaddingRightU),
+                context.units(SidebarMetrics.contentPaddingBottomU),
+              ),
+              child: Column(
+                children: [
+                  SizedBox(height: context.units(SidebarMetrics.brandTopGapU)),
+                  const _SidebarBrandHeader(),
+                  SizedBox(height: context.units(SidebarMetrics.headerItemsGapU)),
+                  ..._items.map(_buildItem),
+                  const Spacer(),
+                  SidebarTile(
+                    key: _tileKeys[SidebarRoom.exitId],
+                    id: SidebarRoom.exitId,
+                    label: 'exit',
+                    icon: Icons.power_settings_new_rounded,
+                    isActive: _activeId == SidebarRoom.exitId,
+                    autofocus: _activeId == SidebarRoom.exitId,
+                    onTap: () {
+                      setState(() {
+                        _activeId = SidebarRoom.exitId;
+                      });
+                    },
+                  ),
+                ],
               ),
             ),
+          ),
           ),
         );
       },
@@ -219,8 +226,8 @@ class _SidebarViewState extends State<SidebarView> {
       children: [
         Padding(
           padding: EdgeInsets.only(
-            bottom: SidebarMetrics.itemGap,
-            left: isChild ? 16 : 0,
+            bottom: context.units(SidebarMetrics.itemGapU),
+            left: isChild ? context.units(1.6) : 0,
           ),
           child: SidebarTile(
             key: _tileKeys[item.id],
@@ -285,45 +292,49 @@ class _SidebarBrandHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final themeColors = Theme.of(context).extension<ThemeColors>()!;
 
-    return Container(
-      height: SidebarMetrics.brandHeaderHeight,
-      padding: const EdgeInsets.symmetric(
-        horizontal: SidebarMetrics.brandPanelPaddingHorizontal,
-        vertical: SidebarMetrics.brandPanelPaddingVertical,
-      ),
-      decoration: BoxDecoration(
-        color: themeColors.surfaceOverlay.withValues(alpha: 0.72),
-        borderRadius: BorderRadius.circular(SidebarMetrics.brandPanelRadius),
-        border: Border.all(color: themeColors.surfaceBorder),
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.blur_on_rounded, size: 32, color: themeColors.adormColor),
-          const SizedBox(width: 12),
-          Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Digital',
-                style: TextStyle(
-                  color: themeColors.textPrimary,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
+    final themeVisuals = Theme.of(context).extension<ThemeVisuals>()!;
+    final radius = BorderRadius.circular(context.units(SidebarMetrics.brandPanelRadiusU));
+
+    return themeVisuals.panelSurface.apply(
+      context,
+      Container(
+        height: context.units(SidebarMetrics.brandHeaderHeightU),
+        padding: EdgeInsets.symmetric(
+          horizontal: context.units(SidebarMetrics.brandPanelPaddingHorizontalU),
+          vertical: context.units(SidebarMetrics.brandPanelPaddingVerticalU),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.blur_on_rounded, size: 32, color: themeColors.adormColor),
+            const SizedBox(width: 12),
+            Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Digital',
+                  style: TextStyle(
+                    color: themeColors.textPrimary,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
                 ),
-              ),
-              Text(
-                'CENTER',
-                style: TextStyle(
-                  color: themeColors.textSecondary,
-                  fontSize: 10,
-                  letterSpacing: 2,
+                Text(
+                  'CENTER',
+                  style: TextStyle(
+                    color: themeColors.textSecondary,
+                    fontSize: 10,
+                    letterSpacing: 2,
+                  ),
                 ),
-              ),
-            ],
-          ),
-        ],
+              ],
+            ),
+          ],
+        ),
       ),
+      isFocused: false,
+      borderRadius: radius,
+      fillColor: themeColors.surfaceOverlay.withValues(alpha: 0.72),
     );
   }
 }

@@ -6,12 +6,14 @@ import '../theme_colors.dart';
 class GlassSurfaceEffect extends SurfaceEffect {
   final double glassBlur;
   final double surfaceOpacity;
+  final double borderOpacity;
   final double borderThickness;
   final bool transparentIdle;
 
   const GlassSurfaceEffect({
     required this.glassBlur,
     required this.surfaceOpacity,
+    this.borderOpacity = 0.12, // 默认 12% 透明度 (原 0x1F)
     required this.borderThickness,
     this.transparentIdle = false,
   });
@@ -51,14 +53,16 @@ class GlassSurfaceEffect extends SurfaceEffect {
           decoration: BoxDecoration(
             color: bgColor,
             borderRadius: radius,
-            border: Border.all(
-              color: isWaiting
-                  ? themeColors.adormColor.withValues(alpha: 0.8)
-                  : (transparentIdle
-                        ? Colors.transparent
-                        : themeColors.surfaceBorder),
-              width: borderThickness,
-            ),
+            border: borderThickness > 0
+                ? Border.all(
+                    color: isWaiting
+                        ? themeColors.adormColor.withValues(alpha: 0.8)
+                        : (transparentIdle
+                            ? Colors.transparent
+                            : themeColors.surfaceBorder.withValues(alpha: borderOpacity)),
+                    width: borderThickness,
+                  )
+                : null,
           ),
           child: Stack(
             children: [
@@ -88,6 +92,28 @@ class GlassSurfaceEffect extends SurfaceEffect {
   }
 
   @override
+  SurfaceChrome chrome({
+    required BuildContext context,
+    required bool isFocused,
+    bool isWaiting = false,
+    Color? fillColor,
+  }) {
+    final themeColors = Theme.of(context).extension<ThemeColors>()!;
+    return SurfaceChrome(
+      borderColor: isWaiting
+          ? themeColors.adormColor.withValues(alpha: 0.8)
+          : (transparentIdle
+              ? Colors.transparent
+              : themeColors.surfaceBorder.withValues(alpha: borderOpacity)),
+      borderWidth: borderThickness,
+      surfaceBlur: !transparentIdle ? glassBlur : 0.0,
+      surfaceOpacity: (isWaiting || !transparentIdle)
+          ? (isWaiting ? 0.8 : surfaceOpacity)
+          : 0.0,
+    );
+  }
+
+  @override
   SurfaceEffect lerp(SurfaceEffect other, double t) {
     if (other is! GlassSurfaceEffect) return t < 0.5 ? this : other;
     return GlassSurfaceEffect(
@@ -95,6 +121,9 @@ class GlassSurfaceEffect extends SurfaceEffect {
       surfaceOpacity:
           ui.lerpDouble(surfaceOpacity, other.surfaceOpacity, t) ??
           surfaceOpacity,
+      borderOpacity:
+          ui.lerpDouble(borderOpacity, other.borderOpacity, t) ??
+          borderOpacity,
       borderThickness:
           ui.lerpDouble(borderThickness, other.borderThickness, t) ??
           borderThickness,
@@ -108,17 +137,20 @@ ThemeVisuals get glassVisuals => ThemeVisuals(
   buttonSurface: const GlassSurfaceEffect(
     glassBlur: 12.0,
     surfaceOpacity: 0.28,
+    borderOpacity: 0.12,
     borderThickness: 1.5,
   ),
   switchSurface: const GlassSurfaceEffect(
     glassBlur: 10.0,
     surfaceOpacity: 0.24,
+    borderOpacity: 0.12,
     borderThickness: 1.5,
     transparentIdle: true,
   ),
   panelSurface: const GlassSurfaceEffect(
     glassBlur: 18.0,
     surfaceOpacity: 0.38,
+    borderOpacity: 0.08,
     borderThickness: 1.0,
   ),
   defaultRadius: BorderRadius.circular(18),

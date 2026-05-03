@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../../ui/base/input/super_focus_switch.dart';
-import '../../../ui/base/input/super_focus_button.dart';
+import '../../../ui/base/input/ui_base_switch.dart';
+import '../../../ui/base/input/ui_base_button.dart';
 import '../../../core/engine/theme/theme_provider.dart';
 import '../../../core/engine/theme/theme_visuals.dart';
 import 'setting_page_room.dart';

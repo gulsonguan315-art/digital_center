@@ -1,6 +1,8 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../../../core/engine/theme/theme_colors.dart';
 import '../../../core/engine/theme/theme_visuals.dart';
+import '../../../core/layout/grid/grid_extensions.dart';
 import 'sidebar_metrics.dart';
 
 class SidebarSurface extends StatelessWidget {
@@ -13,39 +15,19 @@ class SidebarSurface extends StatelessWidget {
   Widget build(BuildContext context) {
     final themeColors = Theme.of(context).extension<ThemeColors>()!;
     final themeVisuals = Theme.of(context).extension<ThemeVisuals>()!;
-    final chrome = themeVisuals.panelSurface.chrome(
-      context: context,
-      isFocused: false,
-      fillColor: themeColors.sidebarMain,
-    );
-    final borderRadius = const BorderRadius.only(
-      topRight: Radius.circular(SidebarMetrics.surfaceRadius),
-      bottomRight: Radius.circular(SidebarMetrics.surfaceRadius),
-    );
+    final chrome =
+        themeVisuals.panelSurface.chrome(
+          context: context,
+          isFocused: false,
+          fillColor: themeColors.sidebarMain,
+        ) ??
+        const SurfaceChrome();
 
-    if (chrome == null) {
-      return Stack(
-        fit: StackFit.expand,
-        clipBehavior: Clip.none,
-        children: [
-          Positioned.fill(
-            child: ClipPath(
-              clipper: _SidebarSurfaceClipper(notchPath: notchPath),
-              child: themeVisuals.panelSurface.apply(
-                context,
-                const SizedBox.expand(),
-                isFocused: false,
-                borderRadius: borderRadius,
-                fillColor: themeColors.sidebarMain,
-              ),
-            ),
-          ),
-          child,
-        ],
-      );
-    }
+    final Color fillColor = (chrome.surfaceOpacity < 1.0)
+        ? themeColors.sidebarMain.withValues(alpha: chrome.surfaceOpacity)
+        : themeColors.sidebarMain;
 
-    return Stack(
+    Widget content = Stack(
       fit: StackFit.expand,
       clipBehavior: Clip.none,
       children: [
@@ -56,6 +38,8 @@ class SidebarSurface extends StatelessWidget {
                 painter: _SidebarShadowPainter(
                   notchPath: notchPath,
                   shadows: chrome.outerShadows,
+                  width: context.units(SidebarMetrics.widthU),
+                  radius: context.units(SidebarMetrics.surfaceRadiusU),
                 ),
               ),
             ),
@@ -65,13 +49,15 @@ class SidebarSurface extends StatelessWidget {
             child: CustomPaint(
               painter: _SidebarSurfacePainter(
                 notchPath: notchPath,
-                fillColor: themeColors.sidebarMain,
+                fillColor: fillColor,
                 borderColor: chrome.borderColor ?? Colors.transparent,
                 borderWidth: chrome.borderWidth,
                 borderBlur: chrome.borderBlur,
                 innerHighlightColor: chrome.innerHighlightColor,
                 innerHighlightWidth: chrome.innerHighlightWidth,
                 innerHighlightBlur: chrome.innerHighlightBlur,
+                width: context.units(SidebarMetrics.widthU),
+                radius: context.units(SidebarMetrics.surfaceRadiusU),
               ),
             ),
           ),
@@ -79,6 +65,21 @@ class SidebarSurface extends StatelessWidget {
         child,
       ],
     );
+
+    if (chrome.surfaceBlur > 0) {
+      content = ClipPath(
+        clipper: _SidebarSurfaceClipper(notchPath: notchPath),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(
+            sigmaX: chrome.surfaceBlur,
+            sigmaY: chrome.surfaceBlur,
+          ),
+          child: content,
+        ),
+      );
+    }
+
+    return content;
   }
 }
 
@@ -93,6 +94,8 @@ class _SidebarSurfaceClipper extends CustomClipper<Path> {
       notchPath: notchPath,
       fillColor: Colors.transparent,
       borderColor: Colors.transparent,
+      width: SidebarMetrics.widthU * (size.height / 100), // 估算 U
+      radius: SidebarMetrics.surfaceRadiusU * (size.height / 100),
     ).buildPath(size);
   }
 
@@ -112,6 +115,8 @@ class _SidebarSurfacePainter extends CustomPainter {
     this.innerHighlightColor,
     this.innerHighlightWidth = 0,
     this.innerHighlightBlur = 0,
+    required this.width,
+    required this.radius,
   });
 
   final Path? notchPath;
@@ -122,6 +127,8 @@ class _SidebarSurfacePainter extends CustomPainter {
   final Color? innerHighlightColor;
   final double innerHighlightWidth;
   final double innerHighlightBlur;
+  final double width;
+  final double radius;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -134,7 +141,9 @@ class _SidebarSurfacePainter extends CustomPainter {
       final borderPaint = Paint()
         ..color = borderColor
         ..style = PaintingStyle.stroke
-        ..strokeWidth = borderWidth
+        ..strokeWidth =
+            borderWidth *
+            2 // 双倍线宽，配合裁剪实现 100% 内侧描边
         ..maskFilter = borderBlur > 0
             ? MaskFilter.blur(BlurStyle.normal, borderBlur)
             : null;
@@ -165,10 +174,10 @@ class _SidebarSurfacePainter extends CustomPainter {
         RRect.fromLTRBAndCorners(
           0,
           0,
-          SidebarMetrics.width,
+          width,
           size.height,
-          topRight: const Radius.circular(SidebarMetrics.surfaceRadius),
-          bottomRight: const Radius.circular(SidebarMetrics.surfaceRadius),
+          topRight: Radius.circular(radius),
+          bottomRight: Radius.circular(radius),
         ),
       );
 
@@ -188,15 +197,24 @@ class _SidebarSurfacePainter extends CustomPainter {
         oldDelegate.borderBlur != borderBlur ||
         oldDelegate.innerHighlightColor != innerHighlightColor ||
         oldDelegate.innerHighlightWidth != innerHighlightWidth ||
-        oldDelegate.innerHighlightBlur != innerHighlightBlur;
+        oldDelegate.innerHighlightBlur != innerHighlightBlur ||
+        oldDelegate.width != width ||
+        oldDelegate.radius != radius;
   }
 }
 
 class _SidebarShadowPainter extends CustomPainter {
-  const _SidebarShadowPainter({required this.notchPath, required this.shadows});
+  const _SidebarShadowPainter({
+    required this.notchPath,
+    required this.shadows,
+    required this.width,
+    required this.radius,
+  });
 
   final Path? notchPath;
   final List<BoxShadow> shadows;
+  final double width;
+  final double radius;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -204,6 +222,8 @@ class _SidebarShadowPainter extends CustomPainter {
       notchPath: notchPath,
       fillColor: Colors.transparent,
       borderColor: Colors.transparent,
+      width: width,
+      radius: radius,
     ).buildPath(size);
 
     for (final shadow in shadows) {
@@ -221,6 +241,9 @@ class _SidebarShadowPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_SidebarShadowPainter oldDelegate) {
-    return oldDelegate.notchPath != notchPath || oldDelegate.shadows != shadows;
+    return oldDelegate.notchPath != notchPath ||
+        oldDelegate.shadows != shadows ||
+        oldDelegate.width != width ||
+        oldDelegate.radius != radius;
   }
 }

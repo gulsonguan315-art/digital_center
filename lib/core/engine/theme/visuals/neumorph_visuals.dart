@@ -12,14 +12,14 @@ double get _globalNeumorphPrimaryShadowBlur => 10.0;
 double get _globalNeumorphSecondaryOffset => 4.0;
 double get _globalNeumorphSecondaryHighlightAlpha => 0.0;
 double get _globalNeumorphSecondaryHighlightBlur => 5.0;
-double get _globalNeumorphSecondaryShadowAlpha => 0.35;
+double get _globalNeumorphSecondaryShadowAlpha => 0.55;
 double get _globalNeumorphSecondaryShadowBlur => 5.0;
 
-double get _globalNeumorphBorderWidth => 5.5;
-double get _globalNeumorphBorderAlpha => 0.0;
-double get _globalNeumorphBorderBlur => 5.0;
+double get _globalNeumorphBorderWidth => 1.0;
+double get _globalNeumorphBorderAlpha => 0.2;
+double get _globalNeumorphBorderBlur => 1.0;
 double get _globalNeumorphInnerHighlightWidth => 1.0;
-double get _globalNeumorphInnerHighlightAlpha => 1.0;
+double get _globalNeumorphInnerHighlightAlpha => 0.0;
 double get _globalNeumorphInnerHighlightBlur => 0.0;
 
 double get _cardIdleScale => 0.8;
@@ -179,7 +179,9 @@ class NeumorphSurfaceEffect extends SurfaceEffect {
     required double scale,
   }) {
     final baseBorder = themeColors.surfaceBorder;
-    final borderColor = baseBorder.withValues(alpha: _globalNeumorphBorderAlpha);
+    final borderColor = baseBorder.withValues(
+      alpha: _globalNeumorphBorderAlpha,
+    );
     final resolvedInnerHighlightColor = innerHighlightColor?.withValues(
       alpha: _globalNeumorphInnerHighlightAlpha,
     );

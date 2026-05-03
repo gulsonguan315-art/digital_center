@@ -3,6 +3,7 @@ import '../../../core/control/superfocus/focus_geometry.dart';
 import '../../../core/control/superfocus/focus_widgets.dart';
 import '../../../core/engine/theme/theme_colors.dart';
 import '../../../core/engine/theme/theme_visuals.dart';
+import '../../../core/layout/grid/grid_extensions.dart';
 import 'sidebar_metrics.dart';
 
 class SidebarTile extends StatelessWidget {
@@ -35,9 +36,11 @@ class SidebarTile extends StatelessWidget {
       autofocus: autofocus,
       onPressed: isDisabled ? null : () => onTap?.call(),
       focusGeometry: SidebarTileFocusGeometry(
-        borderRadius: BorderRadius.circular(SidebarMetrics.tileRadius),
+        borderRadius: BorderRadius.circular(
+          context.units(SidebarMetrics.tileRadiusU),
+        ),
         openRightness: isActive ? 1.0 : 0.0,
-        concaveRadius: SidebarMetrics.surfaceRadius,
+        concaveRadius: context.units(SidebarMetrics.surfaceRadiusU),
       ),
       builder: (context, isFocused) {
         final foreground = _resolveForeground(themeColors);
@@ -53,30 +56,32 @@ class SidebarTile extends StatelessWidget {
 
         return AnimatedContainer(
           duration: const Duration(milliseconds: 200),
-          height: SidebarMetrics.tileHeight,
-          padding: const EdgeInsets.only(
-            left: SidebarMetrics.tilePaddingLeft,
-            right: SidebarMetrics.tilePaddingRight,
+          height: context.units(SidebarMetrics.tileHeightU),
+          padding: EdgeInsets.only(
+            left: context.units(SidebarMetrics.tilePaddingLeftU),
+            right: context.units(SidebarMetrics.tilePaddingRightU),
           ),
           decoration: BoxDecoration(
             color: background,
-            borderRadius: BorderRadius.circular(SidebarMetrics.tileRadius),
+            borderRadius: BorderRadius.circular(
+              context.units(SidebarMetrics.tileRadiusU),
+            ),
           ),
           child: Row(
             children: [
               Icon(
                 icon ?? Icons.circle,
-                size: SidebarMetrics.iconSize,
+                size: context.units(SidebarMetrics.iconSizeU),
                 color: foreground,
                 shadows: activeShadows,
               ),
-              const SizedBox(width: SidebarMetrics.iconGap),
+              SizedBox(width: context.units(SidebarMetrics.iconGapU)),
               Expanded(
                 child: AnimatedDefaultTextStyle(
                   duration: const Duration(milliseconds: 200),
                   style: TextStyle(
                     color: foreground,
-                    fontSize: SidebarMetrics.labelSize,
+                    fontSize: context.units(SidebarMetrics.labelSizeU),
                     fontWeight: isActive ? FontWeight.w700 : FontWeight.w600,
                     shadows: activeShadows,
                   ),
