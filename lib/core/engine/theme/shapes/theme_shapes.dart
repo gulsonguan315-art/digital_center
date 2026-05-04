@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
-
-import 'theme_role.dart';
+import '../theme_role.dart';
+import 'components/theme_rightangle.dart';
+import 'components/theme_soft.dart';
+import 'components/theme_round.dart';
 
 enum ShapeStyle { rightAngle, soft, round }
 
@@ -26,26 +28,9 @@ class ThemeShapeLayer extends ThemeExtension<ThemeShapeLayer> {
   final RoleShape appBackground;
   final RoleShape button;
 
-  factory ThemeShapeLayer.rightAngle() => const ThemeShapeLayer(
-    sidebar: RoleShape(radius: BorderRadius.zero, concaveRadius: 0),
-    card: RoleShape(radius: BorderRadius.zero),
-    appBackground: RoleShape(radius: BorderRadius.zero),
-    button: RoleShape(radius: BorderRadius.zero),
-  );
-
-  factory ThemeShapeLayer.soft() => ThemeShapeLayer(
-    sidebar: RoleShape(radius: BorderRadius.circular(24), concaveRadius: 24),
-    card: RoleShape(radius: BorderRadius.circular(24)),
-    appBackground: const RoleShape(radius: BorderRadius.zero),
-    button: RoleShape(radius: BorderRadius.circular(24)),
-  );
-
-  factory ThemeShapeLayer.round() => ThemeShapeLayer(
-    sidebar: RoleShape(radius: BorderRadius.circular(32), concaveRadius: 32),
-    card: RoleShape(radius: BorderRadius.circular(32)),
-    appBackground: const RoleShape(radius: BorderRadius.zero),
-    button: RoleShape(radius: BorderRadius.circular(999)),
-  );
+  factory ThemeShapeLayer.rightAngle() => rightAngleShapeLayer;
+  factory ThemeShapeLayer.soft() => softShapeLayer;
+  factory ThemeShapeLayer.round() => roundShapeLayer;
 
   RoleShape resolve(ThemeRole role) {
     return switch (role) {

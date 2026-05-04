@@ -1,6 +1,11 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 
+import '../theme_role.dart';
+import 'components/theme_flatvisual.dart';
+import 'components/theme_glassvisual.dart';
+import 'components/theme_neumorphvisual.dart';
+
 enum VisualStyle { flat, glass, neumorphic }
 
 abstract class SurfaceEffect {
@@ -66,60 +71,65 @@ class SurfaceState {
 }
 
 @immutable
-class ThemeVisuals extends ThemeExtension<ThemeVisuals> {
-  final SurfaceEffect buttonSurface;
-  final SurfaceEffect switchSurface;
-  final SurfaceEffect panelSurface;
-  final BorderRadiusGeometry defaultRadius;
-  final double focusGlowRadius;
-  final double focusGlowOpacity;
-
-  const ThemeVisuals({
-    required this.buttonSurface,
-    required this.switchSurface,
-    required this.panelSurface,
-    required this.defaultRadius,
+class ThemeVisualLayer extends ThemeExtension<ThemeVisualLayer> {
+  const ThemeVisualLayer({
+    required this.sidebar,
+    required this.card,
+    required this.appBackground,
+    required this.button,
     required this.focusGlowRadius,
     required this.focusGlowOpacity,
   });
 
+  final SurfaceEffect sidebar;
+  final SurfaceEffect card;
+  final SurfaceEffect appBackground;
+  final SurfaceEffect button;
+  final double focusGlowRadius;
+  final double focusGlowOpacity;
+
+  factory ThemeVisualLayer.flat() => flatVisualLayer;
+  factory ThemeVisualLayer.glass() => glassVisualLayer;
+  factory ThemeVisualLayer.neumorphic() => neumorphicVisualLayer;
+
+  SurfaceEffect resolve(ThemeRole role) {
+    return switch (role) {
+      ThemeRole.sidebar => sidebar,
+      ThemeRole.card => card,
+      ThemeRole.appBackground => appBackground,
+      ThemeRole.button => button,
+    };
+  }
+
   @override
-  ThemeVisuals copyWith({
-    SurfaceEffect? buttonSurface,
-    SurfaceEffect? switchSurface,
-    SurfaceEffect? panelSurface,
-    BorderRadiusGeometry? defaultRadius,
+  ThemeVisualLayer copyWith({
+    SurfaceEffect? sidebar,
+    SurfaceEffect? card,
+    SurfaceEffect? appBackground,
+    SurfaceEffect? button,
     double? focusGlowRadius,
     double? focusGlowOpacity,
   }) {
-    return ThemeVisuals(
-      buttonSurface: buttonSurface ?? this.buttonSurface,
-      switchSurface: switchSurface ?? this.switchSurface,
-      panelSurface: panelSurface ?? this.panelSurface,
-      defaultRadius: defaultRadius ?? this.defaultRadius,
+    return ThemeVisualLayer(
+      sidebar: sidebar ?? this.sidebar,
+      card: card ?? this.card,
+      appBackground: appBackground ?? this.appBackground,
+      button: button ?? this.button,
       focusGlowRadius: focusGlowRadius ?? this.focusGlowRadius,
       focusGlowOpacity: focusGlowOpacity ?? this.focusGlowOpacity,
     );
   }
 
   @override
-  ThemeVisuals lerp(ThemeExtension<ThemeVisuals>? other, double t) {
-    if (other is! ThemeVisuals) {
-      return this;
-    }
-    return ThemeVisuals(
-      buttonSurface: buttonSurface.lerp(other.buttonSurface, t),
-      switchSurface: switchSurface.lerp(other.switchSurface, t),
-      panelSurface: panelSurface.lerp(other.panelSurface, t),
-      defaultRadius:
-          BorderRadiusGeometry.lerp(defaultRadius, other.defaultRadius, t) ??
-          defaultRadius,
-      focusGlowRadius:
-          lerpDouble(focusGlowRadius, other.focusGlowRadius, t) ??
-          focusGlowRadius,
-      focusGlowOpacity:
-          lerpDouble(focusGlowOpacity, other.focusGlowOpacity, t) ??
-          focusGlowOpacity,
+  ThemeVisualLayer lerp(ThemeExtension<ThemeVisualLayer>? other, double t) {
+    if (other is! ThemeVisualLayer) return this;
+    return ThemeVisualLayer(
+      sidebar: sidebar.lerp(other.sidebar, t),
+      card: card.lerp(other.card, t),
+      appBackground: appBackground.lerp(other.appBackground, t),
+      button: button.lerp(other.button, t),
+      focusGlowRadius: lerpDouble(focusGlowRadius, other.focusGlowRadius, t)!,
+      focusGlowOpacity: lerpDouble(focusGlowOpacity, other.focusGlowOpacity, t)!,
     );
   }
 }

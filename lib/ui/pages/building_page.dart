@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/control/superfocus/focus_manager.dart';
-import '../../core/engine/theme/theme_colors.dart';
-import '../../core/engine/theme/theme_identity.dart';
+
+import '../../core/engine/theme/theme_api.dart';
 import '../../core/engine/theme/theme_role.dart';
 import '../../modules/resident/settings/setting_page.dart';
 import '../../modules/resident/sidebar/sidebar_view.dart';
@@ -48,7 +48,7 @@ class _MainContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final themeColors = Theme.of(context).extension<ThemeColors>()!;
+    final colors = context.useTheme().colors;
 
     return ValueListenableBuilder<FocusTopology>(
       valueListenable: SuperFocusManager.instance.topologyNotifier,
@@ -71,13 +71,13 @@ class _MainContent extends StatelessWidget {
                   Icon(
                     Icons.dashboard_customize_outlined,
                     size: 64,
-                    color: themeColors.textPrimary.withValues(alpha: 0.12),
+                    color: colors.textPrimary.withValues(alpha: 0.12),
                   ),
                   const SizedBox(height: 24),
                   Text(
                     '中心轴心就绪',
                     style: TextStyle(
-                      color: themeColors.textSecondary.withValues(alpha: 0.6),
+                      color: colors.textSecondary.withValues(alpha: 0.6),
                       fontSize: 20,
                       letterSpacing: 4,
                       fontWeight: FontWeight.w200,

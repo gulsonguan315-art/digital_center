@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import '../../../core/control/superfocus/focus_geometry.dart';
 import '../../../core/control/superfocus/focus_manager.dart';
 import '../../../core/control/superfocus/focus_widgets.dart';
-import '../../../core/engine/theme/theme_colors.dart';
-import '../../../core/engine/theme/theme_identity.dart';
+
+import '../../../core/engine/theme/theme_api.dart';
 import '../../../core/engine/theme/theme_role.dart';
 import '../../visual/surface/themed_surface.dart';
 
@@ -42,9 +42,7 @@ class SuperFocusButton extends StatelessWidget {
                 valueListenable: SuperFocusManager.instance.intentionRoomId,
                 builder: (context, intentionId, _) {
                   final isWaiting = intentionId == id;
-                  final themeColors = Theme.of(
-                    context,
-                  ).extension<ThemeColors>()!;
+                  final colors = material.colors;
 
                   return ThemedSurface(
                     isFocused: hasFocus,
@@ -64,8 +62,8 @@ class SuperFocusButton extends StatelessWidget {
                               style: TextStyle(
                                 fontSize: 16,
                                 color: hasFocus
-                                    ? themeColors.adormColor
-                                    : themeColors.textPrimary,
+                                    ? colors.accent
+                                    : colors.textPrimary,
                                 fontWeight: hasFocus
                                     ? FontWeight.bold
                                     : FontWeight.normal,
@@ -79,7 +77,7 @@ class SuperFocusButton extends StatelessWidget {
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
                                 valueColor: AlwaysStoppedAnimation(
-                                  themeColors.adormColor,
+                                  colors.accent,
                                 ),
                               ),
                             ),

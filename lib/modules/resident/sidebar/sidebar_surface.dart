@@ -1,7 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import '../../../core/engine/theme/theme_identity.dart';
-import '../../../core/engine/theme/theme_visuals.dart';
+import '../../../core/engine/theme/theme_api.dart';
 import '../../../core/layout/grid/grid_extensions.dart';
 import 'sidebar_metrics.dart';
 

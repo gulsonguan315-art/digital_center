@@ -2,6 +2,10 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import '../theme_visuals.dart';
 
+// =============================================================================
+// 第一部分: 材质算法 (Effect Implementation)
+// =============================================================================
+
 class FlatSurfaceEffect extends SurfaceEffect {
   final double borderThickness;
   final double borderOpacity;
@@ -13,7 +17,6 @@ class FlatSurfaceEffect extends SurfaceEffect {
     this.transparentIdle = false,
   });
 
-  @override
   @override
   SurfaceChrome resolve({
     required Color accent,
@@ -46,22 +49,27 @@ class FlatSurfaceEffect extends SurfaceEffect {
   }
 }
 
-/// 扁平化风格预设 (类似 Apple 极简设计)
-ThemeVisuals get flatVisuals => ThemeVisuals(
-  buttonSurface: const FlatSurfaceEffect(
-    borderThickness: 1.5,
-    borderOpacity: 0.12,
-  ),
-  switchSurface: const FlatSurfaceEffect(
-    borderThickness: 1.5,
-    borderOpacity: 0.12,
-    transparentIdle: true,
-  ),
-  panelSurface: const FlatSurfaceEffect(
+// =============================================================================
+// 第二部分: 实例配置 (Layer Instance)
+// =============================================================================
+
+final flatVisualLayer = ThemeVisualLayer(
+  sidebar: const FlatSurfaceEffect(
     borderThickness: 1.0,
     borderOpacity: 0.1,
   ),
-  defaultRadius: BorderRadius.circular(12),
+  card: const FlatSurfaceEffect(
+    borderThickness: 1.0,
+    borderOpacity: 0.1,
+  ),
+  appBackground: const FlatSurfaceEffect(
+    borderThickness: 1.0,
+    borderOpacity: 0.1,
+  ),
+  button: const FlatSurfaceEffect(
+    borderThickness: 1.5,
+    borderOpacity: 0.12,
+  ),
   focusGlowRadius: 15.0,
   focusGlowOpacity: 0.4,
 );

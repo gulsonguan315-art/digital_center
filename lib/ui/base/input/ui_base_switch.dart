@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../../core/control/superfocus/focus_geometry.dart';
 import '../../../core/control/superfocus/focus_widgets.dart';
-import '../../../core/engine/theme/theme_colors.dart';
-import '../../../core/engine/theme/theme_identity.dart';
+
+import '../../../core/engine/theme/theme_api.dart';
 import '../../../core/engine/theme/theme_role.dart';
 import '../../visual/surface/themed_surface.dart';
 
@@ -21,13 +21,14 @@ class _OptionItem<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final themeColors = Theme.of(context).extension<ThemeColors>()!;
+
 
     return ThemeIdentity(
       role: ThemeRole.button,
       child: Builder(
         builder: (context) {
           final material = context.useTheme();
+          final colors = material.colors;
 
           return SuperFocusItem(
             id: id,
@@ -44,7 +45,7 @@ class _OptionItem<T> extends StatelessWidget {
                 decoration: BoxDecoration(
                   borderRadius: material.shape.radius,
                   color: hasFocus
-                      ? themeColors.textPrimary.withValues(alpha: 0.05)
+                      ? colors.textPrimary.withValues(alpha: 0.05)
                       : Colors.transparent,
                 ),
                 child: Row(
@@ -57,8 +58,8 @@ class _OptionItem<T> extends StatelessWidget {
                         shape: BoxShape.circle,
                         border: Border.all(
                           color: isSelected
-                              ? themeColors.adormColor
-                              : themeColors.textPrimary.withValues(alpha: 0.2),
+                              ? colors.accent
+                              : colors.textPrimary.withValues(alpha: 0.2),
                           width: 2,
                         ),
                       ),
@@ -69,7 +70,7 @@ class _OptionItem<T> extends StatelessWidget {
                         child: Container(
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            color: themeColors.adormColor,
+                            color: colors.accent,
                           ),
                         ),
                       ),
@@ -80,8 +81,8 @@ class _OptionItem<T> extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 15,
                         color: isSelected
-                            ? themeColors.textPrimary
-                            : themeColors.textPrimary.withValues(alpha: 0.7),
+                            ? colors.textPrimary
+                            : colors.textPrimary.withValues(alpha: 0.7),
                         fontWeight: isSelected
                             ? FontWeight.bold
                             : FontWeight.normal,
@@ -129,8 +130,8 @@ class _SuperFocusSelectState<T> extends State<SuperFocusSelect<T>> {
       role: ThemeRole.card,
       child: Builder(
         builder: (context) {
-          final themeColors = Theme.of(context).extension<ThemeColors>()!;
           final material = context.useTheme();
+          final colors = material.colors;
 
           return SuperFocusItem(
             id: widget.id,
@@ -140,7 +141,7 @@ class _SuperFocusSelectState<T> extends State<SuperFocusSelect<T>> {
             ),
             builder: (context, isGateFocused) {
               return widget.roomBuilder(
-                _buildInternalContent(context, isGateFocused, themeColors),
+                _buildInternalContent(context, isGateFocused, colors),
               );
             },
           );
@@ -152,7 +153,7 @@ class _SuperFocusSelectState<T> extends State<SuperFocusSelect<T>> {
   Widget _buildInternalContent(
     BuildContext context,
     bool isGateFocused,
-    ThemeColors themeColors,
+    RoleColors colors,
   ) {
     final isRoomActive = RoomScope.of(context)?.isActive ?? false;
 
@@ -171,7 +172,7 @@ class _SuperFocusSelectState<T> extends State<SuperFocusSelect<T>> {
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.bold,
-                  color: themeColors.textPrimary.withValues(
+                color: colors.textPrimary.withValues(
                     alpha: isRoomActive ? 0.8 : 0.4,
                   ),
                   letterSpacing: 1.2,
@@ -181,7 +182,7 @@ class _SuperFocusSelectState<T> extends State<SuperFocusSelect<T>> {
                 Icon(
                   Icons.login_rounded,
                   size: 16,
-                  color: themeColors.adormColor.withValues(alpha: 0.5),
+                  color: colors.accent.withValues(alpha: 0.5),
                 ),
             ],
           ),

@@ -1,7 +1,7 @@
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
-import '../../../core/engine/theme/theme_colors.dart';
+import '../../../core/engine/theme/theme_api.dart';
 
 /// 纹理簇数据模型
 class SilkCluster {
@@ -177,13 +177,15 @@ class _SilkBackgroundState extends State<SilkBackground> {
 
   @override
   Widget build(BuildContext context) {
-    final themeColors = Theme.of(context).extension<ThemeColors>()!;
-    final silkColor = widget.color ?? themeColors.silk;
+    final colors = context.useTheme().colors;
+    final silkColor =
+        widget.color ??
+        colors.foreground; // Using foreground as a fallback for silk
 
     return Stack(
       children: [
         // 1. 底层背景色
-        Positioned.fill(child: Container(color: themeColors.backgroundCustom)),
+        Positioned.fill(child: Container(color: colors.surface)),
         // 2. 丝织纹理层
         Positioned.fill(
           child: LayoutBuilder(
@@ -218,7 +220,7 @@ class _SilkBackgroundState extends State<SilkBackground> {
             height: 400,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: themeColors.adormColor.withValues(alpha: 0.08),
+              color: colors.accent.withValues(alpha: 0.08),
             ),
           ),
         ),

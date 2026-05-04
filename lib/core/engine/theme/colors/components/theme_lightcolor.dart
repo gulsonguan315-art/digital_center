@@ -1,0 +1,53 @@
+import 'package:flutter/material.dart';
+import '../theme_colors.dart';
+
+const lightColorLayer = ThemeColorLayer(
+  sidebar: RoleColors(
+    surface: Color(0xFF2F4F4F),
+    foreground: Color(0xFFFFFFFF),
+    foregroundActive: Color(0xFF673AB7),
+    foregroundDisabled: Color(0xFF121826),
+    backgroundFocused: Color(0x00673AB7),
+    backgroundActive: Color(0xFF673AB7),
+    border: Color(0xFFFFFFFF),
+    accent: Color(0xFF673AB7),
+    textPrimary: Color(0xFF000000),
+    textSecondary: Color(0xFF000000),
+  ),
+  card: RoleColors(
+    surface: Color(0xFF2F4F4F),
+    foreground: Color(0xFF000000),
+    foregroundActive: Color(0xFF673AB7),
+    foregroundDisabled: Color(0x80000000),
+    backgroundFocused: Color(0x1F673AB7),
+    backgroundActive: Color(0x2E673AB7),
+    border: Color(0xFFFFFFFF),
+    accent: Color(0xFF673AB7),
+    textPrimary: Color(0xFF000000),
+    textSecondary: Color(0xFF000000),
+  ),
+  appBackground: RoleColors(
+    surface: Color(0xFFD3D3D3),
+    foreground: Color(0xFF000000),
+    foregroundActive: Color(0xFF673AB7),
+    foregroundDisabled: Color(0x80000000),
+    backgroundFocused: Colors.transparent,
+    backgroundActive: Colors.transparent,
+    border: Color(0xFFE0E0E0),
+    accent: Color(0xFF673AB7),
+    textPrimary: Color(0xFF000000),
+    textSecondary: Color(0xFF000000),
+  ),
+  button: RoleColors(
+    surface: Color(0xFF2F4F4F),
+    foreground: Color(0xFF000000),
+    foregroundActive: Color(0xFF673AB7),
+    foregroundDisabled: Color(0x80000000),
+    backgroundFocused: Color(0x1F673AB7),
+    backgroundActive: Color(0x2E673AB7),
+    border: Color(0xFFFFFFFF),
+    accent: Color(0xFF673AB7),
+    textPrimary: Color(0xFF000000),
+    textSecondary: Color(0xFF000000),
+  ),
+);

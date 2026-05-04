@@ -2,6 +2,10 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import '../theme_visuals.dart';
 
+// =============================================================================
+// 第一部分: 材质算法 (Effect Implementation)
+// =============================================================================
+
 class GlassSurfaceEffect extends SurfaceEffect {
   final double glassBlur;
   final double surfaceOpacity;
@@ -12,12 +16,11 @@ class GlassSurfaceEffect extends SurfaceEffect {
   const GlassSurfaceEffect({
     required this.glassBlur,
     required this.surfaceOpacity,
-    this.borderOpacity = 0.12, // 默认 12% 透明度 (原 0x1F)
+    this.borderOpacity = 0.12,
     required this.borderThickness,
     this.transparentIdle = false,
   });
 
-  @override
   @override
   SurfaceChrome resolve({
     required Color accent,
@@ -65,28 +68,35 @@ class GlassSurfaceEffect extends SurfaceEffect {
   }
 }
 
-/// 玻璃拟态/亚克力风格预设
-ThemeVisuals get glassVisuals => ThemeVisuals(
-  buttonSurface: const GlassSurfaceEffect(
-    glassBlur: 12.0,
-    surfaceOpacity: 0.28,
-    borderOpacity: 0.12,
-    borderThickness: 1.5,
-  ),
-  switchSurface: const GlassSurfaceEffect(
-    glassBlur: 10.0,
-    surfaceOpacity: 0.24,
-    borderOpacity: 0.12,
-    borderThickness: 1.5,
-    transparentIdle: true,
-  ),
-  panelSurface: const GlassSurfaceEffect(
+// =============================================================================
+// 第二部分: 实例配置 (Layer Instance)
+// =============================================================================
+
+final glassVisualLayer = ThemeVisualLayer(
+  sidebar: const GlassSurfaceEffect(
     glassBlur: 18.0,
     surfaceOpacity: 0.38,
     borderOpacity: 0.08,
     borderThickness: 1.0,
   ),
-  defaultRadius: BorderRadius.circular(18),
+  card: const GlassSurfaceEffect(
+    glassBlur: 18.0,
+    surfaceOpacity: 0.38,
+    borderOpacity: 0.08,
+    borderThickness: 1.0,
+  ),
+  appBackground: const GlassSurfaceEffect(
+    glassBlur: 18.0,
+    surfaceOpacity: 0.38,
+    borderOpacity: 0.08,
+    borderThickness: 1.0,
+  ),
+  button: const GlassSurfaceEffect(
+    glassBlur: 12.0,
+    surfaceOpacity: 0.28,
+    borderOpacity: 0.12,
+    borderThickness: 1.5,
+  ),
   focusGlowRadius: 40.0,
   focusGlowOpacity: 0.45,
 );

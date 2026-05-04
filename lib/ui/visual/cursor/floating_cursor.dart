@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import '../../../core/control/superfocus/focus_manager.dart';
-import '../../../core/engine/theme/theme_colors.dart';
+
 import '../../../core/engine/theme/theme_layers.dart';
 import '../../../core/control/superfocus/focus_geometry.dart';
 
@@ -119,8 +119,8 @@ class _FloatingHighlightBoxState extends State<FloatingHighlightBox>
 
   Widget build(BuildContext context) {
     final report = SuperFocusManager.instance.cursorReportNotifier.value;
-    final themeColors = Theme.of(context).extension<ThemeColors>()!;
     final appTheme = Theme.of(context).extension<AppTheme>()!;
+    final colors = appTheme.colors.sidebar; // Use sidebar role as brand source for cursor
 
     final isActuallyHidden =
         SuperFocusManager.instance.cursorHiddenNotifier.value;
@@ -156,7 +156,7 @@ class _FloatingHighlightBoxState extends State<FloatingHighlightBox>
               child: CustomPaint(
                 painter: _FocusOutlinePainter(
                   geometry: report?.geometry,
-                  color: themeColors.adormColor,
+                  color: colors.accent,
                   visualScale: visualScale,
                   glowRadius: appTheme.visuals.focusGlowRadius,
                   glowOpacity: appTheme.visuals.focusGlowOpacity,

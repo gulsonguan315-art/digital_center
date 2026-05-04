@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'theme_shape.dart';
-import 'theme_visuals.dart';
+import 'shapes/theme_shapes.dart';
+import 'visuals/theme_visuals.dart';
 
 class ThemeProvider extends ChangeNotifier {
   static final ThemeProvider instance = ThemeProvider._();

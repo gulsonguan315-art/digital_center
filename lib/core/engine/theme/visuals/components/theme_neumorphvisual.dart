@@ -2,6 +2,10 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import '../theme_visuals.dart';
 
+// =============================================================================
+// 第一部分: 材质算法 (Effect Implementation)
+// =============================================================================
+
 double get _globalNeumorphOffset => 5.0;
 double get _globalNeumorphPrimaryHighlightAlpha => 0.0;
 double get _globalNeumorphPrimaryHighlightBlur => 20.0;
@@ -21,10 +25,6 @@ double get _globalNeumorphInnerHighlightWidth => 1.0;
 double get _globalNeumorphInnerHighlightAlpha => 0.0;
 double get _globalNeumorphInnerHighlightBlur => 0.0;
 
-double get _cardIdleScale => 0.8;
-double get _cardFocusedScale => 1.0;
-double get _panelIdleScale => 1.0;
-double get _panelFocusedScale => 1.0;
 double get _foregroundShadowScale => 0.35;
 
 List<BoxShadow> _buildNeumorphShadows(Color surfaceColor, double scale) {
@@ -106,7 +106,6 @@ class NeumorphSurfaceEffect extends SurfaceEffect {
   });
 
   @override
-  @override
   SurfaceChrome resolve({
     required Color accent,
     required Color border,
@@ -185,30 +184,39 @@ class NeumorphSurfaceEffect extends SurfaceEffect {
   }
 }
 
-ThemeVisuals get neumorphicVisuals => ThemeVisuals(
-  buttonSurface: NeumorphSurfaceEffect(
+// =============================================================================
+// 第二部分: 实例配置 (Layer Instance)
+// =============================================================================
+
+final neumorphicVisualLayer = ThemeVisualLayer(
+  sidebar: const NeumorphSurfaceEffect(
     borderThickness: 0.5,
-    idleScale: _cardIdleScale,
-    focusedScale: _cardFocusedScale,
-    innerHighlightColor: Color.fromARGB(255, 255, 255, 255),
+    idleScale: 1.0,
+    focusedScale: 1.0,
+    innerHighlightColor: Color(0xFFFFFFFF),
     innerHighlightWidth: 2,
   ),
-  switchSurface: NeumorphSurfaceEffect(
+  card: const NeumorphSurfaceEffect(
     borderThickness: 0.5,
-    idleScale: _cardIdleScale,
-    focusedScale: _cardFocusedScale,
-    innerHighlightColor: Color.fromARGB(255, 255, 255, 255),
-    innerHighlightWidth: 2,
-    transparentIdle: true,
-  ),
-  panelSurface: NeumorphSurfaceEffect(
-    borderThickness: 0.5,
-    idleScale: _panelIdleScale,
-    focusedScale: _panelFocusedScale,
-    innerHighlightColor: Color.fromARGB(255, 255, 255, 255),
+    idleScale: 0.8,
+    focusedScale: 1.0,
+    innerHighlightColor: Color(0xFFFFFFFF),
     innerHighlightWidth: 2,
   ),
-  defaultRadius: BorderRadius.circular(24),
+  appBackground: const NeumorphSurfaceEffect(
+    borderThickness: 0.5,
+    idleScale: 1.0,
+    focusedScale: 1.0,
+    innerHighlightColor: Color(0xFFFFFFFF),
+    innerHighlightWidth: 2,
+  ),
+  button: const NeumorphSurfaceEffect(
+    borderThickness: 0.5,
+    idleScale: 0.8,
+    focusedScale: 1.0,
+    innerHighlightColor: Color(0xFFFFFFFF),
+    innerHighlightWidth: 2,
+  ),
   focusGlowRadius: 30.0,
   focusGlowOpacity: 0.2,
 );

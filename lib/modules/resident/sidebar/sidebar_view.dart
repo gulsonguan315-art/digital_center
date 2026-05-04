@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import '../../../core/engine/theme/theme_api.dart';
 import '../../../core/control/superfocus/focus_geometry.dart';
 import '../../../core/control/superfocus/focus_manager.dart';
 import '../../../core/control/superfocus/focus_widgets.dart';
-import '../../../core/engine/theme/theme_colors.dart';
+
 import '../../../core/engine/theme/theme_identity.dart';
 import '../../../core/engine/theme/theme_role.dart';
+
 import '../../../core/layout/grid/grid_extensions.dart';
 import '../../../ui/visual/surface/themed_surface.dart';
 import 'sidebar_metrics.dart';
@@ -331,7 +333,8 @@ class _SidebarBrandHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final themeColors = Theme.of(context).extension<ThemeColors>()!;
+    final material = context.useTheme();
+    final colors = material.colors;
 
     final radius = BorderRadius.circular(
       context.units(SidebarMetrics.brandPanelRadiusU),
@@ -341,7 +344,7 @@ class _SidebarBrandHeader extends StatelessWidget {
       isFocused: false,
       isConcave: true,
       borderRadius: radius,
-      fillColor: themeColors.surfaceOverlay.withValues(alpha: 0.72),
+      fillColor: colors.surface.withValues(alpha: 0.72),
       child: Container(
         height: context.units(SidebarMetrics.brandHeaderHeightU),
         padding: EdgeInsets.symmetric(
@@ -352,11 +355,7 @@ class _SidebarBrandHeader extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Icon(
-              Icons.blur_on_rounded,
-              size: 32,
-              color: themeColors.adormColor,
-            ),
+            Icon(Icons.blur_on_rounded, size: 32, color: colors.accent),
             const SizedBox(width: 12),
             Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -365,7 +364,7 @@ class _SidebarBrandHeader extends StatelessWidget {
                 Text(
                   'Digital',
                   style: TextStyle(
-                    color: themeColors.textPrimary,
+                    color: colors.textPrimary,
                     fontWeight: FontWeight.bold,
                     fontSize: 16,
                   ),
@@ -373,7 +372,7 @@ class _SidebarBrandHeader extends StatelessWidget {
                 Text(
                   'CENTER',
                   style: TextStyle(
-                    color: themeColors.textSecondary,
+                    color: colors.textSecondary,
                     fontSize: 10,
                     letterSpacing: 2,
                   ),
