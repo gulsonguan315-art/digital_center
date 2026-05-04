@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../ui/base/input/ui_base_switch.dart';
 import '../../../ui/base/input/ui_base_button.dart';
 import '../../../core/engine/theme/theme_provider.dart';
+import '../../../core/engine/theme/theme_shape.dart';
 import '../../../core/engine/theme/theme_visuals.dart';
 import 'setting_page_room.dart';
 
@@ -53,6 +54,24 @@ class SettingPageView extends StatelessWidget {
                     selectedValues: [provider.visualStyle],
                     onToggle: (style) => provider.setVisualStyle(style),
                     roomBuilder: (child) => ThemeVisualRoom(child: child),
+                  ),
+                ),
+
+                const SizedBox(height: 24),
+
+                SizedBox(
+                  width: 420,
+                  child: SuperFocusSelect<ShapeStyle>(
+                    id: ThemeShapeRoom.roomId,
+                    title: '形状风格',
+                    options: const {
+                      ShapeStyle.rightAngle: '直角',
+                      ShapeStyle.soft: '柔和圆角',
+                      ShapeStyle.round: '圆润',
+                    },
+                    selectedValues: [provider.shapeStyle],
+                    onToggle: (style) => provider.setShapeStyle(style),
+                    roomBuilder: (child) => ThemeShapeRoom(child: child),
                   ),
                 ),
 

@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import '../../../core/control/superfocus/focus_geometry.dart';
 import '../../../core/control/superfocus/focus_widgets.dart';
 import '../../../core/engine/theme/theme_colors.dart';
-import '../../../core/engine/theme/theme_visuals.dart';
+import '../../../core/engine/theme/theme_identity.dart';
+import '../../../core/engine/theme/theme_role.dart';
+import '../../visual/surface/themed_surface.dart';
 
 class _OptionItem<T> extends StatelessWidget {
   final String id;
@@ -21,63 +23,77 @@ class _OptionItem<T> extends StatelessWidget {
   Widget build(BuildContext context) {
     final themeColors = Theme.of(context).extension<ThemeColors>()!;
 
-    return SuperFocusItem(
-      id: id,
-      onPressed: onToggle,
-      focusGeometry: RoundedRectFocusGeometry(
-        borderRadius: BorderRadius.circular(8),
-      ),
-      builder: (context, hasFocus) {
-        return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(8),
-            color: hasFocus
-                ? themeColors.textPrimary.withValues(alpha: 0.05)
-                : Colors.transparent,
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 18,
-                height: 18,
+    return ThemeIdentity(
+      role: ThemeRole.button,
+      child: Builder(
+        builder: (context) {
+          final material = context.useTheme();
+
+          return SuperFocusItem(
+            id: id,
+            onPressed: onToggle,
+            focusGeometry: RoundedRectFocusGeometry(
+              borderRadius: material.shape.radius as BorderRadius,
+            ),
+            builder: (context, hasFocus) {
+              return Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: isSelected
-                        ? themeColors.adormColor
-                        : themeColors.textPrimary.withValues(alpha: 0.2),
-                    width: 2,
-                  ),
+                  borderRadius: material.shape.radius,
+                  color: hasFocus
+                      ? themeColors.textPrimary.withValues(alpha: 0.05)
+                      : Colors.transparent,
                 ),
-                padding: const EdgeInsets.all(3),
-                child: AnimatedScale(
-                  duration: const Duration(milliseconds: 200),
-                  scale: isSelected ? 1.0 : 0.0,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: themeColors.adormColor,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 18,
+                      height: 18,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: isSelected
+                              ? themeColors.adormColor
+                              : themeColors.textPrimary.withValues(alpha: 0.2),
+                          width: 2,
+                        ),
+                      ),
+                      padding: const EdgeInsets.all(3),
+                      child: AnimatedScale(
+                        duration: const Duration(milliseconds: 200),
+                        scale: isSelected ? 1.0 : 0.0,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: themeColors.adormColor,
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
+                    const SizedBox(width: 8),
+                    Text(
+                      label,
+                      style: TextStyle(
+                        fontSize: 15,
+                        color: isSelected
+                            ? themeColors.textPrimary
+                            : themeColors.textPrimary.withValues(alpha: 0.7),
+                        fontWeight: isSelected
+                            ? FontWeight.bold
+                            : FontWeight.normal,
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 15,
-                  color: isSelected
-                      ? themeColors.textPrimary
-                      : themeColors.textPrimary.withValues(alpha: 0.7),
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                ),
-              ),
-            ],
-          ),
-        );
-      },
+              );
+            },
+          );
+        },
+      ),
     );
   }
 }
@@ -109,25 +125,27 @@ class _SuperFocusSelectState<T> extends State<SuperFocusSelect<T>> {
 
   @override
   Widget build(BuildContext context) {
-    final themeColors = Theme.of(context).extension<ThemeColors>()!;
-    final themeVisuals = Theme.of(context).extension<ThemeVisuals>()!;
+    return ThemeIdentity(
+      role: ThemeRole.card,
+      child: Builder(
+        builder: (context) {
+          final themeColors = Theme.of(context).extension<ThemeColors>()!;
+          final material = context.useTheme();
 
-    return SuperFocusItem(
-      id: widget.id,
-      onPressed: () {},
-      focusGeometry: RoundedRectFocusGeometry(
-        borderRadius: themeVisuals.defaultRadius as BorderRadius,
+          return SuperFocusItem(
+            id: widget.id,
+            onPressed: () {},
+            focusGeometry: RoundedRectFocusGeometry(
+              borderRadius: material.shape.radius as BorderRadius,
+            ),
+            builder: (context, isGateFocused) {
+              return widget.roomBuilder(
+                _buildInternalContent(context, isGateFocused, themeColors),
+              );
+            },
+          );
+        },
       ),
-      builder: (context, isGateFocused) {
-        return widget.roomBuilder(
-          _buildInternalContent(
-            context,
-            isGateFocused,
-            themeColors,
-            themeVisuals,
-          ),
-        );
-      },
     );
   }
 
@@ -135,7 +153,6 @@ class _SuperFocusSelectState<T> extends State<SuperFocusSelect<T>> {
     BuildContext context,
     bool isGateFocused,
     ThemeColors themeColors,
-    ThemeVisuals themeVisuals,
   ) {
     final isRoomActive = RoomScope.of(context)?.isActive ?? false;
 
@@ -192,11 +209,7 @@ class _SuperFocusSelectState<T> extends State<SuperFocusSelect<T>> {
     return AnimatedOpacity(
       duration: const Duration(milliseconds: 300),
       opacity: isRoomActive || isGateFocused ? 1.0 : 0.5,
-      child: themeVisuals.buttonSurface.apply(
-        context,
-        coreContent,
-        isFocused: isGateFocused,
-      ),
+      child: ThemedSurface(isFocused: isGateFocused, child: coreContent),
     );
   }
 }

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../../core/control/superfocus/focus_geometry.dart';
 import '../../../core/control/superfocus/focus_widgets.dart';
-import '../../../core/engine/theme/theme_colors.dart';
-import '../../../core/engine/theme/theme_visuals.dart';
+import '../../../core/engine/theme/theme_identity.dart';
+import '../../../core/engine/theme/theme_layers.dart';
 import '../../../core/layout/grid/grid_extensions.dart';
 import 'sidebar_metrics.dart';
 
@@ -28,8 +28,7 @@ class SidebarTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final themeColors = Theme.of(context).extension<ThemeColors>()!;
-    final themeVisuals = Theme.of(context).extension<ThemeVisuals>()!;
+    final material = context.useTheme();
 
     return SuperFocusItem(
       id: id,
@@ -43,14 +42,13 @@ class SidebarTile extends StatelessWidget {
         concaveRadius: context.units(SidebarMetrics.surfaceRadiusU),
       ),
       builder: (context, isFocused) {
-        final foreground = _resolveForeground(themeColors);
-        final background = _resolveBackground(themeColors, isFocused);
+        final foreground = _resolveForeground(material.colors);
+        final background = _resolveBackground(material.colors, isFocused);
         final activeShadows = isActive && !isDisabled
-            ? themeVisuals.panelSurface.foregroundShadows(
-                context: context,
+            ? material.visual.foregroundShadows(
                 foregroundColor: foreground,
                 isFocused: true,
-                fillColor: themeColors.sidebarMain,
+                fillColor: material.colors.surface,
               )
             : null;
 
@@ -99,15 +97,15 @@ class SidebarTile extends StatelessWidget {
     );
   }
 
-  Color _resolveForeground(ThemeColors themeColors) {
-    if (isDisabled) return themeColors.sidebarForegroundDisabled;
-    if (isActive) return themeColors.sidebarForegroundActive;
-    return themeColors.sidebarForeground;
+  Color _resolveForeground(RoleColors colors) {
+    if (isDisabled) return colors.foregroundDisabled;
+    if (isActive) return colors.foregroundActive;
+    return colors.foreground;
   }
 
-  Color _resolveBackground(ThemeColors themeColors, bool isFocused) {
+  Color _resolveBackground(RoleColors colors, bool isFocused) {
     if (isActive) return Colors.transparent;
-    if (isFocused) return themeColors.sidebarBackgroundFocused;
+    if (isFocused) return colors.backgroundFocused;
     return Colors.transparent;
   }
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'theme_shape.dart';
 import 'theme_visuals.dart';
 
 class ThemeProvider extends ChangeNotifier {
@@ -10,6 +11,9 @@ class ThemeProvider extends ChangeNotifier {
 
   VisualStyle _visualStyle = VisualStyle.neumorphic;
   VisualStyle get visualStyle => _visualStyle;
+
+  ShapeStyle _shapeStyle = ShapeStyle.soft;
+  ShapeStyle get shapeStyle => _shapeStyle;
 
   void setThemeMode(ThemeMode mode) {
     if (_themeMode == mode) return;
@@ -33,6 +37,12 @@ class ThemeProvider extends ChangeNotifier {
   void setVisualStyle(VisualStyle style) {
     if (_visualStyle == style) return;
     _visualStyle = style;
+    notifyListeners();
+  }
+
+  void setShapeStyle(ShapeStyle style) {
+    if (_shapeStyle == style) return;
+    _shapeStyle = style;
     notifyListeners();
   }
 }

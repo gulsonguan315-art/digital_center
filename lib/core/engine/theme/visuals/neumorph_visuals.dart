@@ -1,6 +1,5 @@
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
-import '../theme_colors.dart';
 import '../theme_visuals.dart';
 
 double get _globalNeumorphOffset => 5.0;
@@ -107,87 +106,37 @@ class NeumorphSurfaceEffect extends SurfaceEffect {
   });
 
   @override
-  Widget apply(
-    BuildContext context,
-    Widget child, {
-    required bool isFocused,
-    bool isWaiting = false,
-    BorderRadiusGeometry? borderRadius,
-    Color? fillColor,
-  }) {
-    final themeColors = Theme.of(context).extension<ThemeColors>()!;
-    final themeVisuals = Theme.of(context).extension<ThemeVisuals>()!;
-    final radius = borderRadius ?? themeVisuals.defaultRadius;
-    final surfaceColor = fillColor ?? themeColors.surfacePanel;
-    final chrome = _buildChrome(
-      themeColors: themeColors,
-      surfaceColor: surfaceColor,
-      scale: isWaiting || isFocused ? focusedScale : idleScale,
-    );
-
-    final bgColor = isWaiting
-        ? themeColors.adormColor
-        : (transparentIdle ? Colors.transparent : surfaceColor);
-
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 250),
-      curve: Curves.easeOutCubic,
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: radius,
-        boxShadow: chrome.outerShadows,
-      ),
-      child: CustomPaint(
-        foregroundPainter:
-            (chrome.borderColor == null || chrome.borderWidth <= 0) &&
-                (chrome.innerHighlightColor == null ||
-                    chrome.innerHighlightWidth <= 0)
-            ? null
-            : _NeumorphForegroundPainter(
-                radius: radius,
-                borderColor: chrome.borderColor,
-                borderWidth: chrome.borderWidth,
-                borderBlur: chrome.borderBlur,
-                innerHighlightColor: chrome.innerHighlightColor,
-                innerHighlightWidth: chrome.innerHighlightWidth,
-                innerHighlightBlur: chrome.innerHighlightBlur,
-              ),
-        child: child,
-      ),
-    );
-  }
-
   @override
-  SurfaceChrome chrome({
-    required BuildContext context,
-    required bool isFocused,
-    bool isWaiting = false,
-    Color? fillColor,
+  SurfaceChrome resolve({
+    required Color accent,
+    required Color border,
+    required Color surface,
+    required SurfaceState state,
   }) {
-    final themeColors = Theme.of(context).extension<ThemeColors>()!;
-    final surfaceColor = fillColor ?? themeColors.surfacePanel;
+    final surfaceColor = state.fillColor ?? surface;
     return _buildChrome(
-      themeColors: themeColors,
+      border: border,
       surfaceColor: surfaceColor,
-      scale: isWaiting || isFocused ? focusedScale : idleScale,
+      scale: state.isWaiting || state.isFocused ? focusedScale : idleScale,
+      isConcave: state.isConcave,
     );
   }
 
   SurfaceChrome _buildChrome({
-    required ThemeColors themeColors,
+    required Color border,
     required Color surfaceColor,
     required double scale,
+    required bool isConcave,
   }) {
-    final baseBorder = themeColors.surfaceBorder;
-    final borderColor = baseBorder.withValues(
-      alpha: _globalNeumorphBorderAlpha,
-    );
+    final borderColor = border.withValues(alpha: _globalNeumorphBorderAlpha);
     final resolvedInnerHighlightColor = innerHighlightColor?.withValues(
       alpha: _globalNeumorphInnerHighlightAlpha,
     );
 
     return SurfaceChrome(
-      outerShadows: _buildNeumorphShadows(surfaceColor, scale),
+      outerShadows: isConcave
+          ? const []
+          : _buildNeumorphShadows(surfaceColor, scale),
       borderColor: transparentIdle ? Colors.transparent : borderColor,
       borderWidth: transparentIdle
           ? 0
@@ -202,7 +151,6 @@ class NeumorphSurfaceEffect extends SurfaceEffect {
 
   @override
   List<Shadow> foregroundShadows({
-    required BuildContext context,
     required Color foregroundColor,
     required bool isFocused,
     bool isWaiting = false,
@@ -234,87 +182,6 @@ class NeumorphSurfaceEffect extends SurfaceEffect {
           innerHighlightWidth,
       transparentIdle: t < 0.5 ? transparentIdle : other.transparentIdle,
     );
-  }
-}
-
-class _NeumorphForegroundPainter extends CustomPainter {
-  const _NeumorphForegroundPainter({
-    required this.radius,
-    this.borderColor,
-    this.borderWidth = 0,
-    this.borderBlur = 0,
-    this.innerHighlightColor,
-    this.innerHighlightWidth = 0,
-    this.innerHighlightBlur = 0,
-  });
-
-  final BorderRadiusGeometry radius;
-  final Color? borderColor;
-  final double borderWidth;
-  final double borderBlur;
-  final Color? innerHighlightColor;
-  final double innerHighlightWidth;
-  final double innerHighlightBlur;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final rect = Offset.zero & size;
-    final resolved = radius.resolve(TextDirection.ltr);
-    final outerRRect = resolved.toRRect(rect);
-
-    canvas.save();
-    canvas.clipRRect(outerRRect);
-
-    if (borderColor != null && borderWidth > 0) {
-      final inset = borderWidth / 2;
-      final borderRect = Rect.fromLTWH(
-        inset,
-        inset,
-        size.width - (inset * 2),
-        size.height - (inset * 2),
-      );
-      final borderRRect = resolved.toRRect(borderRect);
-      final borderPaint = Paint()
-        ..color = borderColor!
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = borderWidth
-        ..maskFilter = borderBlur > 0
-            ? MaskFilter.blur(BlurStyle.normal, borderBlur)
-            : null;
-      canvas.drawRRect(borderRRect, borderPaint);
-    }
-
-    if (innerHighlightColor != null && innerHighlightWidth > 0) {
-      final inset = innerHighlightWidth / 2;
-      final highlightRect = Rect.fromLTWH(
-        inset,
-        inset,
-        size.width - (inset * 2),
-        size.height - (inset * 2),
-      );
-      final highlightRRect = resolved.toRRect(highlightRect);
-      final highlightPaint = Paint()
-        ..color = innerHighlightColor!
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = innerHighlightWidth
-        ..maskFilter = innerHighlightBlur > 0
-            ? MaskFilter.blur(BlurStyle.normal, innerHighlightBlur)
-            : null;
-      canvas.drawRRect(highlightRRect, highlightPaint);
-    }
-
-    canvas.restore();
-  }
-
-  @override
-  bool shouldRepaint(_NeumorphForegroundPainter oldDelegate) {
-    return oldDelegate.radius != radius ||
-        oldDelegate.borderColor != borderColor ||
-        oldDelegate.borderWidth != borderWidth ||
-        oldDelegate.borderBlur != borderBlur ||
-        oldDelegate.innerHighlightColor != innerHighlightColor ||
-        oldDelegate.innerHighlightWidth != innerHighlightWidth ||
-        oldDelegate.innerHighlightBlur != innerHighlightBlur;
   }
 }
 

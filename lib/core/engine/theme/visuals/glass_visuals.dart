@@ -1,7 +1,6 @@
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import '../theme_visuals.dart';
-import '../theme_colors.dart';
 
 class GlassSurfaceEffect extends SurfaceEffect {
   final double glassBlur;
@@ -19,97 +18,32 @@ class GlassSurfaceEffect extends SurfaceEffect {
   });
 
   @override
-  Widget apply(
-    BuildContext context,
-    Widget child, {
-    required bool isFocused,
-    bool isWaiting = false,
-    BorderRadiusGeometry? borderRadius,
-    Color? fillColor,
-  }) {
-    final themeColors = Theme.of(context).extension<ThemeColors>()!;
-    final themeVisuals = Theme.of(context).extension<ThemeVisuals>()!;
-    final radius = borderRadius ?? themeVisuals.defaultRadius;
-    final surfaceColor = fillColor ?? themeColors.surfacePanel;
-
-    final Color baseSurface = isWaiting
-        ? themeColors.adormColor
-        : (transparentIdle ? Colors.transparent : surfaceColor);
-
-    final double effectiveOpacity = (isWaiting || !transparentIdle)
-        ? (isWaiting ? 0.8 : surfaceOpacity)
-        : 0.0;
-    final Color bgColor = baseSurface.withValues(alpha: effectiveOpacity);
-
-    return ClipRRect(
-      borderRadius: radius,
-      child: BackdropFilter(
-        filter: ui.ImageFilter.blur(
-          sigmaX: !transparentIdle ? glassBlur : 0.0,
-          sigmaY: !transparentIdle ? glassBlur : 0.0,
-        ),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          decoration: BoxDecoration(
-            color: bgColor,
-            borderRadius: radius,
-            border: borderThickness > 0
-                ? Border.all(
-                    color: isWaiting
-                        ? themeColors.adormColor.withValues(alpha: 0.8)
-                        : (transparentIdle
-                            ? Colors.transparent
-                            : themeColors.surfaceBorder.withValues(alpha: borderOpacity)),
-                    width: borderThickness,
-                  )
-                : null,
-          ),
-          child: Stack(
-            children: [
-              if (glassBlur > 0 && (isFocused || !transparentIdle))
-                Positioned.fill(
-                  child: Container(
-                    decoration: BoxDecoration(
-                      borderRadius: radius,
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          Colors.white.withValues(alpha: 0.15),
-                          Colors.transparent,
-                          Colors.black.withValues(alpha: 0.02),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              child,
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
   @override
-  SurfaceChrome chrome({
-    required BuildContext context,
-    required bool isFocused,
-    bool isWaiting = false,
-    Color? fillColor,
+  SurfaceChrome resolve({
+    required Color accent,
+    required Color border,
+    required Color surface,
+    required SurfaceState state,
   }) {
-    final themeColors = Theme.of(context).extension<ThemeColors>()!;
     return SurfaceChrome(
-      borderColor: isWaiting
-          ? themeColors.adormColor.withValues(alpha: 0.8)
+      borderColor: state.isWaiting
+          ? accent.withValues(alpha: 0.8)
           : (transparentIdle
-              ? Colors.transparent
-              : themeColors.surfaceBorder.withValues(alpha: borderOpacity)),
+                ? Colors.transparent
+                : border.withValues(alpha: borderOpacity)),
       borderWidth: borderThickness,
       surfaceBlur: !transparentIdle ? glassBlur : 0.0,
-      surfaceOpacity: (isWaiting || !transparentIdle)
-          ? (isWaiting ? 0.8 : surfaceOpacity)
+      surfaceOpacity: (state.isWaiting || !transparentIdle)
+          ? (state.isWaiting ? 0.8 : surfaceOpacity)
           : 0.0,
+      overlayGradientColors:
+          glassBlur > 0 && (state.isFocused || !transparentIdle)
+          ? [
+              Colors.white.withValues(alpha: 0.15),
+              Colors.transparent,
+              Colors.black.withValues(alpha: 0.02),
+            ]
+          : const [],
     );
   }
 
@@ -122,8 +56,7 @@ class GlassSurfaceEffect extends SurfaceEffect {
           ui.lerpDouble(surfaceOpacity, other.surfaceOpacity, t) ??
           surfaceOpacity,
       borderOpacity:
-          ui.lerpDouble(borderOpacity, other.borderOpacity, t) ??
-          borderOpacity,
+          ui.lerpDouble(borderOpacity, other.borderOpacity, t) ?? borderOpacity,
       borderThickness:
           ui.lerpDouble(borderThickness, other.borderThickness, t) ??
           borderThickness,

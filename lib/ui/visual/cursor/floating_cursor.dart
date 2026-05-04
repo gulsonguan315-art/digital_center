@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import '../../../core/control/superfocus/focus_manager.dart';
 import '../../../core/engine/theme/theme_colors.dart';
-import '../../../core/engine/theme/theme_visuals.dart';
+import '../../../core/engine/theme/theme_layers.dart';
 import '../../../core/control/superfocus/focus_geometry.dart';
 
 class FloatingHighlightBox extends StatefulWidget {
@@ -120,7 +120,7 @@ class _FloatingHighlightBoxState extends State<FloatingHighlightBox>
   Widget build(BuildContext context) {
     final report = SuperFocusManager.instance.cursorReportNotifier.value;
     final themeColors = Theme.of(context).extension<ThemeColors>()!;
-    final themeVisuals = Theme.of(context).extension<ThemeVisuals>()!;
+    final appTheme = Theme.of(context).extension<AppTheme>()!;
 
     final isActuallyHidden =
         SuperFocusManager.instance.cursorHiddenNotifier.value;
@@ -158,8 +158,8 @@ class _FloatingHighlightBoxState extends State<FloatingHighlightBox>
                   geometry: report?.geometry,
                   color: themeColors.adormColor,
                   visualScale: visualScale,
-                  glowRadius: themeVisuals.focusGlowRadius,
-                  glowOpacity: themeVisuals.focusGlowOpacity,
+                  glowRadius: appTheme.visuals.focusGlowRadius,
+                  glowOpacity: appTheme.visuals.focusGlowOpacity,
                 ),
               ),
             ),

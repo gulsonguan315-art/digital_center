@@ -6,24 +6,14 @@ enum VisualStyle { flat, glass, neumorphic }
 abstract class SurfaceEffect {
   const SurfaceEffect();
 
-  Widget apply(
-    BuildContext context,
-    Widget child, {
-    required bool isFocused,
-    bool isWaiting = false,
-    BorderRadiusGeometry? borderRadius,
-    Color? fillColor,
+  SurfaceChrome resolve({
+    required Color accent,
+    required Color border,
+    required Color surface,
+    required SurfaceState state,
   });
 
-  SurfaceChrome? chrome({
-    required BuildContext context,
-    required bool isFocused,
-    bool isWaiting = false,
-    Color? fillColor,
-  }) => null;
-
   List<Shadow>? foregroundShadows({
-    required BuildContext context,
     required Color foregroundColor,
     required bool isFocused,
     bool isWaiting = false,
@@ -45,6 +35,7 @@ class SurfaceChrome {
     this.innerHighlightBlur = 0,
     this.surfaceBlur = 0,
     this.surfaceOpacity = 1.0,
+    this.overlayGradientColors = const [],
   });
 
   final List<BoxShadow> outerShadows;
@@ -56,6 +47,22 @@ class SurfaceChrome {
   final double innerHighlightBlur;
   final double surfaceBlur;
   final double surfaceOpacity;
+  final List<Color> overlayGradientColors;
+}
+
+@immutable
+class SurfaceState {
+  const SurfaceState({
+    required this.isFocused,
+    this.isWaiting = false,
+    this.isConcave = false,
+    this.fillColor,
+  });
+
+  final bool isFocused;
+  final bool isWaiting;
+  final bool isConcave;
+  final Color? fillColor;
 }
 
 @immutable

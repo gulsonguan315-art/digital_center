@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../core/control/superfocus/focus_manager.dart';
 import '../../core/engine/theme/theme_colors.dart';
+import '../../core/engine/theme/theme_identity.dart';
+import '../../core/engine/theme/theme_role.dart';
 import '../../modules/resident/settings/setting_page.dart';
 import '../../modules/resident/sidebar/sidebar_view.dart';
 
@@ -9,26 +11,33 @@ class BuildingPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final themeColors = Theme.of(context).extension<ThemeColors>()!;
+    return ThemeIdentity(
+      role: ThemeRole.appBackground,
+      child: Builder(
+        builder: (context) {
+          final material = context.useTheme();
 
-    return Container(
-      color: themeColors.backgroundCustom,
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const SidebarView(),
-          Expanded(
-            child: Scaffold(
-              backgroundColor: Colors.transparent,
-              appBar: AppBar(
-                title: null,
-                backgroundColor: Colors.transparent,
-                elevation: 0,
-              ),
-              body: const _MainContent(),
+          return Container(
+            color: material.colors.surface,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const SidebarView(),
+                Expanded(
+                  child: Scaffold(
+                    backgroundColor: Colors.transparent,
+                    appBar: AppBar(
+                      title: null,
+                      backgroundColor: Colors.transparent,
+                      elevation: 0,
+                    ),
+                    body: const _MainContent(),
+                  ),
+                ),
+              ],
             ),
-          ),
-        ],
+          );
+        },
       ),
     );
   }

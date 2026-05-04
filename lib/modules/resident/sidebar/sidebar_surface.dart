@@ -1,6 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import '../../../core/engine/theme/theme_colors.dart';
+import '../../../core/engine/theme/theme_identity.dart';
 import '../../../core/engine/theme/theme_visuals.dart';
 import '../../../core/layout/grid/grid_extensions.dart';
 import 'sidebar_metrics.dart';
@@ -13,19 +13,17 @@ class SidebarSurface extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final themeColors = Theme.of(context).extension<ThemeColors>()!;
-    final themeVisuals = Theme.of(context).extension<ThemeVisuals>()!;
-    final chrome =
-        themeVisuals.panelSurface.chrome(
-          context: context,
-          isFocused: false,
-          fillColor: themeColors.sidebarMain,
-        ) ??
-        const SurfaceChrome();
+    final material = context.useTheme();
+    final chrome = material.visual.resolve(
+      accent: material.colors.accent,
+      border: material.colors.border,
+      surface: material.colors.surface,
+      state: SurfaceState(isFocused: false, fillColor: material.colors.surface),
+    );
 
     final Color fillColor = (chrome.surfaceOpacity < 1.0)
-        ? themeColors.sidebarMain.withValues(alpha: chrome.surfaceOpacity)
-        : themeColors.sidebarMain;
+        ? material.colors.surface.withValues(alpha: chrome.surfaceOpacity)
+        : material.colors.surface;
 
     Widget content = Stack(
       fit: StackFit.expand,

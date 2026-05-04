@@ -60,7 +60,7 @@ class ThemeColors extends ThemeExtension<ThemeColors> {
     silk: Colors.black,
     backgroundCustom: Color(0xFFD3D3D3),
     sidebarMain: Color(0xFF2F4F4F),
-    sidebarForeground: Color(0xFF121826),
+    sidebarForeground: Color(0xFFFFFFFF),
     sidebarForegroundActive: Color(0xFF673AB7),
     sidebarForegroundDisabled: Color(0xFF121826),
     sidebarForegroundSibling: Color(0xFF121826),

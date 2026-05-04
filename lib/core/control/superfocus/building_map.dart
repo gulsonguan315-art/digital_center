@@ -38,9 +38,10 @@ class BuildingMap {
     ],
     'media': ['*mov', '*tv', '*ani', '*doc', '*adt'],
 
-    'settingPage': ['/themeColor', '/themeVisual', '*test'],
+    'settingPage': ['/themeColor', '/themeVisual', '/themeShape', '*test'],
     'themeColor': ['*'],
     'themeVisual': ['*'],
+    'themeShape': ['*'],
 
     'music': ['*宫', '*商', '*角', '*徵', '*羽'],
 

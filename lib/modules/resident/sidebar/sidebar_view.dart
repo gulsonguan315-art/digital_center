@@ -3,8 +3,10 @@ import '../../../core/control/superfocus/focus_geometry.dart';
 import '../../../core/control/superfocus/focus_manager.dart';
 import '../../../core/control/superfocus/focus_widgets.dart';
 import '../../../core/engine/theme/theme_colors.dart';
-import '../../../core/engine/theme/theme_visuals.dart';
+import '../../../core/engine/theme/theme_identity.dart';
+import '../../../core/engine/theme/theme_role.dart';
 import '../../../core/layout/grid/grid_extensions.dart';
+import '../../../ui/visual/surface/themed_surface.dart';
 import 'sidebar_metrics.dart';
 import 'sidebar_room.dart';
 import 'sidebar_surface.dart';
@@ -17,10 +19,14 @@ class SidebarView extends StatefulWidget {
   State<SidebarView> createState() => _SidebarViewState();
 }
 
-class _SidebarViewState extends State<SidebarView> {
+class _SidebarViewState extends State<SidebarView>
+    with SingleTickerProviderStateMixin {
+  static const Duration _expandDuration = Duration(milliseconds: 350);
+
   String _activeId = SidebarRoom.dashboardId;
   String? _expandedZoneId;
   final Map<String, GlobalKey> _tileKeys = {};
+  late final AnimationController _layoutRefreshController;
 
   final List<SidebarItemData> _items = [
     SidebarItemData(
@@ -104,8 +110,30 @@ class _SidebarViewState extends State<SidebarView> {
   @override
   void initState() {
     super.initState();
+    _layoutRefreshController =
+        AnimationController(vsync: this, duration: _expandDuration)
+          ..addListener(() {
+            if (mounted) setState(() {});
+          })
+          ..addStatusListener((status) {
+            if (status == AnimationStatus.completed) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted) setState(() {});
+              });
+            }
+          });
     _registerKeys(_items);
     _tileKeys[SidebarRoom.exitId] = GlobalKey();
+  }
+
+  @override
+  void dispose() {
+    _layoutRefreshController.dispose();
+    super.dispose();
+  }
+
+  void _refreshNotchDuringLayoutAnimation() {
+    _layoutRefreshController.forward(from: 0);
   }
 
   void _registerKeys(List<SidebarItemData> items) {
@@ -161,7 +189,9 @@ class _SidebarViewState extends State<SidebarView> {
     );
 
     final geometry = SidebarTileFocusGeometry(
-      borderRadius: BorderRadius.circular(context.units(SidebarMetrics.tileRadiusU)),
+      borderRadius: BorderRadius.circular(
+        context.units(SidebarMetrics.tileRadiusU),
+      ),
       openRightness: 1.0,
       concaveRadius: context.units(SidebarMetrics.surfaceRadiusU),
     );
@@ -171,48 +201,55 @@ class _SidebarViewState extends State<SidebarView> {
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<FocusTopology>(
-      valueListenable: SuperFocusManager.instance.topologyNotifier,
-      builder: (context, topology, _) {
-        return SidebarRoom(
-          child: SizedBox(
-            width: context.units(SidebarMetrics.widthU),
-            child: SidebarSurface(
-            notchPath: _calculateNotchPath(),
-            child: Padding(
-              padding: EdgeInsets.fromLTRB(
-                context.units(SidebarMetrics.contentPaddingLeftU),
-                context.units(SidebarMetrics.contentPaddingTopU),
-                context.units(SidebarMetrics.contentPaddingRightU),
-                context.units(SidebarMetrics.contentPaddingBottomU),
-              ),
-              child: Column(
-                children: [
-                  SizedBox(height: context.units(SidebarMetrics.brandTopGapU)),
-                  const _SidebarBrandHeader(),
-                  SizedBox(height: context.units(SidebarMetrics.headerItemsGapU)),
-                  ..._items.map(_buildItem),
-                  const Spacer(),
-                  SidebarTile(
-                    key: _tileKeys[SidebarRoom.exitId],
-                    id: SidebarRoom.exitId,
-                    label: 'exit',
-                    icon: Icons.power_settings_new_rounded,
-                    isActive: _activeId == SidebarRoom.exitId,
-                    autofocus: _activeId == SidebarRoom.exitId,
-                    onTap: () {
-                      setState(() {
-                        _activeId = SidebarRoom.exitId;
-                      });
-                    },
+    return ThemeIdentity(
+      role: ThemeRole.sidebar,
+      child: ValueListenableBuilder<FocusTopology>(
+        valueListenable: SuperFocusManager.instance.topologyNotifier,
+        builder: (context, topology, _) {
+          return SidebarRoom(
+            child: SizedBox(
+              width: context.units(SidebarMetrics.widthU),
+              child: SidebarSurface(
+                notchPath: _calculateNotchPath(),
+                child: Padding(
+                  padding: EdgeInsets.fromLTRB(
+                    context.units(SidebarMetrics.contentPaddingLeftU),
+                    context.units(SidebarMetrics.contentPaddingTopU),
+                    context.units(SidebarMetrics.contentPaddingRightU),
+                    context.units(SidebarMetrics.contentPaddingBottomU),
                   ),
-                ],
+                  child: Column(
+                    children: [
+                      SizedBox(
+                        height: context.units(SidebarMetrics.brandTopGapU),
+                      ),
+                      const _SidebarBrandHeader(),
+                      SizedBox(
+                        height: context.units(SidebarMetrics.headerItemsGapU),
+                      ),
+                      ..._items.map(_buildItem),
+                      const Spacer(),
+                      SidebarTile(
+                        key: _tileKeys[SidebarRoom.exitId],
+                        id: SidebarRoom.exitId,
+                        label: 'exit',
+                        icon: Icons.power_settings_new_rounded,
+                        isActive: _activeId == SidebarRoom.exitId,
+                        autofocus: _activeId == SidebarRoom.exitId,
+                        onTap: () {
+                          setState(() {
+                            _activeId = SidebarRoom.exitId;
+                          });
+                        },
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
-          ),
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 
@@ -237,6 +274,7 @@ class _SidebarViewState extends State<SidebarView> {
             isActive: isLeaf && _activeId == item.id,
             autofocus: _activeId == item.id,
             onTap: () {
+              final shouldRefreshLayout = hasChildren;
               setState(() {
                 if (hasChildren) {
                   _expandedZoneId = isExpanded ? null : item.id;
@@ -244,12 +282,15 @@ class _SidebarViewState extends State<SidebarView> {
                   _activeId = item.id;
                 }
               });
+              if (shouldRefreshLayout) {
+                _refreshNotchDuringLayoutAnimation();
+              }
             },
           ),
         ),
         if (hasChildren)
           AnimatedSize(
-            duration: const Duration(milliseconds: 350),
+            duration: _expandDuration,
             curve: Curves.easeInOutCubic,
             alignment: Alignment.topCenter,
             child: isExpanded
@@ -292,20 +333,30 @@ class _SidebarBrandHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final themeColors = Theme.of(context).extension<ThemeColors>()!;
 
-    final themeVisuals = Theme.of(context).extension<ThemeVisuals>()!;
-    final radius = BorderRadius.circular(context.units(SidebarMetrics.brandPanelRadiusU));
+    final radius = BorderRadius.circular(
+      context.units(SidebarMetrics.brandPanelRadiusU),
+    );
 
-    return themeVisuals.panelSurface.apply(
-      context,
-      Container(
+    return ThemedSurface(
+      isFocused: false,
+      isConcave: true,
+      borderRadius: radius,
+      fillColor: themeColors.surfaceOverlay.withValues(alpha: 0.72),
+      child: Container(
         height: context.units(SidebarMetrics.brandHeaderHeightU),
         padding: EdgeInsets.symmetric(
-          horizontal: context.units(SidebarMetrics.brandPanelPaddingHorizontalU),
+          horizontal: context.units(
+            SidebarMetrics.brandPanelPaddingHorizontalU,
+          ),
           vertical: context.units(SidebarMetrics.brandPanelPaddingVerticalU),
         ),
         child: Row(
           children: [
-            Icon(Icons.blur_on_rounded, size: 32, color: themeColors.adormColor),
+            Icon(
+              Icons.blur_on_rounded,
+              size: 32,
+              color: themeColors.adormColor,
+            ),
             const SizedBox(width: 12),
             Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -332,9 +383,6 @@ class _SidebarBrandHeader extends StatelessWidget {
           ],
         ),
       ),
-      isFocused: false,
-      borderRadius: radius,
-      fillColor: themeColors.surfaceOverlay.withValues(alpha: 0.72),
     );
   }
 }

@@ -26,10 +26,12 @@ class MyApp extends StatelessWidget {
           theme: ThemeFactory.createTheme(
             Brightness.light,
             ThemeProvider.instance.visualStyle,
+            ThemeProvider.instance.shapeStyle,
           ),
           darkTheme: ThemeFactory.createTheme(
             Brightness.dark,
             ThemeProvider.instance.visualStyle,
+            ThemeProvider.instance.shapeStyle,
           ),
           themeMode: ThemeProvider.instance.themeMode,
           builder: (context, child) {

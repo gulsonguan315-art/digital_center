@@ -1,7 +1,6 @@
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import '../theme_visuals.dart';
-import '../theme_colors.dart';
 
 class FlatSurfaceEffect extends SurfaceEffect {
   final double borderThickness;
@@ -15,59 +14,21 @@ class FlatSurfaceEffect extends SurfaceEffect {
   });
 
   @override
-  Widget apply(
-    BuildContext context,
-    Widget child, {
-    required bool isFocused,
-    bool isWaiting = false,
-    BorderRadiusGeometry? borderRadius,
-    Color? fillColor,
-  }) {
-    final themeColors = Theme.of(context).extension<ThemeColors>()!;
-    final themeVisuals = Theme.of(context).extension<ThemeVisuals>()!;
-    final radius = borderRadius ?? themeVisuals.defaultRadius;
-    final surfaceColor = fillColor ?? themeColors.surfacePanel;
-
-    final Color bgColor = isWaiting
-        ? themeColors.adormColor
-        : (transparentIdle ? Colors.transparent : surfaceColor);
-
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 200),
-      clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: radius,
-        border: borderThickness > 0
-            ? Border.all(
-                color: isWaiting
-                    ? themeColors.adormColor
-                    : (transparentIdle
-                        ? Colors.transparent
-                        : themeColors.surfaceBorder.withValues(alpha: borderOpacity)),
-                width: borderThickness,
-              )
-            : null,
-      ),
-      child: child,
-    );
-  }
-
   @override
-  SurfaceChrome chrome({
-    required BuildContext context,
-    required bool isFocused,
-    bool isWaiting = false,
-    Color? fillColor,
+  SurfaceChrome resolve({
+    required Color accent,
+    required Color border,
+    required Color surface,
+    required SurfaceState state,
   }) {
-    final themeColors = Theme.of(context).extension<ThemeColors>()!;
     return SurfaceChrome(
-      borderColor: isWaiting
-          ? themeColors.adormColor
+      borderColor: state.isWaiting
+          ? accent
           : (transparentIdle
-              ? Colors.transparent
-              : themeColors.surfaceBorder.withValues(alpha: borderOpacity)),
+                ? Colors.transparent
+                : border.withValues(alpha: borderOpacity)),
       borderWidth: borderThickness,
+      surfaceOpacity: state.isWaiting || !transparentIdle ? 1.0 : 0.0,
     );
   }
 
@@ -79,8 +40,7 @@ class FlatSurfaceEffect extends SurfaceEffect {
           ui.lerpDouble(borderThickness, other.borderThickness, t) ??
           borderThickness,
       borderOpacity:
-          ui.lerpDouble(borderOpacity, other.borderOpacity, t) ??
-          borderOpacity,
+          ui.lerpDouble(borderOpacity, other.borderOpacity, t) ?? borderOpacity,
       transparentIdle: t < 0.5 ? transparentIdle : other.transparentIdle,
     );
   }

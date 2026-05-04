@@ -9,17 +9,14 @@ class SettingPageRoom extends StatelessWidget {
   const SettingPageRoom({super.key, this.child});
 
   static const String roomId = 'settingPage';
-  
+
   // 补回丢失的测试按钮 ID
   static const String testId = 'test';
 
   @override
   Widget build(BuildContext context) {
     // 如果没有传入 child，默认展示 SettingPageView
-    return SuperFocusRoom(
-      id: roomId, 
-      child: child ?? const SettingPageView(),
-    );
+    return SuperFocusRoom(id: roomId, child: child ?? const SettingPageView());
   }
 }
 
@@ -43,6 +40,19 @@ class ThemeVisualRoom extends StatelessWidget {
   const ThemeVisualRoom({super.key, required this.child});
 
   static const String roomId = 'themeVisual';
+  static List<String> get memberIds => BuildingMap.getMembers(roomId);
+
+  @override
+  Widget build(BuildContext context) {
+    return SuperFocusRoom(id: roomId, child: child);
+  }
+}
+
+class ThemeShapeRoom extends StatelessWidget {
+  final Widget child;
+  const ThemeShapeRoom({super.key, required this.child});
+
+  static const String roomId = 'themeShape';
   static List<String> get memberIds => BuildingMap.getMembers(roomId);
 
   @override
