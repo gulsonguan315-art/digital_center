@@ -7,6 +7,7 @@ export 'theme_factory.dart';
 export 'theme_identity.dart';
 export 'theme_layers.dart';
 export 'theme_provider.dart';
+export 'theme_painter.dart';
 export 'theme_role.dart';
 
 extension UseTheme on BuildContext {

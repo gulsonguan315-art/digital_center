@@ -34,19 +34,22 @@ class DashboardCard extends StatelessWidget {
           builder: (context) {
             // 黑盒解析
             final material = context.useTheme();
-            final chrome = material.visual;
             final radius = borderRadius ?? material.shape.radius;
 
-            return Container(
-              decoration: BoxDecoration(
-                color: fillColor ?? material.colors.surface,
-                borderRadius: radius,
-                boxShadow: chrome.outerShadows,
-                border: Border.all(
-                  color: chrome.borderColor ?? Colors.transparent,
-                  width: chrome.borderWidth,
+            final effectiveRadius = (radius as BorderRadius).topLeft.x;
+
+            return ThemePainter(
+              material: material,
+              pathBuilder: (size) => Path()
+                ..addRRect(
+                  RRect.fromLTRBR(
+                    0,
+                    0,
+                    size.width,
+                    size.height,
+                    Radius.circular(effectiveRadius),
+                  ),
                 ),
-              ),
               child: Padding(
                 padding: padding ?? const EdgeInsets.all(20.0),
                 child: child,

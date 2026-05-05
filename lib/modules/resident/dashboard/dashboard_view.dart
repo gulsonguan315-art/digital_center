@@ -4,7 +4,6 @@ import 'package:flutter/services.dart';
 import '../../../core/control/superfocus/focus_api.dart';
 import '../../../core/engine/theme/theme_api.dart';
 import '../../../core/layout/grid/grid_extensions.dart';
-import '../../../ui/base/surface/dashboard_card.dart';
 import '../../widgets/clock/clock_view.dart';
 import 'dashboard_callback.dart';
 import 'engine/dashboard_controller.dart';
@@ -164,88 +163,101 @@ class _DashboardViewState extends State<DashboardView> {
                                         material.shape.radius as BorderRadius,
                                   ),
                                   builder: (context, hasFocus) {
-                                    final Widget content = config.id == 'dash_clock'
-                                        ? const ClockView()
-                                        : Center(
-                                            child: Text(
-                                              config.id
-                                                  .replaceAll('dash_', '')
-                                                  .toUpperCase(),
-                                              style: TextStyle(
-                                                fontWeight: hasFocus
-                                                    ? FontWeight.w900
-                                                    : FontWeight.bold,
-                                                color: hasFocus
-                                                    ? material.colors.accent
-                                                    : null,
-                                                letterSpacing: 1.2,
-                                              ),
-                                            ),
-                                          );
+                                    // 1. 业务组件地图：DashboardView 只负责查表，不负责画画
+                                    final Map<String, Widget> registry = {
+                                      'dash_clock': const ClockView(),
+                                      // 以后这里可以加 'dash_weather': const WeatherView(), 等
+                                    };
 
-                                    return DashboardCard(
-                                      padding: EdgeInsets.zero,
-                                      child: Stack(
-                                        children: [
-                                          Positioned.fill(child: content),
-                                          if (_controller.isEditMode)
-                                            Positioned.fill(
+                                    // 2. 获取组件：如果地图里没有，就直接显示文字（不干预任何效果，不领盘子）
+                                    final Widget card =
+                                        registry[config.id] ??
+                                        Center(
+                                          child: Text(
+                                            config.id
+                                                .replaceAll('dash_', '')
+                                                .toUpperCase(),
+                                            style: TextStyle(
+                                              fontWeight: hasFocus
+                                                  ? FontWeight.w900
+                                                  : FontWeight.bold,
+                                              color: hasFocus
+                                                  ? material.colors.accent
+                                                  : material.colors.textPrimary
+                                                        .withValues(alpha: 0.2),
+                                              letterSpacing: 1.2,
+                                            ),
+                                          ),
+                                        );
+
+                                    // 3. 装饰层：只负责叠加框架逻辑（编辑模式等）
+                                    return Stack(
+                                      children: [
+                                        Positioned.fill(child: card),
+                                        // 编辑模式的半透明边框覆盖
+                                        if (_controller.isEditMode)
+                                          Positioned.fill(
+                                            child: IgnorePointer(
                                               child: Container(
                                                 decoration: BoxDecoration(
                                                   borderRadius:
                                                       material.shape.radius,
                                                   border: Border.all(
-                                                    color: material.colors.accent
+                                                    color: material
+                                                        .colors
+                                                        .accent
                                                         .withValues(alpha: 0.4),
                                                     width: 2,
                                                   ),
                                                 ),
                                               ),
                                             ),
-                                          if (_controller.isEditMode)
-                                            Positioned(
-                                              right: 0,
-                                              bottom: 0,
-                                              child: GestureDetector(
-                                                onPanUpdate: (details) =>
-                                                    DashboardCallback.onItemResize(
-                                                      controller: _controller,
-                                                      gridKey: _gridKey,
-                                                      details: details,
-                                                      config: config,
-                                                      rect: rect,
-                                                      unitSize: unitSize,
-                                                      gap: gap,
+                                          ),
+                                        // 编辑模式的缩放手柄
+                                        if (_controller.isEditMode)
+                                          Positioned(
+                                            right: 8,
+                                            bottom: 8,
+                                            child: GestureDetector(
+                                              onPanUpdate: (details) =>
+                                                  DashboardCallback.onItemResize(
+                                                    controller: _controller,
+                                                    gridKey: _gridKey,
+                                                    details: details,
+                                                    config: config,
+                                                    rect: rect,
+                                                    unitSize: unitSize,
+                                                    gap: gap,
+                                                  ),
+                                              onPanEnd: (_) =>
+                                                  DashboardCallback.onInteractionEnd(
+                                                    _controller,
+                                                  ),
+                                              child: Container(
+                                                width: 32,
+                                                height: 32,
+                                                color: Colors.transparent,
+                                                child: Center(
+                                                  child: Container(
+                                                    padding:
+                                                        const EdgeInsets.all(4),
+                                                    decoration: BoxDecoration(
+                                                      color: material
+                                                          .colors
+                                                          .accent,
+                                                      shape: BoxShape.circle,
                                                     ),
-                                                onPanEnd: (_) =>
-                                                    DashboardCallback.onInteractionEnd(
-                                                      _controller,
-                                                    ),
-                                                child: Container(
-                                                  width: 32,
-                                                  height: 32,
-                                                  color: Colors.transparent,
-                                                  child: Center(
-                                                    child: Container(
-                                                      padding:
-                                                          const EdgeInsets.all(4),
-                                                      decoration: BoxDecoration(
-                                                        color:
-                                                            material.colors.accent,
-                                                        shape: BoxShape.circle,
-                                                      ),
-                                                      child: const Icon(
-                                                        Icons.unfold_more_rounded,
-                                                        size: 14,
-                                                        color: Colors.white,
-                                                      ),
+                                                    child: const Icon(
+                                                      Icons.unfold_more_rounded,
+                                                      size: 14,
+                                                      color: Colors.white,
                                                     ),
                                                   ),
                                                 ),
                                               ),
                                             ),
-                                        ],
-                                      ),
+                                          ),
+                                      ],
                                     );
                                   },
                                 ),

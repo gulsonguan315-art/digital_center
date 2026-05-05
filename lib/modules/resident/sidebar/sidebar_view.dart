@@ -209,6 +209,7 @@ class _SidebarViewState extends State<SidebarView>
             child: SizedBox(
               width: context.units(SidebarMetrics.widthU),
               child: SidebarSurface(
+                roundLeft: false,
                 notchPath: _calculateNotchPath(),
                 child: Padding(
                   padding: EdgeInsets.fromLTRB(

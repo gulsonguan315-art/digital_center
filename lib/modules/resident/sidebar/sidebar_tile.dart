@@ -27,13 +27,13 @@ class SidebarTile extends StatelessWidget {
   final VoidCallback? onTap;
 
   Color _resolveForeground(RoleColors colors) {
-    if (isDisabled) return colors.textPrimary.withValues(alpha: 0.2);
-    if (isActive) return colors.accent;
-    return colors.textPrimary.withValues(alpha: 0.7);
+    if (isDisabled) return colors.foregroundDisabled;
+    if (isActive) return colors.foregroundActive;
+    return colors.foreground;
   }
 
   Color _resolveBackground(RoleColors colors, bool isFocused) {
-    if (isFocused) return colors.textPrimary.withValues(alpha: 0.08);
+    if (isFocused) return colors.backgroundFocused;
     return Colors.transparent;
   }
 
@@ -51,9 +51,12 @@ class SidebarTile extends StatelessWidget {
         concaveRadius: context.units(SidebarMetrics.surfaceRadiusU),
       ),
       builder: (context, isFocused) {
+        // 1. 动态确定层级：只有焦点状态下才升级到 Above 层以获取拟物阴影参数
+        final layer = isFocused ? ThemeLayer.above : ThemeLayer.base;
+
         return ThemeIdentity(
           role: ThemeRole.sidebar,
-          layer: ThemeLayer.base, 
+          layer: layer,
           child: Builder(
             builder: (context) {
               final material = context.useTheme();
@@ -62,6 +65,19 @@ class SidebarTile extends StatelessWidget {
 
               final foreground = _resolveForeground(colors);
               final background = _resolveBackground(colors, isFocused);
+
+              // 2. 只有获得焦点且在 Above 层时，才应用阴影
+              final List<Shadow>? shadows = isFocused
+                  ? chrome.outerShadows
+                        .map(
+                          (e) => Shadow(
+                            color: e.color,
+                            offset: e.offset,
+                            blurRadius: e.blurRadius,
+                          ),
+                        )
+                        .toList()
+                  : null;
 
               return AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
@@ -76,50 +92,46 @@ class SidebarTile extends StatelessWidget {
                     context.units(SidebarMetrics.tileRadiusU),
                   ),
                 ),
-                child: Row(
-                  children: [
-                    Icon(
-                      icon,
-                      size: 20,
-                      color: foreground,
-                      // 图标由于不是文本，暂时还不能用 SurfaceText，
-                      // 但由于侧边栏 Tile 是 Base 层，我们手动应用 outerShadows
-                      shadows: chrome.outerShadows.map((e) => Shadow(
-                        color: e.color,
-                        offset: e.offset,
-                        blurRadius: e.blurRadius,
-                      )).toList(),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: SurfaceText(
-                        label,
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
-                          color: foreground,
-                          letterSpacing: 0.5,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                child: AnimatedScale(
+                  scale: (isFocused || isActive) ? 1.05 : 1.0,
+                  duration: const Duration(milliseconds: 200),
+                  curve: Curves.easeOutCubic,
+                  child: Row(
+                    children: [
+                      Icon(
+                        icon,
+                        size: 20,
+                        color: foreground,
+                        shadows: shadows, // 应用拟物阴影
                       ),
-                    ),
-                    if (isActive)
-                      Container(
-                        width: 4,
-                        height: 4,
-                        decoration: BoxDecoration(
-                          color: colors.accent,
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: colors.accent.withValues(alpha: 0.5),
-                              blurRadius: 4,
-                            ),
-                          ],
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: SurfaceText(
+                          label,
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: isActive
+                                ? FontWeight.bold
+                                : FontWeight.w800,
+                            color: foreground,
+                            letterSpacing: 0.5,
+                            shadows: shadows, // 应用拟物阴影
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                  ],
+                      if (isActive)
+                        Container(
+                          width: 4,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: colors.accent,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
               );
             },

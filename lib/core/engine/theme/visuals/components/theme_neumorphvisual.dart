@@ -8,25 +8,62 @@ import '../theme_visuals.dart';
 
 // --- A. Base层 (凸起) 菜单 ---
 const _baseDefaultMenu = NeumorphPhysics(
-  shadowOffsetX: 8.0,
-  shadowOffsetY: -8.0, // 👈 现在正数代表向上！
-  shadowAlpha: 1.0,
-  shadowBlur: 0.0,
+  shadowOffsetX: 10.0,
+  shadowOffsetY: -10.0,
+  shadowAlpha: 0.6,
+  shadowBlur: 10.0,
+  highlightOffsetX: 5.0,
+  highlightOffsetY: -5.0,
+  highlightAlpha: 1.0,
+  highlightBlur: 5.0,
+  // 描边参数 (只给 Base 层开启)
+  borderWidth: 0.0,
+  borderAlpha: 0.0,
+  borderBlur: 0.0,
 );
 
 // --- B. Under层 (凹陷) 菜单 ---
 const _underDefaultMenu = NeumorphPhysics(
-  shadowOffsetX: 1.0,
-  shadowOffsetY: -1.0, // 向上
-  shadowAlpha: 0.5,
-  shadowBlur: 0.0,
+  shadowOffsetX: 3.0,
+  shadowOffsetY: -3.0,
+  shadowAlpha: 0.6,
+  shadowBlur: 1.0,
+  highlightOffsetX: 1.0,
+  highlightOffsetY: -1.0,
+  highlightAlpha: 0.2,
+  highlightBlur: 0.5,
+  borderWidth: 0,
+  borderAlpha: 0,
+  borderBlur: 0,
 );
 
 const _underSidebarMenu = NeumorphPhysics(
-  shadowOffsetX: 2.0,
-  shadowOffsetY: -2.0, // 向上
-  shadowAlpha: 1.0,
-  shadowBlur: 0.0,
+  shadowOffsetX: 8.0,
+  shadowOffsetY: -8.0,
+  shadowAlpha: 0.6,
+  shadowBlur: 5.0,
+  highlightOffsetX: 2.0, // 右下方高光
+  highlightOffsetY: -2.0,
+  highlightAlpha: 0.5,
+  highlightBlur: 2.0,
+  borderWidth: 0,
+  borderAlpha: 0,
+  borderBlur: 0,
+);
+
+// --- C. Above层 (悬浮凸起) 菜单 ---
+const _aboveDefaultMenu = NeumorphPhysics(
+  shadowOffsetX: 8.0,
+  shadowOffsetY: -8.0,
+  shadowAlpha: 0.6,
+  shadowBlur: 2.0,
+  highlightOffsetX: 8.0,
+  highlightOffsetY: -8.0,
+  highlightAlpha: 0.0,
+  highlightBlur: 1.0,
+  borderWidth: 0,
+  borderAlpha: 0,
+  borderBlur: 0,
 );
 
 // =============================================================================
@@ -53,6 +90,12 @@ class NeumorphSurfaceEffect extends SurfaceEffect {
 
       // 3. 传话：把点好的菜发给后厨
       return _renderSunken(physics);
+    } else if (layer == ThemeLayer.above) {
+      // 2. 查单：Above层目前统一取默认菜单
+      final physics = _aboveDefaultMenu;
+
+      // 3. 传话：同样是凸起效果，但用 Above 的参数
+      return _renderConvex(physics);
     } else {
       // 2. 查单：Base层目前统一取默认菜单
       final physics = _baseDefaultMenu;
@@ -75,11 +118,21 @@ class NeumorphSurfaceEffect extends SurfaceEffect {
       outerShadows: [
         BoxShadow(
           color: Colors.black.withValues(alpha: p.shadowAlpha),
-          // 👈 核心修改：dy 取负值，从而让正数输入代表向上
           offset: Offset(p.shadowOffsetX, -p.shadowOffsetY),
           blurRadius: p.shadowBlur,
         ),
+        BoxShadow(
+          color: Colors.white.withValues(alpha: p.highlightAlpha),
+          offset: Offset(-p.highlightOffsetX, p.highlightOffsetY),
+          blurRadius: p.highlightBlur,
+        ),
       ],
+      // 描边应用
+      borderColor: p.borderWidth > 0
+          ? Colors.white.withValues(alpha: p.borderAlpha)
+          : null,
+      borderWidth: p.borderWidth,
+      borderBlur: p.borderBlur,
       surfaceOpacity: 1.0,
     );
   }
@@ -88,11 +141,17 @@ class NeumorphSurfaceEffect extends SurfaceEffect {
   SurfaceChrome _renderSunken(NeumorphPhysics p) {
     return SurfaceChrome(
       innerShadows: [
+        // 左上黑色阴影
         BoxShadow(
           color: Colors.black.withValues(alpha: p.shadowAlpha),
-          // 👈 核心修改：dy 取负值，从而让正数输入代表向上
           offset: Offset(p.shadowOffsetX, -p.shadowOffsetY),
           blurRadius: p.shadowBlur,
+        ),
+        // 右下白色高光 (注意偏移取反)
+        BoxShadow(
+          color: Colors.white.withValues(alpha: p.highlightAlpha),
+          offset: Offset(-p.highlightOffsetX, p.highlightOffsetY),
+          blurRadius: p.highlightBlur,
         ),
       ],
       surfaceOpacity: 1.0,
@@ -110,12 +169,28 @@ class NeumorphPhysics {
     required this.shadowOffsetY,
     required this.shadowBlur,
     required this.shadowAlpha,
+    required this.highlightOffsetX,
+    required this.highlightOffsetY,
+    required this.highlightBlur,
+    required this.highlightAlpha,
+    required this.borderWidth,
+    required this.borderAlpha,
+    required this.borderBlur,
   });
 
   final double shadowOffsetX;
   final double shadowOffsetY;
   final double shadowBlur;
   final double shadowAlpha;
+
+  final double highlightOffsetX;
+  final double highlightOffsetY;
+  final double highlightBlur;
+  final double highlightAlpha;
+
+  final double borderWidth;
+  final double borderAlpha;
+  final double borderBlur;
 }
 
 const neumorphicVisualLayer = ThemeVisualLayer(
