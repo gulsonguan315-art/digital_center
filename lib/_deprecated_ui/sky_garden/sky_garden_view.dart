@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../ui/base/input/ui_base_button.dart';
 import '../../core/control/superfocus/focus_widgets.dart';
-import '../../core/engine/theme/theme_colors.dart';
-import '../../core/engine/theme/theme_visuals.dart';
+import '../../core/engine/theme/del_theme_colors.dart';
+import '../../core/engine/theme/del_theme_visuals.dart';
 import 'sky_garden_room.dart';
 
 class SkyGardenView extends StatelessWidget {

@@ -11,7 +11,7 @@ const lightColorLayer = ThemeColorLayer(
     backgroundActive: Color(0xFF673AB7),
     border: Color(0xFFFFFFFF),
     accent: Color(0xFF673AB7),
-    textPrimary: Color(0xFF000000),
+    textPrimary: Color(0xFFFFFFFF),
     textSecondary: Color(0xFF000000),
   ),
   card: RoleColors(

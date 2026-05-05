@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'core/control/superfocus/focus_manager.dart';
 import 'core/layout/grid/grid_scope.dart';
 import 'core/layout/grid/grid_context.dart';
@@ -8,7 +9,9 @@ import 'core/engine/theme/theme_factory.dart';
 import 'ui/visual/cursor/floating_cursor.dart';
 import 'ui/pages/building_page.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await initializeDateFormatting('zh_CN', null);
   runApp(const MyApp());
 }
 

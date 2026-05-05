@@ -5,27 +5,35 @@ import '../../../core/layout/grid/grid_extensions.dart';
 import 'sidebar_metrics.dart';
 
 class SidebarSurface extends StatelessWidget {
-  const SidebarSurface({super.key, required this.child, this.notchPath});
+  const SidebarSurface({
+    super.key, 
+    required this.child, 
+    this.notchPath,
+    this.radius,
+    this.width, // 👈
+  });
 
   final Widget child;
   final Path? notchPath;
+  final double? radius;
+  final double? width; // 👈 增加可选宽度
 
   @override
   Widget build(BuildContext context) {
+    // 1. 自动识别：内部已自动根据 Identity 解析出结果
     final material = context.useTheme();
-    final chrome = material.visual.resolve(
-      accent: material.colors.accent,
-      border: material.colors.border,
-      surface: material.colors.surface,
-      state: SurfaceState(isFocused: false, fillColor: material.colors.surface),
-    );
+    final chrome = material.visual;
+
+    // 2. 动态计算：如果是侧边栏，用全宽；如果是局部容器，用传进来的宽度或跟随容器
+    final double effectiveWidth = width ?? context.units(SidebarMetrics.widthU);
+    final double effectiveRadius = radius ?? context.units(SidebarMetrics.surfaceRadiusU);
 
     final Color fillColor = (chrome.surfaceOpacity < 1.0)
         ? material.colors.surface.withValues(alpha: chrome.surfaceOpacity)
         : material.colors.surface;
 
     Widget content = Stack(
-      fit: StackFit.expand,
+      fit: StackFit.loose, // 👈 改为宽松模式，避免在 Column 中无限膨胀
       clipBehavior: Clip.none,
       children: [
         if (chrome.outerShadows.isNotEmpty)
@@ -35,8 +43,8 @@ class SidebarSurface extends StatelessWidget {
                 painter: _SidebarShadowPainter(
                   notchPath: notchPath,
                   shadows: chrome.outerShadows,
-                  width: context.units(SidebarMetrics.widthU),
-                  radius: context.units(SidebarMetrics.surfaceRadiusU),
+                  width: effectiveWidth, // 👈 使用有效宽度
+                  radius: effectiveRadius,
                 ),
               ),
             ),
@@ -53,8 +61,9 @@ class SidebarSurface extends StatelessWidget {
                 innerHighlightColor: chrome.innerHighlightColor,
                 innerHighlightWidth: chrome.innerHighlightWidth,
                 innerHighlightBlur: chrome.innerHighlightBlur,
-                width: context.units(SidebarMetrics.widthU),
-                radius: context.units(SidebarMetrics.surfaceRadiusU),
+                innerShadows: chrome.innerShadows, 
+                width: effectiveWidth, // 👈 使用有效宽度
+                radius: effectiveRadius,
               ),
             ),
           ),
@@ -65,7 +74,11 @@ class SidebarSurface extends StatelessWidget {
 
     if (chrome.surfaceBlur > 0) {
       content = ClipPath(
-        clipper: _SidebarSurfaceClipper(notchPath: notchPath),
+        clipper: _SidebarSurfaceClipper(
+          notchPath: notchPath,
+          radius: effectiveRadius,
+          width: effectiveWidth, // 👈 使用有效宽度
+        ),
         child: BackdropFilter(
           filter: ImageFilter.blur(
             sigmaX: chrome.surfaceBlur,
@@ -81,9 +94,15 @@ class SidebarSurface extends StatelessWidget {
 }
 
 class _SidebarSurfaceClipper extends CustomClipper<Path> {
-  const _SidebarSurfaceClipper({required this.notchPath});
+  const _SidebarSurfaceClipper({
+    required this.notchPath,
+    required this.radius,
+    required this.width, // 👈 必须传进来，不能在 getClip 里猜
+  });
 
   final Path? notchPath;
+  final double radius;
+  final double width;
 
   @override
   Path getClip(Size size) {
@@ -91,14 +110,16 @@ class _SidebarSurfaceClipper extends CustomClipper<Path> {
       notchPath: notchPath,
       fillColor: Colors.transparent,
       borderColor: Colors.transparent,
-      width: SidebarMetrics.widthU * (size.height / 100), // 估算 U
-      radius: SidebarMetrics.surfaceRadiusU * (size.height / 100),
+      width: width, // 👈 使用确定的物理宽度
+      radius: radius,
     ).buildPath(size);
   }
 
   @override
   bool shouldReclip(_SidebarSurfaceClipper oldClipper) {
-    return oldClipper.notchPath != notchPath;
+    return oldClipper.notchPath != notchPath || 
+           oldClipper.radius != radius ||
+           oldClipper.width != width;
   }
 }
 
@@ -112,6 +133,7 @@ class _SidebarSurfacePainter extends CustomPainter {
     this.innerHighlightColor,
     this.innerHighlightWidth = 0,
     this.innerHighlightBlur = 0,
+    this.innerShadows = const [], // 👈 增加内阴影参数
     required this.width,
     required this.radius,
   });
@@ -124,15 +146,38 @@ class _SidebarSurfacePainter extends CustomPainter {
   final Color? innerHighlightColor;
   final double innerHighlightWidth;
   final double innerHighlightBlur;
+  final List<BoxShadow> innerShadows;
   final double width;
   final double radius;
 
   @override
   void paint(Canvas canvas, Size size) {
     final path = buildPath(size);
+    final rect = Offset.zero & size;
     final fillPaint = Paint()..color = fillColor;
 
     canvas.drawPath(path, fillPaint);
+
+    // --- 补全：内阴影绘制逻辑 ---
+    if (innerShadows.isNotEmpty) {
+      final shadow = innerShadows.first;
+      canvas.save();
+      canvas.clipPath(path);
+
+      final shadowPath = Path()
+        ..fillType = PathFillType.evenOdd
+        ..addRect(rect.inflate(shadow.blurRadius * 2))
+        ..addPath(path, Offset.zero);
+
+      canvas.translate(shadow.offset.dx, shadow.offset.dy);
+      canvas.drawPath(
+        shadowPath,
+        Paint()
+          ..color = shadow.color
+          ..maskFilter = MaskFilter.blur(BlurStyle.normal, shadow.blurRadius),
+      );
+      canvas.restore();
+    }
 
     if (borderWidth > 0) {
       final borderPaint = Paint()
@@ -166,15 +211,24 @@ class _SidebarSurfacePainter extends CustomPainter {
   }
 
   Path buildPath(Size size) {
+    // 1. 安全加固：宽度应优先跟随布局，高度为 0 时直接返回空路径防止崩溃
+    if (size.height <= 0 || size.width <= 0) return Path();
+
+    // 2. 动态适配：如果是局部容器（如 Logo 区），信任布局给的 width
+    final drawWidth = (width == size.width) ? width : size.width;
+    
+    // 3. 圆角极限保护：圆角不能超过高度的一半
+    final safeRadius = radius.clamp(0.0, size.height / 2.0);
+
     final platePath = Path()
       ..addRRect(
         RRect.fromLTRBAndCorners(
           0,
           0,
-          width,
+          drawWidth,
           size.height,
-          topRight: Radius.circular(radius),
-          bottomRight: Radius.circular(radius),
+          topRight: Radius.circular(safeRadius),
+          bottomRight: Radius.circular(safeRadius),
         ),
       );
 
@@ -195,6 +249,7 @@ class _SidebarSurfacePainter extends CustomPainter {
         oldDelegate.innerHighlightColor != innerHighlightColor ||
         oldDelegate.innerHighlightWidth != innerHighlightWidth ||
         oldDelegate.innerHighlightBlur != innerHighlightBlur ||
+        oldDelegate.innerShadows != innerShadows || // 👈 增加重绘判断
         oldDelegate.width != width ||
         oldDelegate.radius != radius;
   }

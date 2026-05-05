@@ -4,11 +4,8 @@ import '../../../core/control/superfocus/focus_geometry.dart';
 import '../../../core/control/superfocus/focus_manager.dart';
 import '../../../core/control/superfocus/focus_widgets.dart';
 
-import '../../../core/engine/theme/theme_identity.dart';
-import '../../../core/engine/theme/theme_role.dart';
-
 import '../../../core/layout/grid/grid_extensions.dart';
-import '../../../ui/visual/surface/themed_surface.dart';
+import '../../../ui/base/text/surface_text.dart';
 import 'sidebar_metrics.dart';
 import 'sidebar_room.dart';
 import 'sidebar_surface.dart';
@@ -333,55 +330,45 @@ class _SidebarBrandHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final material = context.useTheme();
-    final colors = material.colors;
+    final radius = context.units(SidebarMetrics.brandPanelRadiusU);
 
-    final radius = BorderRadius.circular(
-      context.units(SidebarMetrics.brandPanelRadiusU),
-    );
-
-    return ThemedSurface(
-      isFocused: false,
-      isConcave: true,
-      borderRadius: radius,
-      fillColor: colors.surface.withValues(alpha: 0.72),
-      child: Container(
-        height: context.units(SidebarMetrics.brandHeaderHeightU),
-        padding: EdgeInsets.symmetric(
-          horizontal: context.units(
-            SidebarMetrics.brandPanelPaddingHorizontalU,
+    return ThemeIdentity(
+      role: ThemeRole.sidebar,
+      layer: ThemeLayer.under,
+      child: SidebarSurface(
+        radius: radius,
+        child: Container(
+          height: context.units(SidebarMetrics.brandHeaderHeightU),
+          padding: EdgeInsets.symmetric(
+            horizontal: context.units(SidebarMetrics.brandPanelPaddingHorizontalU),
           ),
-          vertical: context.units(SidebarMetrics.brandPanelPaddingVerticalU),
-        ),
-        child: Row(
-          children: [
-            Icon(Icons.blur_on_rounded, size: 32, color: colors.accent),
-            const SizedBox(width: 12),
-            Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
+          child: ThemeIdentity(
+            role: ThemeRole.sidebar,
+            layer: ThemeLayer.base,
+            child: Row(
               children: [
-                Text(
-                  'Digital',
-                  style: TextStyle(
-                    color: colors.textPrimary,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
+                Icon(
+                  Icons.blur_on_rounded, 
+                  size: 36, 
+                  color: context.useTheme().colors.accent,
                 ),
-                Text(
-                  'CENTER',
-                  style: TextStyle(
-                    color: colors.textSecondary,
-                    fontSize: 10,
-                    letterSpacing: 2,
+                const SizedBox(width: 14),
+                const Expanded(
+                  child: SurfaceText(
+                    'Digital. Center',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w900,
+                      fontSize: 22,
+                      letterSpacing: 1,
+                    ),
                   ),
                 ),
               ],
             ),
-          ],
+          ),
         ),
       ),
     );
   }
 }
+

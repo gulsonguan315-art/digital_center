@@ -18,7 +18,7 @@ class ResolvedThemeMaterial {
   });
 
   final RoleColors colors;
-  final SurfaceEffect visual;
+  final SurfaceChrome visual; // 👈 核心改变：持有解析后的结果，而非算法
   final RoleShape shape;
 
   @override
@@ -46,11 +46,23 @@ class AppTheme extends ThemeExtension<AppTheme> {
   final ThemeVisualLayer visuals;
   final ThemeShapeLayer shapes;
 
-  ResolvedThemeMaterial resolve(ThemeRole role) {
+  /// 绝对黑盒解析：根据“我是谁”和“我在哪”产出“结果”
+  ResolvedThemeMaterial resolve(ThemeRole? role, {ThemeLayer? layer}) {
+    final effectiveRole = role ?? ThemeRole.defaultRole;
+    final effectiveLayer = layer ?? ThemeLayer.base;
+    
+    final roleColors = colors.resolve(effectiveRole);
+    
     return ResolvedThemeMaterial(
-      colors: colors.resolve(role),
-      visual: visuals.resolve(role),
-      shape: shapes.resolve(role),
+      colors: roleColors,
+      visual: visuals.resolve(
+        effectiveRole,
+        accent: roleColors.accent,
+        border: roleColors.border,
+        surface: roleColors.surface,
+        layer: effectiveLayer,
+      ),
+      shape: shapes.resolve(effectiveRole),
     );
   }
 

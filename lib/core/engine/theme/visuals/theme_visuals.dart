@@ -2,11 +2,44 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 
 import '../theme_role.dart';
+
+export '../theme_role.dart';
+export '../theme_identity.dart';
+
 import 'components/theme_flatvisual.dart';
 import 'components/theme_glassvisual.dart';
 import 'components/theme_neumorphvisual.dart';
 
 enum VisualStyle { flat, glass, neumorphic }
+
+@immutable
+class SurfaceChrome {
+  const SurfaceChrome({
+    this.outerShadows = const [],
+    this.innerShadows = const [],
+    this.borderColor,
+    this.borderWidth = 0.0,
+    this.borderBlur = 0.0,
+    this.surfaceBlur = 0.0,
+    this.surfaceOpacity = 1.0,
+    this.overlayGradientColors = const [],
+    this.innerHighlightColor,
+    this.innerHighlightWidth = 0.0,
+    this.innerHighlightBlur = 0.0,
+  });
+
+  final List<BoxShadow> outerShadows;
+  final List<BoxShadow> innerShadows;
+  final Color? borderColor;
+  final double borderWidth;
+  final double borderBlur;
+  final double surfaceBlur;
+  final double surfaceOpacity;
+  final List<Color> overlayGradientColors;
+  final Color? innerHighlightColor;
+  final double innerHighlightWidth;
+  final double innerHighlightBlur;
+}
 
 abstract class SurfaceEffect {
   const SurfaceEffect();
@@ -15,62 +48,13 @@ abstract class SurfaceEffect {
     required Color accent,
     required Color border,
     required Color surface,
-    required SurfaceState state,
+    required ThemeLayer layer,
+    ThemeRole? role, // 👈 增加身份证识别接口
   });
-
-  List<Shadow>? foregroundShadows({
-    required Color foregroundColor,
-    required bool isFocused,
-    bool isWaiting = false,
-    Color? fillColor,
-  }) => null;
 
   SurfaceEffect lerp(SurfaceEffect other, double t);
 }
 
-@immutable
-class SurfaceChrome {
-  const SurfaceChrome({
-    this.outerShadows = const [],
-    this.borderColor,
-    this.borderWidth = 0,
-    this.borderBlur = 0,
-    this.innerHighlightColor,
-    this.innerHighlightWidth = 0,
-    this.innerHighlightBlur = 0,
-    this.surfaceBlur = 0,
-    this.surfaceOpacity = 1.0,
-    this.overlayGradientColors = const [],
-  });
-
-  final List<BoxShadow> outerShadows;
-  final Color? borderColor;
-  final double borderWidth;
-  final double borderBlur;
-  final Color? innerHighlightColor;
-  final double innerHighlightWidth;
-  final double innerHighlightBlur;
-  final double surfaceBlur;
-  final double surfaceOpacity;
-  final List<Color> overlayGradientColors;
-}
-
-@immutable
-class SurfaceState {
-  const SurfaceState({
-    required this.isFocused,
-    this.isWaiting = false,
-    this.isConcave = false,
-    this.fillColor,
-  });
-
-  final bool isFocused;
-  final bool isWaiting;
-  final bool isConcave;
-  final Color? fillColor;
-}
-
-@immutable
 class ThemeVisualLayer extends ThemeExtension<ThemeVisualLayer> {
   const ThemeVisualLayer({
     required this.sidebar,
@@ -85,6 +69,7 @@ class ThemeVisualLayer extends ThemeExtension<ThemeVisualLayer> {
   final SurfaceEffect card;
   final SurfaceEffect appBackground;
   final SurfaceEffect button;
+
   final double focusGlowRadius;
   final double focusGlowOpacity;
 
@@ -92,13 +77,27 @@ class ThemeVisualLayer extends ThemeExtension<ThemeVisualLayer> {
   factory ThemeVisualLayer.glass() => glassVisualLayer;
   factory ThemeVisualLayer.neumorphic() => neumorphicVisualLayer;
 
-  SurfaceEffect resolve(ThemeRole role) {
-    return switch (role) {
+  SurfaceChrome resolve(
+    ThemeRole role, {
+    required Color accent,
+    required Color border,
+    required Color surface,
+    required ThemeLayer layer,
+  }) {
+    final effect = switch (role) {
       ThemeRole.sidebar => sidebar,
       ThemeRole.card => card,
       ThemeRole.appBackground => appBackground,
       ThemeRole.button => button,
+      ThemeRole.defaultRole => card, // 👈 默认身份使用卡片视觉逻辑
     };
+    return effect.resolve(
+      accent: accent,
+      border: border,
+      surface: surface,
+      layer: layer,
+      role: role, // 👈 将身份证传给餐厅
+    );
   }
 
   @override
@@ -128,8 +127,12 @@ class ThemeVisualLayer extends ThemeExtension<ThemeVisualLayer> {
       card: card.lerp(other.card, t),
       appBackground: appBackground.lerp(other.appBackground, t),
       button: button.lerp(other.button, t),
-      focusGlowRadius: lerpDouble(focusGlowRadius, other.focusGlowRadius, t)!,
-      focusGlowOpacity: lerpDouble(focusGlowOpacity, other.focusGlowOpacity, t)!,
+      focusGlowRadius:
+          lerpDouble(focusGlowRadius, other.focusGlowRadius, t) ??
+          focusGlowRadius,
+      focusGlowOpacity:
+          lerpDouble(focusGlowOpacity, other.focusGlowOpacity, t) ??
+          focusGlowOpacity,
     );
   }
 }

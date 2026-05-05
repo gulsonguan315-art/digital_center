@@ -2,10 +2,6 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import '../theme_visuals.dart';
 
-// =============================================================================
-// 第一部分: 材质算法 (Effect Implementation)
-// =============================================================================
-
 class FlatSurfaceEffect extends SurfaceEffect {
   final double borderThickness;
   final double borderOpacity;
@@ -13,7 +9,7 @@ class FlatSurfaceEffect extends SurfaceEffect {
 
   const FlatSurfaceEffect({
     required this.borderThickness,
-    this.borderOpacity = 0.12,
+    required this.borderOpacity,
     this.transparentIdle = false,
   });
 
@@ -22,16 +18,15 @@ class FlatSurfaceEffect extends SurfaceEffect {
     required Color accent,
     required Color border,
     required Color surface,
-    required SurfaceState state,
+    required ThemeLayer layer,
+    ThemeRole? role, 
   }) {
     return SurfaceChrome(
-      borderColor: state.isWaiting
-          ? accent
-          : (transparentIdle
-                ? Colors.transparent
-                : border.withValues(alpha: borderOpacity)),
+      borderColor: transparentIdle && layer == ThemeLayer.base
+          ? Colors.transparent
+          : border.withValues(alpha: borderOpacity),
       borderWidth: borderThickness,
-      surfaceOpacity: state.isWaiting || !transparentIdle ? 1.0 : 0.0,
+      surfaceOpacity: layer == ThemeLayer.under || !transparentIdle ? 1.0 : 0.0,
     );
   }
 
@@ -49,27 +44,14 @@ class FlatSurfaceEffect extends SurfaceEffect {
   }
 }
 
-// =============================================================================
-// 第二部分: 实例配置 (Layer Instance)
-// =============================================================================
-
 final flatVisualLayer = ThemeVisualLayer(
-  sidebar: const FlatSurfaceEffect(
-    borderThickness: 1.0,
-    borderOpacity: 0.1,
-  ),
-  card: const FlatSurfaceEffect(
-    borderThickness: 1.0,
-    borderOpacity: 0.1,
-  ),
+  sidebar: const FlatSurfaceEffect(borderThickness: 1.0, borderOpacity: 0.1),
+  card: const FlatSurfaceEffect(borderThickness: 1.0, borderOpacity: 0.1),
   appBackground: const FlatSurfaceEffect(
     borderThickness: 1.0,
     borderOpacity: 0.1,
   ),
-  button: const FlatSurfaceEffect(
-    borderThickness: 1.5,
-    borderOpacity: 0.12,
-  ),
+  button: const FlatSurfaceEffect(borderThickness: 1.5, borderOpacity: 0.12),
   focusGlowRadius: 15.0,
   focusGlowOpacity: 0.4,
 );

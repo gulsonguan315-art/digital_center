@@ -53,6 +53,7 @@ class ThemeColorLayer extends ThemeExtension<ThemeColorLayer> {
       ThemeRole.card => card,
       ThemeRole.appBackground => appBackground,
       ThemeRole.button => button,
+      ThemeRole.defaultRole => card,
     };
   }
 

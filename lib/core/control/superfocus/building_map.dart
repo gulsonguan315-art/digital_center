@@ -30,13 +30,24 @@ class BuildingMap {
   /// 父子关系由 `/` 和 `+` 前缀隐式表达，无需嵌套。
   static final Map<String, List<String>> structure = {
     'sidebar': [
-      '*dashboard',
+      '*dashboard=>dashboardPage',
       '+media',
       '+music',
       '*setting=>settingPage',
       '*exit',
     ],
     'media': ['*mov', '*tv', '*ani', '*doc', '*adt'],
+
+    'dashboardPage': [
+      '*dash_weather',
+      '*dash_music',
+      '*dash_clock',
+      '*dash_stats',
+      '*dash_lights',
+      '*dash_air_conditioner',
+      '*dash_security',
+      '*dash_energy',
+    ],
 
     'settingPage': ['/themeColor', '/themeVisual', '/themeShape', '*test'],
     'themeColor': ['*'],

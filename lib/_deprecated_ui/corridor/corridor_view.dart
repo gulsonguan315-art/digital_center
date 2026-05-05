@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../ui/base/input/ui_base_button.dart';
-import '../../core/engine/theme/theme_colors.dart';
-import '../../core/engine/theme/theme_visuals.dart';
+import '../../core/engine/theme/del_theme_colors.dart';
+import '../../core/engine/theme/del_theme_visuals.dart';
 import 'corridor_room.dart';
 
 class CorridorView extends StatelessWidget {

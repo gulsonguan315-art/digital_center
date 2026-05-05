@@ -4,7 +4,7 @@ import '../../../core/control/superfocus/focus_widgets.dart';
 
 import '../../../core/engine/theme/theme_api.dart';
 import '../../../core/engine/theme/theme_role.dart';
-import '../../visual/surface/themed_surface.dart';
+import '../text/surface_text.dart';
 
 class _OptionItem<T> extends StatelessWidget {
   final String id;
@@ -21,13 +21,13 @@ class _OptionItem<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-
-
     return ThemeIdentity(
       role: ThemeRole.button,
+      layer: isSelected ? ThemeLayer.under : ThemeLayer.base,
       child: Builder(
         builder: (context) {
           final material = context.useTheme();
+          final chrome = material.visual;
           final colors = material.colors;
 
           return SuperFocusItem(
@@ -44,9 +44,10 @@ class _OptionItem<T> extends StatelessWidget {
                 ),
                 decoration: BoxDecoration(
                   borderRadius: material.shape.radius,
-                  color: hasFocus
-                      ? colors.textPrimary.withValues(alpha: 0.05)
-                      : Colors.transparent,
+                  color: isSelected 
+                      ? colors.surface 
+                      : (hasFocus ? colors.textPrimary.withValues(alpha: 0.05) : Colors.transparent),
+                  boxShadow: isSelected ? chrome.outerShadows : [],
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -76,7 +77,7 @@ class _OptionItem<T> extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 8),
-                    Text(
+                    SurfaceText(
                       label,
                       style: TextStyle(
                         fontSize: 15,
@@ -126,36 +127,41 @@ class _SuperFocusSelectState<T> extends State<SuperFocusSelect<T>> {
 
   @override
   Widget build(BuildContext context) {
-    return ThemeIdentity(
-      role: ThemeRole.card,
-      child: Builder(
-        builder: (context) {
-          final material = context.useTheme();
-          final colors = material.colors;
-
-          return SuperFocusItem(
-            id: widget.id,
-            onPressed: () {},
-            focusGeometry: RoundedRectFocusGeometry(
-              borderRadius: material.shape.radius as BorderRadius,
-            ),
-            builder: (context, isGateFocused) {
-              return widget.roomBuilder(
-                _buildInternalContent(context, isGateFocused, colors),
-              );
-            },
-          );
-        },
-      ),
+    return Builder(
+      builder: (context) {
+        return SuperFocusItem(
+          id: widget.id,
+          onPressed: () {},
+          focusGeometry: const RoundedRectFocusGeometry(
+            borderRadius: BorderRadius.all(Radius.circular(24)),
+          ),
+          builder: (context, isGateFocused) {
+            return ThemeIdentity(
+              role: ThemeRole.card,
+              layer: isGateFocused ? ThemeLayer.under : ThemeLayer.base,
+              child: Builder(
+                builder: (context) {
+                  final material = context.useTheme();
+                  return widget.roomBuilder(
+                    _buildInternalContent(context, isGateFocused, material),
+                  );
+                },
+              ),
+            );
+          },
+        );
+      },
     );
   }
 
   Widget _buildInternalContent(
     BuildContext context,
     bool isGateFocused,
-    RoleColors colors,
+    ResolvedThemeMaterial material,
   ) {
     final isRoomActive = RoomScope.of(context)?.isActive ?? false;
+    final colors = material.colors;
+    final chrome = material.visual;
 
     final coreContent = Padding(
       key: _contentKey,
@@ -167,7 +173,7 @@ class _SuperFocusSelectState<T> extends State<SuperFocusSelect<T>> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
+              SurfaceText(
                 widget.title,
                 style: TextStyle(
                   fontSize: 14,
@@ -183,6 +189,12 @@ class _SuperFocusSelectState<T> extends State<SuperFocusSelect<T>> {
                   Icons.login_rounded,
                   size: 16,
                   color: colors.accent.withValues(alpha: 0.5),
+                  // 图标暂时应用 outerShadows (因为图标不是文字)
+                  shadows: chrome.outerShadows.map((e) => Shadow(
+                    color: e.color,
+                    offset: e.offset,
+                    blurRadius: e.blurRadius,
+                  )).toList(),
                 ),
             ],
           ),
@@ -210,7 +222,18 @@ class _SuperFocusSelectState<T> extends State<SuperFocusSelect<T>> {
     return AnimatedOpacity(
       duration: const Duration(milliseconds: 300),
       opacity: isRoomActive || isGateFocused ? 1.0 : 0.5,
-      child: ThemedSurface(isFocused: isGateFocused, child: coreContent),
+      child: Container(
+        decoration: BoxDecoration(
+          color: colors.surface,
+          borderRadius: material.shape.radius,
+          boxShadow: chrome.outerShadows,
+          border: Border.all(
+            color: chrome.borderColor ?? Colors.transparent,
+            width: chrome.borderWidth,
+          ),
+        ),
+        child: coreContent,
+      ),
     );
   }
 }

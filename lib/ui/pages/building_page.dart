@@ -4,7 +4,10 @@ import '../../core/control/superfocus/focus_manager.dart';
 import '../../core/engine/theme/theme_api.dart';
 import '../../core/engine/theme/theme_role.dart';
 import '../../modules/resident/settings/setting_page.dart';
+import '../../modules/resident/dashboard/dashboard_page.dart';
 import '../../modules/resident/sidebar/sidebar_view.dart';
+import '../../core/layout/stage_metrics.dart';
+import '../../core/layout/grid/grid_extensions.dart';
 
 class BuildingPage extends StatelessWidget {
   const BuildingPage({super.key});
@@ -31,7 +34,13 @@ class BuildingPage extends StatelessWidget {
                       backgroundColor: Colors.transparent,
                       elevation: 0,
                     ),
-                    body: const _MainContent(),
+                    body: Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: context.units(StageMetrics.paddingHorizontalU),
+                        vertical: context.units(StageMetrics.paddingVerticalU),
+                      ),
+                      child: const _MainContent(),
+                    ),
                   ),
                 ),
               ],
@@ -62,6 +71,14 @@ class _MainContent extends StatelessWidget {
 
             if (showSettings) {
               return const SettingPageRoom();
+            }
+
+            final showDashboard =
+                topology.activePath.contains(DashboardRoom.roomId) ||
+                intentionId == DashboardRoom.roomId;
+
+            if (showDashboard) {
+              return const DashboardRoom();
             }
 
             return Center(

@@ -17,11 +17,13 @@ class RoundedRectFocusGeometry extends FocusGeometry {
     this.borderRadius = BorderRadius.zero,
   });
 
-  final BorderRadius borderRadius;
+  final BorderRadiusGeometry borderRadius;
 
   @override
   Path buildOutlinePath(Rect rect) {
-    return Path()..addRRect(borderRadius.toRRect(rect));
+    // 解析 BorderRadiusGeometry 为具体的 BorderRadius
+    final resolved = borderRadius.resolve(TextDirection.ltr);
+    return Path()..addRRect(resolved.toRRect(rect));
   }
 
   @override
@@ -29,7 +31,7 @@ class RoundedRectFocusGeometry extends FocusGeometry {
     if (other is RoundedRectFocusGeometry) {
       return RoundedRectFocusGeometry(
         borderRadius:
-            BorderRadius.lerp(borderRadius, other.borderRadius, t) ??
+            BorderRadiusGeometry.lerp(borderRadius, other.borderRadius, t) ??
             borderRadius,
       );
     }
@@ -52,7 +54,7 @@ class SidebarTileFocusGeometry extends FocusGeometry {
     this.concaveRadius = 0.0,
   });
 
-  final BorderRadius borderRadius;
+  final BorderRadiusGeometry borderRadius;
   final double openRightness;
   final double concaveRadius;
 
@@ -64,7 +66,7 @@ class SidebarTileFocusGeometry extends FocusGeometry {
   }
 
   Path buildRightSegment(Rect rect) {
-    final resolved = borderRadius.toRRect(rect);
+    final resolved = borderRadius.resolve(TextDirection.ltr).toRRect(rect);
     final path = Path();
     path.moveTo(rect.right - resolved.brRadiusX, rect.bottom);
     path.arcToPoint(
@@ -87,7 +89,7 @@ class SidebarTileFocusGeometry extends FocusGeometry {
       return null;
     }
 
-    final resolved = borderRadius.toRRect(rect);
+    final resolved = borderRadius.resolve(TextDirection.ltr).toRRect(rect);
     final path = Path()..moveTo(rect.right, rect.top - concaveRadius);
     path.arcToPoint(
       Offset(rect.right - concaveRadius, rect.top),
@@ -121,7 +123,7 @@ class SidebarTileFocusGeometry extends FocusGeometry {
     if (other is SidebarTileFocusGeometry) {
       return SidebarTileFocusGeometry(
         borderRadius:
-            BorderRadius.lerp(borderRadius, other.borderRadius, t) ??
+            BorderRadiusGeometry.lerp(borderRadius, other.borderRadius, t) ??
             borderRadius,
         openRightness: ui.lerpDouble(openRightness, other.openRightness, t)!,
         concaveRadius: ui.lerpDouble(concaveRadius, other.concaveRadius, t)!,
@@ -130,7 +132,7 @@ class SidebarTileFocusGeometry extends FocusGeometry {
     if (other is RoundedRectFocusGeometry) {
       return SidebarTileFocusGeometry(
         borderRadius:
-            BorderRadius.lerp(borderRadius, other.borderRadius, t) ??
+            BorderRadiusGeometry.lerp(borderRadius, other.borderRadius, t) ??
             borderRadius,
         openRightness: ui.lerpDouble(openRightness, 0.0, t)!,
         concaveRadius: ui.lerpDouble(concaveRadius, 0.0, t)!,
@@ -140,7 +142,7 @@ class SidebarTileFocusGeometry extends FocusGeometry {
   }
 
   Path _buildUPath(Rect rect) {
-    final resolved = borderRadius.toRRect(rect);
+    final resolved = borderRadius.resolve(TextDirection.ltr).toRRect(rect);
     final path = Path();
     path.moveTo(rect.right - resolved.trRadiusX, rect.top);
     path.lineTo(rect.left + resolved.tlRadiusX, rect.top);

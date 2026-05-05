@@ -3,17 +3,23 @@ import 'package:flutter/material.dart';
 import 'theme_role.dart';
 
 class ThemeIdentity extends InheritedWidget {
-  const ThemeIdentity({super.key, required this.role, required super.child});
+  const ThemeIdentity({
+    super.key,
+    required this.role,
+    this.layer = ThemeLayer.base,
+    required super.child,
+  });
 
   final ThemeRole role;
+  final ThemeLayer layer;
 
-  static ThemeRole? maybeOf(BuildContext context) {
-    return context.dependOnInheritedWidgetOfExactType<ThemeIdentity>()?.role;
+  static ThemeIdentity? maybeOf(BuildContext context) {
+    return context.dependOnInheritedWidgetOfExactType<ThemeIdentity>();
   }
 
-  static ThemeRole of(BuildContext context) {
-    final role = maybeOf(context);
-    if (role == null) {
+  static ThemeIdentity of(BuildContext context) {
+    final identity = maybeOf(context);
+    if (identity == null) {
       throw FlutterError.fromParts([
         ErrorSummary('who are you! Missing ThemeIdentity.'),
         ErrorDescription(
@@ -22,9 +28,10 @@ class ThemeIdentity extends InheritedWidget {
         ),
       ]);
     }
-    return role;
+    return identity;
   }
 
   @override
-  bool updateShouldNotify(ThemeIdentity oldWidget) => role != oldWidget.role;
+  bool updateShouldNotify(ThemeIdentity oldWidget) =>
+      role != oldWidget.role || layer != oldWidget.layer;
 }

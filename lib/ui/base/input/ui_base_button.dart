@@ -6,7 +6,7 @@ import '../../../core/control/superfocus/focus_widgets.dart';
 
 import '../../../core/engine/theme/theme_api.dart';
 import '../../../core/engine/theme/theme_role.dart';
-import '../../visual/surface/themed_surface.dart';
+import '../text/surface_text.dart';
 
 class SuperFocusButton extends StatelessWidget {
   const SuperFocusButton({
@@ -24,29 +24,35 @@ class SuperFocusButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ThemeIdentity(
-      role: ThemeRole.button,
-      child: Builder(
-        builder: (context) {
-          final material = context.useTheme();
+    return SuperFocusItem(
+      id: id,
+      autofocus: autofocus,
+      onPressed: onPressed,
+      builder: (context, hasFocus) {
+        return ThemeIdentity(
+          role: ThemeRole.button,
+          layer: hasFocus ? ThemeLayer.under : ThemeLayer.base,
+          child: Builder(
+            builder: (context) {
+              final material = context.useTheme();
+              final colors = material.colors;
 
-          return SuperFocusItem(
-            id: id,
-            autofocus: autofocus,
-            onPressed: onPressed,
-            focusGeometry: RoundedRectFocusGeometry(
-              borderRadius: material.shape.radius as BorderRadius,
-            ),
-            builder: (context, hasFocus) {
               return ValueListenableBuilder<String?>(
                 valueListenable: SuperFocusManager.instance.intentionRoomId,
                 builder: (context, intentionId, _) {
                   final isWaiting = intentionId == id;
-                  final colors = material.colors;
 
-                  return ThemedSurface(
-                    isFocused: hasFocus,
-                    isWaiting: isWaiting,
+                  return AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    decoration: BoxDecoration(
+                      color: isWaiting ? colors.accent : colors.surface,
+                      borderRadius: material.shape.radius,
+                      boxShadow: material.visual.outerShadows,
+                      border: Border.all(
+                        color: material.visual.borderColor ?? Colors.transparent,
+                        width: material.visual.borderWidth,
+                      ),
+                    ),
                     child: Padding(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 24,
@@ -57,7 +63,7 @@ class SuperFocusButton extends StatelessWidget {
                         children: [
                           Opacity(
                             opacity: isWaiting ? 0.0 : 1.0,
-                            child: Text(
+                            child: SurfaceText(
                               label,
                               style: TextStyle(
                                 fontSize: 16,
@@ -88,8 +94,11 @@ class SuperFocusButton extends StatelessWidget {
                 },
               );
             },
-          );
-        },
+          ),
+        );
+      },
+      focusGeometry: const RoundedRectFocusGeometry(
+        borderRadius: BorderRadius.all(Radius.circular(12)),
       ),
     );
   }

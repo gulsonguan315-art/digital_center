@@ -2,23 +2,15 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import '../theme_visuals.dart';
 
-// =============================================================================
-// 第一部分: 材质算法 (Effect Implementation)
-// =============================================================================
-
 class GlassSurfaceEffect extends SurfaceEffect {
-  final double glassBlur;
-  final double surfaceOpacity;
+  final double blurSigma;
   final double borderOpacity;
-  final double borderThickness;
-  final bool transparentIdle;
+  final double surfaceOpacity;
 
   const GlassSurfaceEffect({
-    required this.glassBlur,
-    required this.surfaceOpacity,
-    this.borderOpacity = 0.12,
-    required this.borderThickness,
-    this.transparentIdle = false,
+    required this.blurSigma,
+    this.borderOpacity = 0.1,
+    this.surfaceOpacity = 0.05,
   });
 
   @override
@@ -26,77 +18,54 @@ class GlassSurfaceEffect extends SurfaceEffect {
     required Color accent,
     required Color border,
     required Color surface,
-    required SurfaceState state,
+    required ThemeLayer layer,
+    ThemeRole? role, 
   }) {
+    final opacity = layer == ThemeLayer.under
+        ? surfaceOpacity * 2.0
+        : surfaceOpacity;
+
     return SurfaceChrome(
-      borderColor: state.isWaiting
-          ? accent.withValues(alpha: 0.8)
-          : (transparentIdle
-                ? Colors.transparent
-                : border.withValues(alpha: borderOpacity)),
-      borderWidth: borderThickness,
-      surfaceBlur: !transparentIdle ? glassBlur : 0.0,
-      surfaceOpacity: (state.isWaiting || !transparentIdle)
-          ? (state.isWaiting ? 0.8 : surfaceOpacity)
-          : 0.0,
-      overlayGradientColors:
-          glassBlur > 0 && (state.isFocused || !transparentIdle)
-          ? [
-              Colors.white.withValues(alpha: 0.15),
-              Colors.transparent,
-              Colors.black.withValues(alpha: 0.02),
-            ]
-          : const [],
+      surfaceBlur: blurSigma,
+      surfaceOpacity: opacity,
+      borderColor: border.withValues(alpha: borderOpacity),
+      borderWidth: 1.0,
+      overlayGradientColors: [
+        Colors.white.withValues(alpha: 0.1),
+        Colors.transparent,
+        Colors.black.withValues(alpha: 0.05),
+      ],
     );
   }
 
   @override
   SurfaceEffect lerp(SurfaceEffect other, double t) {
     if (other is! GlassSurfaceEffect) return t < 0.5 ? this : other;
-    return GlassSurfaceEffect(
-      glassBlur: ui.lerpDouble(glassBlur, other.glassBlur, t) ?? glassBlur,
+    return GlassGlassEffect(
+      blurSigma: ui.lerpDouble(blurSigma, other.blurSigma, t) ?? blurSigma,
+      borderOpacity:
+          ui.lerpDouble(borderOpacity, other.borderOpacity, t) ?? borderOpacity,
       surfaceOpacity:
           ui.lerpDouble(surfaceOpacity, other.surfaceOpacity, t) ??
           surfaceOpacity,
-      borderOpacity:
-          ui.lerpDouble(borderOpacity, other.borderOpacity, t) ?? borderOpacity,
-      borderThickness:
-          ui.lerpDouble(borderThickness, other.borderThickness, t) ??
-          borderThickness,
-      transparentIdle: t < 0.5 ? transparentIdle : other.transparentIdle,
     );
   }
 }
 
-// =============================================================================
-// 第二部分: 实例配置 (Layer Instance)
-// =============================================================================
+// 修正 lerp 里的类名错误
+class GlassGlassEffect extends GlassSurfaceEffect {
+  const GlassGlassEffect({
+    required super.blurSigma,
+    super.borderOpacity = 0.1,
+    super.surfaceOpacity = 0.05,
+  });
+}
 
 final glassVisualLayer = ThemeVisualLayer(
-  sidebar: const GlassSurfaceEffect(
-    glassBlur: 18.0,
-    surfaceOpacity: 0.38,
-    borderOpacity: 0.08,
-    borderThickness: 1.0,
-  ),
-  card: const GlassSurfaceEffect(
-    glassBlur: 18.0,
-    surfaceOpacity: 0.38,
-    borderOpacity: 0.08,
-    borderThickness: 1.0,
-  ),
-  appBackground: const GlassSurfaceEffect(
-    glassBlur: 18.0,
-    surfaceOpacity: 0.38,
-    borderOpacity: 0.08,
-    borderThickness: 1.0,
-  ),
-  button: const GlassSurfaceEffect(
-    glassBlur: 12.0,
-    surfaceOpacity: 0.28,
-    borderOpacity: 0.12,
-    borderThickness: 1.5,
-  ),
-  focusGlowRadius: 40.0,
-  focusGlowOpacity: 0.45,
+  sidebar: const GlassSurfaceEffect(blurSigma: 20, borderOpacity: 0.08),
+  card: const GlassSurfaceEffect(blurSigma: 15, borderOpacity: 0.08),
+  appBackground: const GlassSurfaceEffect(blurSigma: 0, borderOpacity: 0),
+  button: const GlassSurfaceEffect(blurSigma: 10, borderOpacity: 0.12),
+  focusGlowRadius: 20.0,
+  focusGlowOpacity: 0.3,
 );
