@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '../../core/control/superfocus/focus_manager.dart';
 
 import '../../core/engine/theme/theme_api.dart';
-import '../../core/engine/theme/theme_role.dart';
 import '../../modules/resident/settings/setting_page.dart';
 import '../../modules/resident/dashboard/dashboard_page.dart';
 import '../../modules/resident/sidebar/sidebar_view.dart';

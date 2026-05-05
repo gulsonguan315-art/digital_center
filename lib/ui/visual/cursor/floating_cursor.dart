@@ -3,8 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import '../../../core/control/superfocus/focus_manager.dart';
-
-import '../../../core/engine/theme/theme_layers.dart';
+import '../../../core/engine/theme/theme_api.dart';
 import '../../../core/control/superfocus/focus_geometry.dart';
 
 class FloatingHighlightBox extends StatefulWidget {
@@ -119,9 +118,6 @@ class _FloatingHighlightBoxState extends State<FloatingHighlightBox>
 
   Widget build(BuildContext context) {
     final report = SuperFocusManager.instance.cursorReportNotifier.value;
-    final appTheme = Theme.of(context).extension<AppTheme>()!;
-    final colors = appTheme.colors.sidebar; // Use sidebar role as brand source for cursor
-
     final isActuallyHidden =
         SuperFocusManager.instance.cursorHiddenNotifier.value;
     final isVisible =
@@ -140,31 +136,40 @@ class _FloatingHighlightBoxState extends State<FloatingHighlightBox>
         ? const Duration(milliseconds: 300)
         : Duration.zero;
 
-    return IgnorePointer(
-      child: Stack(
-        children: [
-          AnimatedPositioned(
-            duration: duration,
-            curve: Curves.easeOutCubic,
-            left: targetRect.left,
-            top: targetRect.top,
-            width: targetRect.width,
-            height: targetRect.height,
-            child: AnimatedOpacity(
-              duration: const Duration(milliseconds: 200),
-              opacity: opacity,
-              child: CustomPaint(
-                painter: _FocusOutlinePainter(
-                  geometry: report?.geometry,
-                  color: colors.accent,
-                  visualScale: visualScale,
-                  glowRadius: appTheme.visuals.focusGlowRadius,
-                  glowOpacity: appTheme.visuals.focusGlowOpacity,
+    return ThemeIdentity(
+      role: ThemeRole.appBackground,
+      child: Builder(
+        builder: (context) {
+          final material = context.useTheme();
+
+          return IgnorePointer(
+            child: Stack(
+              children: [
+                AnimatedPositioned(
+                  duration: duration,
+                  curve: Curves.easeOutCubic,
+                  left: targetRect.left,
+                  top: targetRect.top,
+                  width: targetRect.width,
+                  height: targetRect.height,
+                  child: AnimatedOpacity(
+                    duration: const Duration(milliseconds: 200),
+                    opacity: opacity,
+                    child: CustomPaint(
+                      painter: _FocusOutlinePainter(
+                        geometry: report?.geometry,
+                        color: material.colors.accent,
+                        visualScale: visualScale,
+                        glowRadius: material.focusGlowRadius,
+                        glowOpacity: material.focusGlowOpacity,
+                      ),
+                    ),
+                  ),
                 ),
-              ),
+              ],
             ),
-          ),
-        ],
+          );
+        },
       ),
     );
   }

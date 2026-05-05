@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:superfocus/core/engine/theme/theme_role.dart';
 import '../theme_visuals.dart';
 
 // =============================================================================
@@ -16,16 +17,16 @@ const _baseDefaultMenu = NeumorphPhysics(
 // --- B. Under层 (凹陷) 菜单 ---
 const _underDefaultMenu = NeumorphPhysics(
   shadowOffsetX: 1.0,
-  shadowOffsetY: 1.0, // 向上
+  shadowOffsetY: -1.0, // 向上
   shadowAlpha: 0.5,
-  shadowBlur: 3.0,
+  shadowBlur: 0.0,
 );
 
 const _underSidebarMenu = NeumorphPhysics(
   shadowOffsetX: 2.0,
-  shadowOffsetY: 2.0, // 向上
-  shadowAlpha: 0.6,
-  shadowBlur: 4.0,
+  shadowOffsetY: -2.0, // 向上
+  shadowAlpha: 1.0,
+  shadowBlur: 0.0,
 );
 
 // =============================================================================

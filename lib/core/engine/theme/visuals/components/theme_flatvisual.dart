@@ -1,5 +1,6 @@
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
+import 'package:superfocus/core/engine/theme/theme_role.dart';
 import '../theme_visuals.dart';
 
 class FlatSurfaceEffect extends SurfaceEffect {
@@ -19,7 +20,7 @@ class FlatSurfaceEffect extends SurfaceEffect {
     required Color border,
     required Color surface,
     required ThemeLayer layer,
-    ThemeRole? role, 
+    ThemeRole? role,
   }) {
     return SurfaceChrome(
       borderColor: transparentIdle && layer == ThemeLayer.base

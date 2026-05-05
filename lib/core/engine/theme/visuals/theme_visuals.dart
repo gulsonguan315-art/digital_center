@@ -1,11 +1,8 @@
 import 'dart:ui';
+
 import 'package:flutter/material.dart';
 
 import '../theme_role.dart';
-
-export '../theme_role.dart';
-export '../theme_identity.dart';
-
 import 'components/theme_flatvisual.dart';
 import 'components/theme_glassvisual.dart';
 import 'components/theme_neumorphvisual.dart';
@@ -49,7 +46,7 @@ abstract class SurfaceEffect {
     required Color border,
     required Color surface,
     required ThemeLayer layer,
-    ThemeRole? role, // 👈 增加身份证识别接口
+    ThemeRole? role,
   });
 
   SurfaceEffect lerp(SurfaceEffect other, double t);
@@ -69,7 +66,6 @@ class ThemeVisualLayer extends ThemeExtension<ThemeVisualLayer> {
   final SurfaceEffect card;
   final SurfaceEffect appBackground;
   final SurfaceEffect button;
-
   final double focusGlowRadius;
   final double focusGlowOpacity;
 
@@ -89,14 +85,14 @@ class ThemeVisualLayer extends ThemeExtension<ThemeVisualLayer> {
       ThemeRole.card => card,
       ThemeRole.appBackground => appBackground,
       ThemeRole.button => button,
-      ThemeRole.defaultRole => card, // 👈 默认身份使用卡片视觉逻辑
     };
+
     return effect.resolve(
       accent: accent,
       border: border,
       surface: surface,
       layer: layer,
-      role: role, // 👈 将身份证传给餐厅
+      role: role,
     );
   }
 

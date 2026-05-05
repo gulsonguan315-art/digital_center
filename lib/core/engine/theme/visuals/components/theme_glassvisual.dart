@@ -1,5 +1,6 @@
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
+import 'package:superfocus/core/engine/theme/theme_role.dart';
 import '../theme_visuals.dart';
 
 class GlassSurfaceEffect extends SurfaceEffect {
@@ -19,7 +20,7 @@ class GlassSurfaceEffect extends SurfaceEffect {
     required Color border,
     required Color surface,
     required ThemeLayer layer,
-    ThemeRole? role, 
+    ThemeRole? role,
   }) {
     final opacity = layer == ThemeLayer.under
         ? surfaceOpacity * 2.0

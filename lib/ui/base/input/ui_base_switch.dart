@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../core/control/superfocus/focus_geometry.dart';
 import '../../../core/control/superfocus/focus_widgets.dart';
-
 import '../../../core/engine/theme/theme_api.dart';
-import '../../../core/engine/theme/theme_role.dart';
 import '../text/surface_text.dart';
 
 class _OptionItem<T> extends StatelessWidget {

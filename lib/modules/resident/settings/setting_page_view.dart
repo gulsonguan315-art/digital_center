@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../ui/base/input/ui_base_switch.dart';
 import '../../../ui/base/input/ui_base_button.dart';
-import '../../../core/engine/theme/theme_provider.dart';
-import '../../../core/engine/theme/shapes/theme_shapes.dart';
-import '../../../core/engine/theme/visuals/theme_visuals.dart';
+import '../../../core/engine/theme/theme_api.dart';
 import 'setting_page_room.dart';
 
 /// 设置页面的核心 UI 视图 - 模仿健身房 (GymView) 结构

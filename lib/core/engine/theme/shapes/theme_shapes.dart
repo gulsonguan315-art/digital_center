@@ -38,7 +38,6 @@ class ThemeShapeLayer extends ThemeExtension<ThemeShapeLayer> {
       ThemeRole.card => card,
       ThemeRole.appBackground => appBackground,
       ThemeRole.button => button,
-      ThemeRole.defaultRole => card,
     };
   }
 

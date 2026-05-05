@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 
-import 'theme_role.dart';
 import 'colors/theme_colors.dart';
-import 'visuals/theme_visuals.dart';
 import 'shapes/theme_shapes.dart';
+import 'theme_role.dart';
+import 'visuals/theme_visuals.dart';
 
 export 'colors/theme_colors.dart';
-export 'visuals/theme_visuals.dart';
 export 'shapes/theme_shapes.dart';
+export 'visuals/theme_visuals.dart';
 
 @immutable
 class ResolvedThemeMaterial {
@@ -15,11 +15,15 @@ class ResolvedThemeMaterial {
     required this.colors,
     required this.visual,
     required this.shape,
+    required this.focusGlowRadius,
+    required this.focusGlowOpacity,
   });
 
   final RoleColors colors;
-  final SurfaceChrome visual; // 👈 核心改变：持有解析后的结果，而非算法
+  final SurfaceChrome visual;
   final RoleShape shape;
+  final double focusGlowRadius;
+  final double focusGlowOpacity;
 
   @override
   bool operator ==(Object other) {
@@ -27,11 +31,14 @@ class ResolvedThemeMaterial {
     return other is ResolvedThemeMaterial &&
         other.colors == colors &&
         other.visual == visual &&
-        other.shape == shape;
+        other.shape == shape &&
+        other.focusGlowRadius == focusGlowRadius &&
+        other.focusGlowOpacity == focusGlowOpacity;
   }
 
   @override
-  int get hashCode => Object.hash(colors, visual, shape);
+  int get hashCode =>
+      Object.hash(colors, visual, shape, focusGlowRadius, focusGlowOpacity);
 }
 
 @immutable
@@ -46,23 +53,24 @@ class AppTheme extends ThemeExtension<AppTheme> {
   final ThemeVisualLayer visuals;
   final ThemeShapeLayer shapes;
 
-  /// 绝对黑盒解析：根据“我是谁”和“我在哪”产出“结果”
-  ResolvedThemeMaterial resolve(ThemeRole? role, {ThemeLayer? layer}) {
-    final effectiveRole = role ?? ThemeRole.defaultRole;
-    final effectiveLayer = layer ?? ThemeLayer.base;
-    
-    final roleColors = colors.resolve(effectiveRole);
-    
+  ResolvedThemeMaterial resolve(
+    ThemeRole role, {
+    ThemeLayer layer = ThemeLayer.base,
+  }) {
+    final roleColors = colors.resolve(role);
+
     return ResolvedThemeMaterial(
       colors: roleColors,
       visual: visuals.resolve(
-        effectiveRole,
+        role,
         accent: roleColors.accent,
         border: roleColors.border,
         surface: roleColors.surface,
-        layer: effectiveLayer,
+        layer: layer,
       ),
-      shape: shapes.resolve(effectiveRole),
+      shape: shapes.resolve(role),
+      focusGlowRadius: visuals.focusGlowRadius,
+      focusGlowOpacity: visuals.focusGlowOpacity,
     );
   }
 
