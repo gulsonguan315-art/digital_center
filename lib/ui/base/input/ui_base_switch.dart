@@ -1,9 +1,16 @@
 import 'package:flutter/material.dart';
-import '../../../core/control/superfocus/focus_geometry.dart';
-import '../../../core/control/superfocus/focus_widgets.dart';
+import '../../../core/control/superfocus/focus_api.dart';
 import '../../../core/engine/theme/theme_api.dart';
-import '../text/surface_text.dart';
 
+/// 选项数据模型
+class SelectOption<T> {
+  final T value;
+  final String label;
+  final String id;
+  const SelectOption({required this.value, required this.label, required this.id});
+}
+
+/// 标准超焦点开关
 class SuperFocusSwitch extends StatelessWidget {
   const SuperFocusSwitch({
     super.key,
@@ -37,85 +44,66 @@ class SuperFocusSwitch extends StatelessWidget {
         borderRadius: BorderRadius.all(Radius.circular(18)),
       ),
       builder: (context, hasFocus) {
-        return ThemeIdentity(
-          role: ThemeRole.button,
-          layer: hasFocus ? ThemeLayer.under : ThemeLayer.base,
-          child: Builder(
-            builder: (context) {
-              final material = context.useTheme();
-              final colors = material.colors;
-              final chrome = material.visual;
-              final textOpacity = _enabled ? 1.0 : 0.38;
+        final material = context.useTheme();
+        final colors = material.colors;
+        final chrome = material.visual;
 
-              final switchControl = AnimatedContainer(
-                duration: const Duration(milliseconds: 180),
-                curve: Curves.easeOutCubic,
-                width: 54,
-                height: 32,
-                padding: const EdgeInsets.all(3),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(999),
-                  color: value
-                      ? colors.accent.withValues(alpha: _enabled ? 1.0 : 0.35)
-                      : colors.surface,
-                  boxShadow: hasFocus || value ? chrome.outerShadows : null,
-                  border: Border.all(
-                    color: hasFocus
-                        ? colors.accent
-                        : (chrome.borderColor ?? colors.border),
-                    width: hasFocus ? 1.5 : chrome.borderWidth,
-                  ),
-                ),
-                child: AnimatedAlign(
-                  duration: const Duration(milliseconds: 180),
-                  curve: Curves.easeOutCubic,
-                  alignment: value ? Alignment.centerRight : Alignment.centerLeft,
-                  child: Container(
-                    width: 26,
-                    height: 26,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: value ? colors.surface : colors.textPrimary,
-                      boxShadow: chrome.outerShadows,
-                    ),
-                  ),
-                ),
-              );
-
-              final label = this.label;
-              return GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: _enabled ? _toggle : null,
-                child: label == null
-                    ? switchControl
-                    : Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          switchControl,
-                          const SizedBox(width: 12),
-                          SurfaceText(
-                            label,
-                            style: TextStyle(
-                              color: colors.textPrimary.withValues(
-                                alpha: textOpacity,
-                              ),
-                              fontSize: 15,
-                              fontWeight: hasFocus
-                                  ? FontWeight.w700
-                                  : FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                      ),
-              );
-            },
+        final switchControl = AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOutCubic,
+          width: 58,
+          height: 34,
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(999),
+            color: value
+                ? colors.accent.withValues(alpha: _enabled ? 1.0 : 0.35)
+                : colors.surface,
+            boxShadow: hasFocus || value ? chrome.outerShadows : null,
+            border: Border.all(
+              color: hasFocus ? colors.accent : (chrome.borderColor ?? colors.border),
+              width: hasFocus ? 2.0 : chrome.borderWidth,
+            ),
           ),
+          child: AnimatedAlign(
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeOutCubic,
+            alignment: value ? Alignment.centerRight : Alignment.centerLeft,
+            child: Container(
+              width: 26,
+              height: 26,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: value ? colors.surface : colors.textPrimary,
+                boxShadow: chrome.outerShadows,
+              ),
+            ),
+          ),
+        );
+
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            switchControl,
+            if (label != null) ...[
+              const SizedBox(width: 12),
+              Text(
+                label!,
+                style: TextStyle(
+                  color: colors.textPrimary.withValues(alpha: _enabled ? 1.0 : 0.4),
+                  fontSize: 16,
+                  fontWeight: hasFocus ? FontWeight.bold : FontWeight.normal,
+                ),
+              ),
+            ],
+          ],
         );
       },
     );
   }
 }
 
+/// 选项项组件
 class _OptionItem<T> extends StatelessWidget {
   final String id;
   final String label;
@@ -131,91 +119,73 @@ class _OptionItem<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ThemeIdentity(
-      role: ThemeRole.button,
-      layer: isSelected ? ThemeLayer.under : ThemeLayer.base,
-      child: Builder(
-        builder: (context) {
-          final material = context.useTheme();
-          final chrome = material.visual;
-          final colors = material.colors;
-
-          return SuperFocusItem(
-            id: id,
-            onPressed: onToggle,
-            focusGeometry: RoundedRectFocusGeometry(
-              borderRadius: material.shape.radius as BorderRadius,
-            ),
-            builder: (context, hasFocus) {
-              return Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 8,
-                ),
-                decoration: BoxDecoration(
-                  borderRadius: material.shape.radius,
-                  color: isSelected
-                      ? colors.surface
-                      : (hasFocus
-                            ? colors.textPrimary.withValues(alpha: 0.05)
-                            : Colors.transparent),
-                  boxShadow: isSelected ? chrome.outerShadows : [],
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: 18,
-                      height: 18,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: isSelected
-                              ? colors.accent
-                              : colors.textPrimary.withValues(alpha: 0.2),
-                          width: 2,
-                        ),
-                      ),
-                      padding: const EdgeInsets.all(3),
-                      child: AnimatedScale(
-                        duration: const Duration(milliseconds: 200),
-                        scale: isSelected ? 1.0 : 0.0,
-                        child: Container(
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: colors.accent,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    SurfaceText(
-                      label,
-                      style: TextStyle(
-                        fontSize: 15,
-                        color: isSelected
-                            ? colors.textPrimary
-                            : colors.textPrimary.withValues(alpha: 0.7),
-                        fontWeight: isSelected
-                            ? FontWeight.bold
-                            : FontWeight.normal,
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            },
-          );
-        },
+    return FocusIdentity(
+      id: id,
+      onPressed: onToggle,
+      focusGeometry: const RoundedRectFocusGeometry(
+        borderRadius: BorderRadius.all(Radius.circular(12)),
       ),
+      builder: (context, hasFocus) {
+        final material = context.useTheme();
+        final colors = material.colors;
+
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          decoration: BoxDecoration(
+            borderRadius: material.shape.radius,
+            color: hasFocus 
+                ? colors.textPrimary.withValues(alpha: 0.1) 
+                : Colors.transparent,
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 250),
+                width: 14,
+                height: 14,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: isSelected ? colors.accent : colors.textPrimary.withValues(alpha: 0.3),
+                    width: 2,
+                  ),
+                ),
+                padding: const EdgeInsets.all(2),
+                child: AnimatedScale(
+                  scale: isSelected ? 1.0 : 0.0,
+                  duration: const Duration(milliseconds: 200),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: colors.accent,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 15,
+                  color: isSelected ? colors.textPrimary : colors.textPrimary.withValues(alpha: 0.6),
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }
 
-class SuperFocusSelect<T> extends StatefulWidget {
+/// 超焦点选择器
+class SuperFocusSelect<T> extends StatelessWidget {
   final String id;
   final String title;
-  final Map<T, String> options;
+  final List<SelectOption<T>> options;
   final List<T> selectedValues;
   final ValueChanged<T> onToggle;
   final Widget Function(Widget child) roomBuilder;
@@ -231,124 +201,72 @@ class SuperFocusSelect<T> extends StatefulWidget {
   });
 
   @override
-  State<SuperFocusSelect<T>> createState() => _SuperFocusSelectState<T>();
-}
-
-class _SuperFocusSelectState<T> extends State<SuperFocusSelect<T>> {
-  final GlobalKey _contentKey = GlobalKey();
-
-  @override
   Widget build(BuildContext context) {
-    return Builder(
-      builder: (context) {
-        return FocusIdentity(
-          id: widget.id,
-          onPressed: () {},
-          focusGeometry: const RoundedRectFocusGeometry(
-            borderRadius: BorderRadius.all(Radius.circular(24)),
+    return FocusIdentity(
+      id: id,
+      focusGeometry: const RoundedRectFocusGeometry(
+        borderRadius: BorderRadius.all(Radius.circular(24)),
+      ),
+      builder: (context, isFocused) {
+        return ThemeIdentity(
+          role: ThemeRole.card,
+          child: Builder(
+            builder: (context) {
+              final material = context.useTheme();
+              return roomBuilder(
+                _buildCardFrame(context, isFocused, material),
+              );
+            },
           ),
-          builder: (context, isGateFocused) {
-            return ThemeIdentity(
-              role: ThemeRole.card,
-              layer: isGateFocused ? ThemeLayer.under : ThemeLayer.base,
-              child: Builder(
-                builder: (context) {
-                  final material = context.useTheme();
-                  return widget.roomBuilder(
-                    _buildInternalContent(context, isGateFocused, material),
-                  );
-                },
-              ),
-            );
-          },
         );
       },
     );
   }
 
-  Widget _buildInternalContent(
-    BuildContext context,
-    bool isGateFocused,
-    ResolvedThemeMaterial material,
-  ) {
-    final isRoomActive = RoomScope.of(context)?.isActive ?? false;
+  Widget _buildCardFrame(BuildContext context, bool isFocused, ResolvedThemeMaterial material) {
     final colors = material.colors;
     final chrome = material.visual;
 
-    final coreContent = Padding(
-      key: _contentKey,
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              SurfaceText(
-                widget.title,
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  color: colors.textPrimary.withValues(
-                    alpha: isRoomActive ? 0.8 : 0.4,
-                  ),
-                  letterSpacing: 1.2,
-                ),
-              ),
-              if (isGateFocused)
-                Icon(
-                  Icons.login_rounded,
-                  size: 16,
-                  color: colors.accent.withValues(alpha: 0.5),
-                  // 图标暂时应用 outerShadows (因为图标不是文字)
-                  shadows: chrome.outerShadows
-                      .map(
-                        (e) => Shadow(
-                          color: e.color,
-                          offset: e.offset,
-                          blurRadius: e.blurRadius,
-                        ),
-                      )
-                      .toList(),
-                ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          Wrap(
-            spacing: 16,
-            runSpacing: 12,
-            children: widget.options.entries.toList().asMap().entries.map((
-              entry,
-            ) {
-              final index = entry.key;
-              final option = entry.value;
-              return _OptionItem<T>(
-                id: '${widget.id}_opt_$index',
-                label: option.value,
-                isSelected: widget.selectedValues.contains(option.key),
-                onToggle: () => widget.onToggle(option.key),
-              );
-            }).toList(),
-          ),
-        ],
-      ),
-    );
-
-    return AnimatedOpacity(
-      duration: const Duration(milliseconds: 300),
-      opacity: isRoomActive || isGateFocused ? 1.0 : 0.5,
-      child: Container(
-        decoration: BoxDecoration(
-          color: colors.surface,
-          borderRadius: material.shape.radius,
-          boxShadow: chrome.outerShadows,
-          border: Border.all(
-            color: chrome.borderColor ?? Colors.transparent,
-            width: chrome.borderWidth,
-          ),
+    return Container(
+      decoration: BoxDecoration(
+        color: colors.surface,
+        borderRadius: material.shape.radius,
+        boxShadow: chrome.outerShadows,
+        border: Border.all(
+          color: chrome.borderColor ?? Colors.transparent,
+          width: chrome.borderWidth,
         ),
-        child: coreContent,
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              title,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w900,
+                color: colors.textPrimary.withValues(alpha: 0.8),
+                letterSpacing: 2.0,
+              ),
+            ),
+            const SizedBox(height: 24),
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: options.map((option) {
+                return _OptionItem<T>(
+                  id: option.id, // 使用传入的物理 ID
+                  label: option.label,
+                  isSelected: selectedValues.contains(option.value),
+                  onToggle: () => onToggle(option.value),
+                );
+              }).toList(),
+            ),
+          ],
+        ),
       ),
     );
   }

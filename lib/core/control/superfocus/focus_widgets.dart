@@ -234,7 +234,7 @@ class _SuperFocusItemState extends State<SuperFocusItem> {
               const RoundedRectFocusGeometry(
                 borderRadius: BorderRadius.all(Radius.circular(12)),
               ),
-          isFocused: true, // 既然有 PrimaryFocus，必定为 true
+          isFocused: _hasFocus,
           context: context,
         ),
       );

@@ -46,16 +46,8 @@ class BuildingMap {
       '*dash_energy',
     ],
 
-    'settingPage': [
-      '*test',
-      '*settingSystemTheme',
-      '*settingDarkMode',
-      '*settingVisualStyle',
-      '*settingShapeStyle',
-    ],
-    'themeColor': ['*'],
-    'themeVisual': ['*'],
-    'themeShape': ['*'],
+    'settingPage': ['/color_mode'],
+    'color_mode': ['*light_mode', '*night_mode'],
 
     'music': ['*宫', '*商', '*角', '*徵', '*羽'],
 
