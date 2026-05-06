@@ -4,6 +4,118 @@ import '../../../core/control/superfocus/focus_widgets.dart';
 import '../../../core/engine/theme/theme_api.dart';
 import '../text/surface_text.dart';
 
+class SuperFocusSwitch extends StatelessWidget {
+  const SuperFocusSwitch({
+    super.key,
+    required this.id,
+    required this.value,
+    required this.onChanged,
+    this.label,
+    this.autofocus = false,
+  });
+
+  final String id;
+  final bool value;
+  final ValueChanged<bool>? onChanged;
+  final String? label;
+  final bool autofocus;
+
+  bool get _enabled => onChanged != null;
+
+  void _toggle() {
+    if (!_enabled) return;
+    onChanged!(!value);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FocusIdentity(
+      id: id,
+      autofocus: autofocus,
+      onPressed: _enabled ? _toggle : null,
+      focusGeometry: const RoundedRectFocusGeometry(
+        borderRadius: BorderRadius.all(Radius.circular(18)),
+      ),
+      builder: (context, hasFocus) {
+        return ThemeIdentity(
+          role: ThemeRole.button,
+          layer: hasFocus ? ThemeLayer.under : ThemeLayer.base,
+          child: Builder(
+            builder: (context) {
+              final material = context.useTheme();
+              final colors = material.colors;
+              final chrome = material.visual;
+              final textOpacity = _enabled ? 1.0 : 0.38;
+
+              final switchControl = AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
+                curve: Curves.easeOutCubic,
+                width: 54,
+                height: 32,
+                padding: const EdgeInsets.all(3),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(999),
+                  color: value
+                      ? colors.accent.withValues(alpha: _enabled ? 1.0 : 0.35)
+                      : colors.surface,
+                  boxShadow: hasFocus || value ? chrome.outerShadows : null,
+                  border: Border.all(
+                    color: hasFocus
+                        ? colors.accent
+                        : (chrome.borderColor ?? colors.border),
+                    width: hasFocus ? 1.5 : chrome.borderWidth,
+                  ),
+                ),
+                child: AnimatedAlign(
+                  duration: const Duration(milliseconds: 180),
+                  curve: Curves.easeOutCubic,
+                  alignment: value ? Alignment.centerRight : Alignment.centerLeft,
+                  child: Container(
+                    width: 26,
+                    height: 26,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: value ? colors.surface : colors.textPrimary,
+                      boxShadow: chrome.outerShadows,
+                    ),
+                  ),
+                ),
+              );
+
+              final label = this.label;
+              return GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: _enabled ? _toggle : null,
+                child: label == null
+                    ? switchControl
+                    : Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          switchControl,
+                          const SizedBox(width: 12),
+                          SurfaceText(
+                            label,
+                            style: TextStyle(
+                              color: colors.textPrimary.withValues(
+                                alpha: textOpacity,
+                              ),
+                              fontSize: 15,
+                              fontWeight: hasFocus
+                                  ? FontWeight.w700
+                                  : FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+}
+
 class _OptionItem<T> extends StatelessWidget {
   final String id;
   final String label;
@@ -42,9 +154,11 @@ class _OptionItem<T> extends StatelessWidget {
                 ),
                 decoration: BoxDecoration(
                   borderRadius: material.shape.radius,
-                  color: isSelected 
-                      ? colors.surface 
-                      : (hasFocus ? colors.textPrimary.withValues(alpha: 0.05) : Colors.transparent),
+                  color: isSelected
+                      ? colors.surface
+                      : (hasFocus
+                            ? colors.textPrimary.withValues(alpha: 0.05)
+                            : Colors.transparent),
                   boxShadow: isSelected ? chrome.outerShadows : [],
                 ),
                 child: Row(
@@ -127,7 +241,7 @@ class _SuperFocusSelectState<T> extends State<SuperFocusSelect<T>> {
   Widget build(BuildContext context) {
     return Builder(
       builder: (context) {
-        return SuperFocusItem(
+        return FocusIdentity(
           id: widget.id,
           onPressed: () {},
           focusGeometry: const RoundedRectFocusGeometry(
@@ -176,7 +290,7 @@ class _SuperFocusSelectState<T> extends State<SuperFocusSelect<T>> {
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.bold,
-                color: colors.textPrimary.withValues(
+                  color: colors.textPrimary.withValues(
                     alpha: isRoomActive ? 0.8 : 0.4,
                   ),
                   letterSpacing: 1.2,
@@ -188,11 +302,15 @@ class _SuperFocusSelectState<T> extends State<SuperFocusSelect<T>> {
                   size: 16,
                   color: colors.accent.withValues(alpha: 0.5),
                   // 图标暂时应用 outerShadows (因为图标不是文字)
-                  shadows: chrome.outerShadows.map((e) => Shadow(
-                    color: e.color,
-                    offset: e.offset,
-                    blurRadius: e.blurRadius,
-                  )).toList(),
+                  shadows: chrome.outerShadows
+                      .map(
+                        (e) => Shadow(
+                          color: e.color,
+                          offset: e.offset,
+                          blurRadius: e.blurRadius,
+                        ),
+                      )
+                      .toList(),
                 ),
             ],
           ),

@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../core/engine/theme/theme_api.dart';
 import '../../../core/layout/grid/grid_extensions.dart';
-import '../../../core/control/superfocus/focus_widgets.dart';
-import '../../../core/control/superfocus/focus_geometry.dart';
+import '../../../core/control/superfocus/focus_api.dart';
 import '../../../ui/base/text/surface_text.dart';
 import 'sidebar_metrics.dart';
 
@@ -39,7 +38,7 @@ class SidebarTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SuperFocusItem(
+    return FocusIdentity(
       id: id,
       autofocus: autofocus,
       onPressed: isDisabled ? null : () => onTap?.call(),

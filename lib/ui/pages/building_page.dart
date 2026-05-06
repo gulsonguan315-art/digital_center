@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../core/control/superfocus/focus_api.dart';
 import '../../core/control/superfocus/focus_manager.dart';
-
 import '../../core/engine/theme/theme_api.dart';
 import '../../modules/resident/settings/setting_page.dart';
 import '../../modules/resident/dashboard/dashboard_page.dart';
@@ -19,31 +19,46 @@ class BuildingPage extends StatelessWidget {
         builder: (context) {
           final material = context.useTheme();
 
-          return Container(
-            color: material.colors.surface,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const SidebarView(),
-                Expanded(
-                  child: Scaffold(
-                    backgroundColor: Colors.transparent,
-                    appBar: AppBar(
-                      title: null,
-                      backgroundColor: Colors.transparent,
-                      elevation: 0,
-                    ),
-                    body: Padding(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: context.units(StageMetrics.paddingHorizontalU),
-                        vertical: context.units(StageMetrics.paddingVerticalU),
+          // 使用 ValueListenableBuilder 建立全局监听
+          // 这种方式不需要在 BuildingMap 里增加任何新的 Room 节点
+          return ValueListenableBuilder<FocusTopology>(
+            valueListenable: SuperFocusManager.instance.topologyNotifier,
+            builder: (context, topology, _) {
+              return FocusTopologyScope(
+                topology: topology,
+                child: Container(
+                  color: material.colors.surface,
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const SidebarView(),
+                      Expanded(
+                        child: Scaffold(
+                          backgroundColor: Colors.transparent,
+                          appBar: AppBar(
+                            title: null,
+                            backgroundColor: Colors.transparent,
+                            elevation: 0,
+                          ),
+                          body: Padding(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: context.units(StageMetrics.paddingHorizontalU),
+                              vertical: context.units(StageMetrics.paddingVerticalU),
+                            ),
+                            child: ValueListenableBuilder<String?>(
+                              valueListenable:
+                                  SuperFocusManager.instance.intentionRoomId,
+                              builder: (context, intentionId, __) =>
+                                  _MainContent(intentionId: intentionId),
+                            ),
+                          ),
+                        ),
                       ),
-                      child: const _MainContent(),
-                    ),
+                    ],
                   ),
                 ),
-              ],
-            ),
+              );
+            },
           );
         },
       ),
@@ -52,59 +67,28 @@ class BuildingPage extends StatelessWidget {
 }
 
 class _MainContent extends StatelessWidget {
-  const _MainContent();
+  const _MainContent({required this.intentionId});
+
+  final String? intentionId;
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.useTheme().colors;
+    // 信号链路现在是通的
+    final showSettings =
+        context.useIsActive(SettingPageRoom.roomId) ||
+        intentionId == SettingPageRoom.roomId;
+    final showDashboard =
+        context.useIsActive(DashboardRoom.roomId) ||
+        intentionId == DashboardRoom.roomId;
 
-    return ValueListenableBuilder<FocusTopology>(
-      valueListenable: SuperFocusManager.instance.topologyNotifier,
-      builder: (context, topology, _) {
-        return ValueListenableBuilder<String?>(
-          valueListenable: SuperFocusManager.instance.intentionRoomId,
-          builder: (context, intentionId, _) {
-            final showSettings =
-                topology.activePath.contains(SettingPageRoom.roomId) ||
-                intentionId == SettingPageRoom.roomId;
+    if (showSettings) {
+      return const SettingPageRoom();
+    }
 
-            if (showSettings) {
-              return const SettingPageRoom();
-            }
+    if (showDashboard) {
+      return const DashboardRoom();
+    }
 
-            final showDashboard =
-                topology.activePath.contains(DashboardRoom.roomId) ||
-                intentionId == DashboardRoom.roomId;
-
-            if (showDashboard) {
-              return const DashboardRoom();
-            }
-
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.dashboard_customize_outlined,
-                    size: 64,
-                    color: colors.textPrimary.withValues(alpha: 0.12),
-                  ),
-                  const SizedBox(height: 24),
-                  Text(
-                    '中心轴心就绪',
-                    style: TextStyle(
-                      color: colors.textSecondary.withValues(alpha: 0.6),
-                      fontSize: 20,
-                      letterSpacing: 4,
-                      fontWeight: FontWeight.w200,
-                    ),
-                  ),
-                ],
-              ),
-            );
-          },
-        );
-      },
-    );
+    return const DashboardRoom();
   }
 }

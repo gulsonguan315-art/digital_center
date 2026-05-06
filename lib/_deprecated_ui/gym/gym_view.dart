@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-
-import '../../core/control/superfocus/focus_manager.dart';
-import '../../core/control/superfocus/focus_widgets.dart';
+import '../../core/control/superfocus/focus_api.dart';
 import '../../core/engine/theme/theme_api.dart';
 import '../../ui/base/input/ui_base_button.dart';
 import 'gym_mock_data.dart';
@@ -12,122 +10,103 @@ class GymView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<FocusTopology>(
-      valueListenable: SuperFocusManager.instance.topologyNotifier,
-      builder: (context, topology, _) {
-        final activePath = topology.activePath;
-        return ValueListenableBuilder<String?>(
-          valueListenable: SuperFocusManager.instance.intentionRoomId,
-          builder: (context, intentionId, _) {
-            final isTargeting =
-                intentionId == GymRoom.roomId ||
-                intentionId == CardioRoom.roomId ||
-                intentionId == StrengthRoom.roomId;
-            final isInGym = activePath.contains(GymRoom.roomId);
+    // 1. 使用 API 获取响应式状态
+    final bool isInGym = context.useIsActive(GymRoom.roomId);
 
-            if (!isInGym && !isTargeting) {
-              return const SizedBox.shrink();
-            }
+    // 2. 如果不活跃，则直接收起
+    if (!isInGym) {
+      return const SizedBox.shrink();
+    }
 
-            return FutureBuilder<Map<String, List<Map<String, String>>>>(
-              future: GymMockData.fetchEquipment(),
-              builder: (context, snapshot) {
-                final data = snapshot.data;
-                final isActive = activePath.contains(GymRoom.roomId);
+    return FutureBuilder<Map<String, List<Map<String, String>>>>(
+      future: GymMockData.fetchEquipment(),
+      builder: (context, snapshot) {
+        final data = snapshot.data;
+        // 再次确认活跃状态（用于动画）
+        final bool isActive = context.useIsActive(GymRoom.roomId);
 
-                return ThemeIdentity(
-                  role: ThemeRole.card,
-                  child: Builder(
-                    builder: (context) {
-                      final material = context.useTheme();
+        return ThemeIdentity(
+          role: ThemeRole.card,
+          child: Builder(
+            builder: (context) {
+              final material = context.useTheme();
 
-                      return GymRoom(
-                        child: AnimatedOpacity(
-                          duration: const Duration(milliseconds: 300),
-                          opacity: isActive ? 1.0 : 0.4,
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 300),
-                            padding: const EdgeInsets.all(20),
-                            decoration: BoxDecoration(
-                              color: Colors.transparent,
-                              border: Border.all(
-                                color: isActive
-                                    ? material.colors.accent.withValues(
-                                        alpha: 0.3,
-                                      )
-                                    : Colors.transparent,
-                                width: 2,
-                              ),
-                              borderRadius: material.shape.radius,
-                            ),
-                            child: Column(
-                              children: [
-                                if (data != null) ...[
-                                  Text(
-                                    'Gym',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 18,
-                                      color: isActive
-                                          ? Colors.orange
-                                          : Colors.grey,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 20),
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      SuperFocusButton(
-                                        id: CardioRoom.roomId,
-                                        label: 'Cardio',
-                                        onPressed: () {},
-                                      ),
-                                      const SizedBox(width: 30),
-                                      SuperFocusButton(
-                                        id: StrengthRoom.roomId,
-                                        label: 'Strength',
-                                        onPressed: () {},
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 40),
-                                  Row(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceEvenly,
-                                    children: data.entries.map((entry) {
-                                      final areaName = entry.key;
-                                      final equipmentList = entry.value;
-
-                                      if (areaName == CardioRoom.roomId) {
-                                        return CardioRoom(
-                                          child: _buildAreaContent(
-                                            areaName,
-                                            equipmentList,
-                                          ),
-                                        );
-                                      }
-                                      return StrengthRoom(
-                                        child: _buildAreaContent(
-                                          areaName,
-                                          equipmentList,
-                                        ),
-                                      );
-                                    }).toList(),
-                                  ),
-                                ],
-                              ],
+              return GymRoom(
+                child: AnimatedOpacity(
+                  duration: const Duration(milliseconds: 300),
+                  opacity: isActive ? 1.0 : 0.4,
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 300),
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.transparent,
+                      border: Border.all(
+                        color: isActive
+                            ? material.colors.accent.withValues(alpha: 0.3)
+                            : Colors.transparent,
+                        width: 2,
+                      ),
+                      borderRadius: material.shape.radius,
+                    ),
+                    child: Column(
+                      children: [
+                        if (data != null) ...[
+                          Text(
+                            'Gym',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 18,
+                              color: isActive ? Colors.orange : Colors.grey,
                             ),
                           ),
-                        ),
-                      );
-                    },
+                          const SizedBox(height: 20),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              SuperFocusButton(
+                                id: CardioRoom.roomId,
+                                label: 'Cardio',
+                                onPressed: () {},
+                              ),
+                              const SizedBox(width: 30),
+                              SuperFocusButton(
+                                id: StrengthRoom.roomId,
+                                label: 'Strength',
+                                onPressed: () {},
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 40),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: data.entries.map((entry) {
+                              final areaName = entry.key;
+                              final equipmentList = entry.value;
+
+                              if (areaName == CardioRoom.roomId) {
+                                return CardioRoom(
+                                  child: _buildAreaContent(
+                                    areaName,
+                                    equipmentList,
+                                  ),
+                                );
+                              }
+                              return StrengthRoom(
+                                child: _buildAreaContent(
+                                  areaName,
+                                  equipmentList,
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                        ],
+                      ],
+                    ),
                   ),
-                );
-              },
-            );
-          },
+                ),
+              );
+            },
+          ),
         );
       },
     );
@@ -141,7 +120,8 @@ class GymView extends StatelessWidget {
       role: ThemeRole.card,
       child: Builder(
         builder: (context) {
-          final isSubActive = RoomScope.of(context)?.isActive ?? false;
+          // 使用新 API 获取子房间状态
+          final isSubActive = context.useIsActive(areaName);
           final material = context.useTheme();
 
           return AnimatedOpacity(

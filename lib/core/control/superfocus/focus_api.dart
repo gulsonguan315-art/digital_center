@@ -1,7 +1,41 @@
 library focus_api;
 
-export 'focus_manager.dart';
-export 'focus_widgets.dart';
-export 'focus_geometry.dart';
-export 'focus_report.dart';
-export 'building_map.dart';
+import 'package:flutter/material.dart';
+import 'focus_manager.dart';
+import 'focus_widgets.dart';
+import 'focus_state.dart';
+
+// 1. 【暴露组件】
+export 'focus_widgets.dart' show SuperFocusRoom, FocusIdentity, FocusShape, FocusTopologyScope;
+
+// 2. 【暴露模型】
+export 'focus_state.dart' show FocusTopology;
+export 'focus_geometry.dart' show FocusGeometry, RoundedRectFocusGeometry, SidebarTileFocusGeometry;
+
+/// 3. 【暴露命令】UI 发号施令的唯一遥控器
+abstract class FocusAPI {
+  /// 发送焦点动作意图
+  static void dispatchAction(String currentRoom, String id) {
+    SuperFocusManager.instance.onAction(currentRoom, id);
+  }
+
+  /// 手动请求返回
+  static void dispatchBack(BuildContext context) {
+    SuperFocusManager.instance.onBack(context);
+  }
+}
+
+/// 4. 【暴露状态】极其优雅的 BuildContext 扩展
+extension FocusContextExt on BuildContext {
+  /// 检查指定 ID 的房间或区域是否处于活跃状态
+  bool useIsActive(String id, {bool isZone = false}) {
+    FocusTopologyScope.of(this);
+    return SuperFocusManager.instance.state.checkIsActive(id, isZone: isZone);
+  }
+
+  /// 检查当前焦点是否落在此 ID 上
+  bool useIsFocused(String id) {
+    FocusTopologyScope.of(this);
+    return SuperFocusManager.instance.state.checkIsFocused(id);
+  }
+}

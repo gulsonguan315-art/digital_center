@@ -12,6 +12,10 @@ class SettingPageRoom extends StatelessWidget {
 
   // 补回丢失的测试按钮 ID
   static const String testId = 'test';
+  static const String systemThemeSwitchId = 'settingSystemTheme';
+  static const String darkModeSwitchId = 'settingDarkMode';
+  static const String visualStyleId = 'settingVisualStyle';
+  static const String shapeStyleId = 'settingShapeStyle';
 
   @override
   Widget build(BuildContext context) {

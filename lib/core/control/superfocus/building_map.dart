@@ -21,13 +21,10 @@ abstract class FocusSyntax {
 }
 
 class BuildingMap {
-  /// 根房间集合：这些房间是导航树的最顶层边界，不允许继续 Back。
-  static const Set<String> roots = {'sidebar'};
+  static const Set<String> roots = {'sidebar'}; // 还原为 sidebar
 
   static bool isRoot(String id) => roots.contains(id);
 
-  /// 扁平树状图：每个房间是顶层 key，子项通过前缀声明类型。
-  /// 父子关系由 `/` 和 `+` 前缀隐式表达，无需嵌套。
   static final Map<String, List<String>> structure = {
     'sidebar': [
       '*dashboard=>dashboardPage',
@@ -49,7 +46,13 @@ class BuildingMap {
       '*dash_energy',
     ],
 
-    'settingPage': ['/themeColor', '/themeVisual', '/themeShape', '*test'],
+    'settingPage': [
+      '*test',
+      '*settingSystemTheme',
+      '*settingDarkMode',
+      '*settingVisualStyle',
+      '*settingShapeStyle',
+    ],
     'themeColor': ['*'],
     'themeVisual': ['*'],
     'themeShape': ['*'],

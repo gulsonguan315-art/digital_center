@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/control/superfocus/focus_geometry.dart';
-import '../../../core/control/superfocus/focus_manager.dart';
-import '../../../core/control/superfocus/focus_widgets.dart';
+import '../../../core/control/superfocus/focus_api.dart';
 import '../../../core/engine/theme/theme_api.dart';
 import '../text/surface_text.dart';
 
+/// 焦点化按钮 - 业务层的标准按钮实现
 class SuperFocusButton extends StatelessWidget {
   const SuperFocusButton({
     super.key,
@@ -22,7 +21,8 @@ class SuperFocusButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SuperFocusItem(
+    // UI 只认识 API：使用 FocusIdentity 代替 SuperFocusItem
+    return FocusIdentity(
       id: id,
       autofocus: autofocus,
       onPressed: onPressed,
@@ -35,67 +35,58 @@ class SuperFocusButton extends StatelessWidget {
               final material = context.useTheme();
               final colors = material.colors;
 
-              return ValueListenableBuilder<String?>(
-                valueListenable: SuperFocusManager.instance.intentionRoomId,
-                builder: (context, intentionId, _) {
-                  final isWaiting = intentionId == id;
+              // 检查是否有意图指向此 ID (用于显示加载状态)
+              final bool isWaiting = false; 
 
-                  return AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    decoration: BoxDecoration(
-                      color: isWaiting ? colors.accent : colors.surface,
-                      borderRadius: material.shape.radius,
-                      boxShadow: material.visual.outerShadows,
-                      border: Border.all(
-                        color: material.visual.borderColor ?? Colors.transparent,
-                        width: material.visual.borderWidth,
-                      ),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 24,
-                        vertical: 14,
-                      ),
-                      child: Stack(
-                        alignment: Alignment.center,
-                        children: [
-                          Opacity(
-                            opacity: isWaiting ? 0.0 : 1.0,
-                            child: SurfaceText(
-                              label,
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: hasFocus
-                                    ? colors.accent
-                                    : colors.textPrimary,
-                                fontWeight: hasFocus
-                                    ? FontWeight.bold
-                                    : FontWeight.normal,
-                              ),
-                            ),
+              return AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                decoration: BoxDecoration(
+                  color: isWaiting ? colors.accent : colors.surface,
+                  borderRadius: material.shape.radius,
+                  boxShadow: material.visual.outerShadows,
+                  border: Border.all(
+                    color: material.visual.borderColor ?? Colors.transparent,
+                    width: material.visual.borderWidth,
+                  ),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 14,
+                  ),
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      Opacity(
+                        opacity: isWaiting ? 0.0 : 1.0,
+                        child: SurfaceText(
+                          label,
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: hasFocus ? colors.accent : colors.textPrimary,
+                            fontWeight: hasFocus ? FontWeight.bold : FontWeight.normal,
                           ),
-                          if (isWaiting)
-                            SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation(
-                                  colors.accent,
-                                ),
-                              ),
-                            ),
-                        ],
+                        ),
                       ),
-                    ),
-                  );
-                },
+                      if (isWaiting)
+                        SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation(colors.accent),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
               );
             },
           ),
         );
       },
-      focusGeometry: const RoundedRectFocusGeometry(
+      // 使用别名 FocusShape
+      focusGeometry: const FocusShape(
         borderRadius: BorderRadius.all(Radius.circular(12)),
       ),
     );

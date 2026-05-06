@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../core/control/superfocus/focus_widgets.dart';
+import '../../../core/control/superfocus/focus_api.dart';
 
 class SidebarRoom extends StatelessWidget {
   const SidebarRoom({super.key, required this.child});

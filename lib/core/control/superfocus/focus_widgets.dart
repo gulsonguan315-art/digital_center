@@ -1,8 +1,12 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter/services.dart';
+import 'focus_state.dart';
 import 'focus_manager.dart';
 import 'focus_geometry.dart';
 import 'focus_report.dart';
+
+typedef FocusShape = RoundedRectFocusGeometry;
+typedef FocusIdentity = SuperFocusItem;
 
 /// 房间上下文，用于让内部组件感知自己属于哪个房间及其状态
 class RoomScope extends InheritedWidget {
@@ -23,6 +27,27 @@ class RoomScope extends InheritedWidget {
   @override
   bool updateShouldNotify(RoomScope oldWidget) =>
       roomId != oldWidget.roomId || isActive != oldWidget.isActive;
+}
+
+/// 拓扑状态作用域，支持 context.useIsActive 的响应式核心
+class FocusTopologyScope extends InheritedWidget {
+  final FocusTopology topology;
+
+  const FocusTopologyScope({
+    required this.topology,
+    required super.child,
+    super.key,
+  });
+
+  static FocusTopology of(BuildContext context) {
+    final scope = context
+        .dependOnInheritedWidgetOfExactType<FocusTopologyScope>();
+    return scope?.topology ?? const FocusTopology();
+  }
+
+  @override
+  bool updateShouldNotify(FocusTopologyScope oldWidget) =>
+      topology != oldWidget.topology;
 }
 
 /// 房间包装组件 - UI "三步走"之第二步
@@ -61,30 +86,36 @@ class _SuperFocusRoomState extends State<SuperFocusRoom> {
             ? (parentScope?.isActive ?? activePath.contains(widget.id))
             : activePath.contains(widget.id);
 
-        final Widget roomWidget = RoomScope(
-          roomId: widget.id,
-          isActive: isActive,
-          child: Focus(
-            onFocusChange: (hasFocus) {
-              if (hasFocus) {
-                // Zone 与 Room 统一：都上报自身 ID。
-                // _fillPath 会通过规范化 key（去掉 +）正确追溯祖先链，
-                // 从而使 activeRoomPath 包含 Zone 及其所有父级房间。
-                SuperFocusManager.instance.onRoomEnter(widget.id);
-              }
-            },
-            onKeyEvent: _isZone
-                ? null
-                : (node, event) {
-                    if (event is KeyDownEvent &&
-                        (event.logicalKey == LogicalKeyboardKey.escape ||
-                            event.logicalKey == LogicalKeyboardKey.backspace)) {
-                      SuperFocusManager.instance.onBack(context);
-                      return KeyEventResult.handled;
-                    }
-                    return KeyEventResult.ignored;
-                  },
-            child: widget.child,
+        // 在这里注入拓扑作用域，让子孙可以通过 context 访问并监听
+        final Widget roomWidget = FocusTopologyScope(
+          topology: topology,
+          child: RoomScope(
+            roomId: widget.id,
+            isActive: isActive,
+            child: Focus(
+              canRequestFocus: false, // 房间本身不参与焦点竞争
+              onFocusChange: (hasFocus) {
+                if (hasFocus) {
+                  // 异步上报，彻底解决 Build 周期内的重绘死循环
+                  Future.microtask(() {
+                    SuperFocusManager.instance.onRoomEnter(widget.id);
+                  });
+                }
+              },
+              onKeyEvent: _isZone
+                  ? null
+                  : (node, event) {
+                      if (event is KeyDownEvent &&
+                          (event.logicalKey == LogicalKeyboardKey.escape ||
+                              event.logicalKey ==
+                                  LogicalKeyboardKey.backspace)) {
+                        SuperFocusManager.instance.onBack(context);
+                        return KeyEventResult.handled;
+                      }
+                      return KeyEventResult.ignored;
+                    },
+              child: widget.child,
+            ),
           ),
         );
 

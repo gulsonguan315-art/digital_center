@@ -156,7 +156,7 @@ class _DashboardViewState extends State<DashboardView> {
                                     DashboardCallback.onInteractionEnd(
                                       _controller,
                                     ),
-                                child: SuperFocusItem(
+                                child: FocusIdentity(
                                   id: config.id,
                                   focusGeometry: RoundedRectFocusGeometry(
                                     borderRadius:
