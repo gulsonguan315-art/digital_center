@@ -102,8 +102,7 @@ class _SuperFocusRoomState extends State<SuperFocusRoom> {
                   });
                 }
               },
-              // 按键监听已移交 DeviceManager 统一处理，此处不再直接响应键盘
-              onKeyEvent: null,
+              // 按键监听已移交 DeviceManager 统一处理，此处不参与按键监听
               child: widget.child,
             ),
           ),
@@ -192,6 +191,18 @@ class _SuperFocusItemState extends State<SuperFocusItem> {
   @override
   void didUpdateWidget(SuperFocusItem oldWidget) {
     super.didUpdateWidget(oldWidget);
+
+    // 【修复：Stale Closure】父组件 setState 可能传入全新的 onPressed 闭包，
+    // 必须同步给管理中心，否则确认键永远触发旧状态。
+    if (oldWidget.onPressed != widget.onPressed && _registeredRoomId != null) {
+      SuperFocusManager.instance.registerNode(
+        widget.id,
+        _focusNode,
+        _registeredRoomId!,
+        onPressed: widget.onPressed,
+      );
+    }
+
     if (_hasFocus && oldWidget.focusGeometry != widget.focusGeometry) {
       _reportFocus();
     }

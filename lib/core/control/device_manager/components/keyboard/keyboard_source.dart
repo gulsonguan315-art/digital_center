@@ -13,7 +13,7 @@ import 'keyboard_translate.dart';
 /// 注意：本类不直接调用 HardwareKeyboard，
 /// 而是通过 [handleKey] 被根节点 Focus.onKeyEvent 被动驱动，
 /// 确保 TextField 等原生输入组件优先消费自己的按键事件。
-class KeyboardInputSource implements InputSource {
+class KeyboardInputSource implements InputSource, KeyEventHandler {
   @override
   String get name => 'Keyboard';
 
@@ -30,6 +30,7 @@ class KeyboardInputSource implements InputSource {
   }
 
   /// 根节点 Focus.onKeyEvent 的嚴饰入口，由 [SuperInputManager.handleRootKeyEvent] 调用。
+  @override
   KeyEventResult handleKey(FocusNode node, KeyEvent event) {
     if (event is! KeyDownEvent) return KeyEventResult.ignored;
     final signal = KeyboardTranslate.translate(event.logicalKey);

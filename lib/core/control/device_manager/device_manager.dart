@@ -2,6 +2,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import '../superfocus/focus_api.dart';
 import 'components/keyboard/keyboard_source.dart';
+
+export 'components/keyboard/keyboard_source.dart';
 export 'components/gamepad/gamepad_source.dart';
 export 'components/remote/remote_source.dart';
 
@@ -49,12 +51,17 @@ abstract class InputSource {
   void detach();
 }
 
+/// 具备处理原生 KeyEvent 能力的输入源接口
+abstract interface class KeyEventHandler {
+  KeyEventResult handleKey(FocusNode node, KeyEvent event);
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // 3. 设备管理中心
 //    统一管理所有输入源，接收信号并下发给焦点系统。
 //
-//    各设备的按键翻译逻辑 → translate/
-//    各设备的驱动实现     → sources/
+//    各设备的按键翻译逻辑 → components/*/translate/ (或者直接在子目录下)
+//    各设备的驱动实现     → components/*/source/
 // ─────────────────────────────────────────────────────────────────────────────
 
 /// 操控设备管理中心（单例）
@@ -65,9 +72,8 @@ abstract class InputSource {
 /// 3. 通过 [FocusAPI] 将信号下发给焦点系统
 ///
 /// 扩展新设备只需两步：
-/// 1. 在 `translate/` 下新建翻译表（如 `remote_translate.dart`）
-/// 2. 在 `sources/`   下新建输入源（如 `remote_source.dart`）
-/// 然后 `SuperInputManager.instance.addSource(RemoteInputSource())` 即可。
+/// 1. 在 `components/` 下新建设备文件夹并实现翻译逻辑
+/// 2. 在 `components/` 下实现 [InputSource] 并在 [SuperInputManager] 中注册。
 class SuperInputManager {
   static final SuperInputManager instance = SuperInputManager._internal();
   SuperInputManager._internal();
@@ -125,15 +131,18 @@ class SuperInputManager {
     }
   }
 
-  /// 根节点 Focus.onKeyEvent 的嚴饰入口。
+  /// 根节点 Focus.onKeyEvent 的兜底入口。
   /// 在 main.dart 中挂载，利用 Flutter 事件冒泡：
   /// TextField 等原生输入组件优先消费自己的按键，未消费的才到达这里。
   KeyEventResult handleRootKeyEvent(FocusNode node, KeyEvent event) {
-    final keyboardSource = _sources
-        .whereType<KeyboardInputSource>()
-        .firstOrNull;
-    if (keyboardSource != null) {
-      return keyboardSource.handleKey(node, event);
+    // 【修复：多 HID 设备路由】遍历所有具备处理 KeyEvent 能力的输入源，直到有人消费
+    for (final source in _sources) {
+      if (source is KeyEventHandler) {
+        final result = (source as KeyEventHandler).handleKey(node, event);
+        if (result == KeyEventResult.handled) {
+          return KeyEventResult.handled;
+        }
+      }
     }
     return KeyEventResult.ignored;
   }

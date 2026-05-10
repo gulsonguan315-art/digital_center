@@ -16,7 +16,7 @@ import 'remote_translate.dart';
 ///    在 attach 中注册平台通道监听，事件回调后交给 [RemoteTranslate]。
 ///
 /// 当前默认方案：走事件冒泡，通过 [handleKey] 被动驱动（与键盘同路）。
-class RemoteInputSource implements InputSource {
+class RemoteInputSource implements InputSource, KeyEventHandler {
   @override
   String get name => 'Remote';
 
@@ -41,6 +41,7 @@ class RemoteInputSource implements InputSource {
 
   /// 根节点 Focus.onKeyEvent 的嚴饰入口（适用于走 HID/键盘事件的遥控器）。
   /// 由 [SuperInputManager.handleRootKeyEvent] 调用。
+  @override
   KeyEventResult handleKey(FocusNode node, KeyEvent event) {
     if (event is! KeyDownEvent) return KeyEventResult.ignored;
     final signal = RemoteTranslate.translate(event.logicalKey);
