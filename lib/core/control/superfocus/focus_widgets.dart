@@ -102,18 +102,8 @@ class _SuperFocusRoomState extends State<SuperFocusRoom> {
                   });
                 }
               },
-              onKeyEvent: _isZone
-                  ? null
-                  : (node, event) {
-                      if (event is KeyDownEvent &&
-                          (event.logicalKey == LogicalKeyboardKey.escape ||
-                              event.logicalKey ==
-                                  LogicalKeyboardKey.backspace)) {
-                        SuperFocusManager.instance.onBack(context);
-                        return KeyEventResult.handled;
-                      }
-                      return KeyEventResult.ignored;
-                    },
+              // 按键监听已移交 DeviceManager 统一处理，此处不再直接响应键盘
+              onKeyEvent: null,
               child: widget.child,
             ),
           ),
@@ -193,6 +183,7 @@ class _SuperFocusItemState extends State<SuperFocusItem> {
         widget.id,
         _focusNode,
         room.roomId,
+        onPressed: widget.onPressed, // 向管理中心注册动作回调
       );
       _registeredRoomId = room.roomId;
     }
@@ -249,31 +240,6 @@ class _SuperFocusItemState extends State<SuperFocusItem> {
       onFocusChange: (focus) {
         setState(() => _hasFocus = focus);
         if (focus) _reportFocus();
-      },
-      onKeyEvent: (node, event) {
-        // 先检查导航协议拦截
-        final protocolResult = SuperFocusManager.instance.handleKeyEvent(
-          node,
-          event,
-        );
-        if (protocolResult == KeyEventResult.handled) return protocolResult;
-
-        // 业务动作触发
-        if (event is KeyDownEvent &&
-            (event.logicalKey == LogicalKeyboardKey.enter ||
-                event.logicalKey == LogicalKeyboardKey.select)) {
-          if (widget.onPressed != null) widget.onPressed!();
-
-          final String sourceRoom =
-              RoomScope.of(context)?.roomId ??
-              SuperFocusManager.instance.currentRoomId ??
-              '未知';
-          if (sourceRoom != '未知') {
-            SuperFocusManager.instance.onAction(sourceRoom, widget.id);
-          }
-          return KeyEventResult.handled;
-        }
-        return KeyEventResult.ignored;
       },
       child: widget.builder(context, _hasFocus),
     );

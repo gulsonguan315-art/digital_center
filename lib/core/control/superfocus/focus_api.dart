@@ -24,6 +24,25 @@ abstract class FocusAPI {
   static void dispatchBack(BuildContext context) {
     SuperFocusManager.instance.onBack(context);
   }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // 设备管理模块专用接口（由 DeviceManager 调用）
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /// 【移动指令】向指定方向移动焦点
+  static void dispatchMove(TraversalDirection direction) {
+    SuperFocusManager.instance.onMove(direction);
+  }
+
+  /// 【确认指令】触发当前聚焦项的 onPressed 及导航动作
+  static void dispatchConfirm() {
+    SuperFocusManager.instance.onConfirm();
+  }
+
+  /// 【返回指令】执行焦点回退（无需 BuildContext）
+  static void dispatchBackCommand() {
+    SuperFocusManager.instance.onBackCommand();
+  }
 }
 
 /// 4. 【暴露状态】极其优雅的 BuildContext 扩展

@@ -120,8 +120,8 @@ class SuperFocusManager with FocusTraceLogger {
   void showCursor() => state.cursorHiddenNotifier.value = false;
   void clearCursor() => state.cursorReportNotifier.value = null;
 
-  void registerNode(String id, FocusNode node, String roomId) {
-    state.nodeRegistry[id] = FocusNodeInfo(node, roomId);
+  void registerNode(String id, FocusNode node, String roomId, {VoidCallback? onPressed}) {
+    state.nodeRegistry[id] = FocusNodeInfo(node, roomId, onPressed: onPressed);
     _tryFulfillIntention();
   }
 
@@ -148,17 +148,123 @@ class SuperFocusManager with FocusTraceLogger {
     });
   }
 
-  KeyEventResult handleKeyEvent(FocusNode node, KeyEvent event) {
+  // ─────────────────────────────────────────────────────────────────────────
+  // 设备管理模块指令接口（由 DeviceManager 调用，业务代码不应直接使用）
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /// 【移动指令】向指定方向移动焦点
+  /// 中间态守卫：系统正在执行意图跳转时，忽略一切移动指令，防止焦点树损毁。
+  void onMove(TraversalDirection direction) {
+    if (intentionRoomId.value != null) return;
+    final primaryFocus = FocusManager.instance.primaryFocus;
+    if (primaryFocus == null) return;
+    policy.inDirection(primaryFocus, direction);
+  }
+
+  /// 【确认指令】触发当前聚焦节点的 onPressed 及 onAction
+  /// 中间态守卫：系统正在执行意图跳转时，忽略确认指令，防止重叠跳转。
+  void onConfirm() {
+    if (intentionRoomId.value != null) return;
+    final entry = state.nodeRegistry.entries
+        .where((e) => e.value.node.hasPrimaryFocus)
+        .firstOrNull;
+    if (entry == null) return;
+
+    final info = entry.value;
+    final id = entry.key;
+
+    // 触发业务回调
+    info.onPressed?.call();
+
+    // 触发焦点导航动作
+    final String sourceRoom =
+        info.roomId.isNotEmpty ? info.roomId : (currentRoomId ?? '未知');
+    if (sourceRoom != '未知') {
+      onAction(sourceRoom, id);
+    }
+  }
+
+  /// 【返回指令】执行焦点回退（无需 BuildContext）
+  /// 语义优先级：中间态时 Back = 取消当前意图；正常态时 Back = 导航回退。
+  void onBackCommand() {
     if (intentionRoomId.value != null) {
-      if (event is KeyDownEvent) {
-        if (event.logicalKey == LogicalKeyboardKey.escape) {
-          cancelNavigation();
-          return KeyEventResult.handled;
+      cancelNavigation();
+      return;
+    }
+    final String? focusedId = state.nodeRegistry.entries
+        .where((e) => e.value.node.hasPrimaryFocus)
+        .firstOrNull
+        ?.key;
+
+    final String? room =
+        focusedId != null ? state.nodeRegistry[focusedId]?.roomId : currentRoomId;
+    final String currentPos = switch ((focusedId, room)) {
+      (String f, String r) => '[$r：$f]',
+      (null, String r) => '[$r]',
+      _ => '未知',
+    };
+
+    logBackStart(currentPos);
+    String? targetId;
+    String reason;
+
+    if (state.portalStack.isNotEmpty && state.portalStack.last.landedIn == room) {
+      final entry = state.portalStack.removeLast();
+      targetId = entry.returnTo;
+      reason = '传送门弹栈：飞回 [$targetId]';
+      final returnNode = entry.returnToFocusNode;
+      if (returnNode != null && returnNode.canRequestFocus) {
+        _lastActionSource = currentPos;
+        logBackIntent(targetId, reason);
+        onRoomEnter(entry.returnTo, printLog: false);
+        logPortalReturn(targetId, currentPos);
+        returnNode.requestFocus();
+        return;
+      }
+    } else if (room != null) {
+      if (BuildingMap.isRoot(room)) {
+        reason = '已到达根房间边界 [$room]';
+      } else {
+        targetId = BuildingMap.getParentRoom(room);
+        if (targetId != null) {
+          reason = '地图溯源：[$room] → [$targetId]';
+        } else {
+          reason = '已到达逻辑边界';
         }
       }
-      return KeyEventResult.handled;
+    } else {
+      reason = '当前房间未知';
     }
-    return KeyEventResult.ignored;
+
+    if (targetId != null) {
+      _lastActionSource = currentPos;
+      logBackIntent(targetId, reason);
+      intentionRoomId.value = targetId;
+
+      final entryNodeId =
+          room != null ? BuildingMap.getEntryNodeForRoom(targetId, room) : null;
+      final entryNodeInfo =
+          entryNodeId != null ? state.nodeRegistry[entryNodeId] : null;
+      if (entryNodeId != null &&
+          entryNodeInfo != null &&
+          entryNodeInfo.roomId == targetId &&
+          entryNodeInfo.node.canRequestFocus) {
+        _applyLanding(entryNodeId, entryNodeInfo, targetId, '(nav entry)');
+        return;
+      }
+
+      final doorNodeInfo = room != null ? state.nodeRegistry[room] : null;
+      if (doorNodeInfo != null &&
+          doorNodeInfo.roomId == targetId &&
+          doorNodeInfo.node.canRequestFocus) {
+        _applyLanding(room!, doorNodeInfo, targetId, '(门节点)');
+        return;
+      }
+
+      _executeSearch(targetId, allowUnpack: true);
+    } else {
+      logBackFail(reason);
+    }
   }
 
   // --- CPU 逻辑指令 (计算与跳转) ---
@@ -243,74 +349,8 @@ class SuperFocusManager with FocusTraceLogger {
     info.node.requestFocus();
   }
 
-  void onBack(BuildContext context) {
-    final String? focusedId = state.nodeRegistry.entries
-        .where((e) => e.value.node.hasPrimaryFocus)
-        .firstOrNull
-        ?.key;
-
-    final String? room = focusedId != null ? state.nodeRegistry[focusedId]?.roomId : currentRoomId;
-    final String currentPos = switch ((focusedId, room)) {
-      (String f, String r) => '[$r：$f]',
-      (null, String r) => '[$r]',
-      _ => '未知',
-    };
-
-    logBackStart(currentPos);
-    String? targetId;
-    String reason;
-
-    if (state.portalStack.isNotEmpty && state.portalStack.last.landedIn == room) {
-      final entry = state.portalStack.removeLast();
-      targetId = entry.returnTo;
-      reason = '传送门弹栈：飞回 [$targetId]';
-      final returnNode = entry.returnToFocusNode;
-      if (returnNode != null && returnNode.canRequestFocus) {
-        _lastActionSource = currentPos;
-        logBackIntent(targetId, reason);
-        onRoomEnter(entry.returnTo, printLog: false);
-        logPortalReturn(targetId, currentPos);
-        returnNode.requestFocus();
-        return;
-      }
-    } else if (room != null) {
-      if (BuildingMap.isRoot(room)) {
-        reason = '已到达根房间边界 [$room]';
-      } else {
-        targetId = BuildingMap.getParentRoom(room);
-        if (targetId != null) {
-          reason = '地图溯源：[$room] → [$targetId]';
-        } else {
-          reason = '已到达逻辑边界';
-        }
-      }
-    } else {
-      reason = '当前房间未知';
-    }
-
-    if (targetId != null) {
-      _lastActionSource = currentPos;
-      logBackIntent(targetId, reason);
-      intentionRoomId.value = targetId;
-
-      final entryNodeId = room != null ? BuildingMap.getEntryNodeForRoom(targetId, room) : null;
-      final entryNodeInfo = entryNodeId != null ? state.nodeRegistry[entryNodeId] : null;
-      if (entryNodeId != null && entryNodeInfo != null && entryNodeInfo.roomId == targetId && entryNodeInfo.node.canRequestFocus) {
-        _applyLanding(entryNodeId, entryNodeInfo, targetId, '(nav entry)');
-        return;
-      }
-
-      final doorNodeInfo = room != null ? state.nodeRegistry[room] : null;
-      if (doorNodeInfo != null && doorNodeInfo.roomId == targetId && doorNodeInfo.node.canRequestFocus) {
-        _applyLanding(room!, doorNodeInfo, targetId, '(门节点)');
-        return;
-      }
-
-      _executeSearch(targetId, allowUnpack: true);
-    } else {
-      logBackFail(reason);
-    }
-  }
+  /// 保留向后兼容，内部委托给 onBackCommand()
+  void onBack(BuildContext context) => onBackCommand();
 
   void onAction(String sourceRoom, String id) {
     _lastActionSource = '[$sourceRoom:$id]';

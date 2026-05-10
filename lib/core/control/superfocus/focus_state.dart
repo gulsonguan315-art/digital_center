@@ -23,7 +23,9 @@ class FocusTopology {
 class FocusNodeInfo {
   final FocusNode node;
   final String roomId;
-  FocusNodeInfo(this.node, this.roomId);
+  /// 节点对应的确认动作回调（由 DeviceManager 的 confirm 信号触发）
+  final VoidCallback? onPressed;
+  FocusNodeInfo(this.node, this.roomId, {this.onPressed});
 }
 
 /// 传送门回溯信息
