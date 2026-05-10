@@ -42,8 +42,12 @@ class BuildingPage extends StatelessWidget {
                           ),
                           body: Padding(
                             padding: EdgeInsets.symmetric(
-                              horizontal: context.units(StageMetrics.paddingHorizontalU),
-                              vertical: context.units(StageMetrics.paddingVerticalU),
+                              horizontal: context.units(
+                                StageMetrics.paddingHorizontalU,
+                              ),
+                              vertical: context.units(
+                                StageMetrics.paddingVerticalU,
+                              ),
                             ),
                             child: ValueListenableBuilder<String?>(
                               valueListenable:

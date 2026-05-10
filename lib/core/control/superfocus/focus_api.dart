@@ -3,14 +3,15 @@ library focus_api;
 import 'package:flutter/material.dart';
 import 'focus_manager.dart';
 import 'focus_widgets.dart';
-import 'focus_state.dart';
 
 // 1. 【暴露组件】
-export 'focus_widgets.dart' show SuperFocusRoom, FocusIdentity, FocusShape, FocusTopologyScope;
+export 'focus_widgets.dart'
+    show SuperFocusRoom, FocusIdentity, FocusShape, FocusTopologyScope;
 
 // 2. 【暴露模型】
 export 'focus_state.dart' show FocusTopology;
-export 'focus_geometry.dart' show FocusGeometry, RoundedRectFocusGeometry, SidebarTileFocusGeometry;
+export 'focus_geometry.dart'
+    show FocusGeometry, RoundedRectFocusGeometry, SidebarTileFocusGeometry;
 
 /// 3. 【暴露命令】UI 发号施令的唯一遥控器
 abstract class FocusAPI {

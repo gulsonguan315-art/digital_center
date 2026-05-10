@@ -36,12 +36,10 @@ class SuperFocusButton extends StatelessWidget {
               final colors = material.colors;
 
               // 检查是否有意图指向此 ID (用于显示加载状态)
-              final bool isWaiting = false;
-
               return AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
                 decoration: BoxDecoration(
-                  color: isWaiting ? colors.accent : colors.surface,
+                  color: colors.surface,
                   borderRadius: material.shape.radius,
                   boxShadow: material.visual.outerShadows,
                   border: Border.all(
@@ -57,10 +55,8 @@ class SuperFocusButton extends StatelessWidget {
                   child: Stack(
                     alignment: Alignment.center,
                     children: [
-                      Opacity(
-                        opacity: isWaiting ? 0.0 : 1.0,
-                        child: SurfaceText(
-                          label,
+                      SurfaceText(
+                        label,
                           style: TextStyle(
                             fontSize: 16,
                             color: hasFocus
@@ -71,11 +67,10 @@ class SuperFocusButton extends StatelessWidget {
                                 : FontWeight.normal,
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-              );
+                );
             },
           ),
         );

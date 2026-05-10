@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../ui/base/input/ui_base_switch.dart';
 import '../../../core/control/superfocus/focus_api.dart';
 import '../../../core/engine/theme/theme_api.dart';
-import 'setting_page_room.dart';
+import 'setting_page_callback.dart';
 
 class SettingPageView extends StatefulWidget {
   const SettingPageView({super.key});
@@ -12,8 +12,35 @@ class SettingPageView extends StatefulWidget {
 }
 
 class _SettingPageViewState extends State<SettingPageView> {
-  bool _notificationsEnabled = true;
-  String _currentTheme = 'night';
+  late String _currentTheme;
+  late String _currentVisual;
+  late String _currentShape;
+
+  @override
+  void initState() {
+    super.initState();
+    _syncState();
+    SettingPageCallback.addThemeListener(_onThemeChanged);
+  }
+
+  @override
+  void dispose() {
+    SettingPageCallback.removeThemeListener(_onThemeChanged);
+    super.dispose();
+  }
+
+  void _syncState() {
+    _currentTheme = SettingPageCallback.getCurrentThemeKey();
+    _currentVisual = SettingPageCallback.getCurrentVisualKey();
+    _currentShape = SettingPageCallback.getCurrentShapeKey();
+  }
+
+  void _onThemeChanged() {
+    if (!mounted) return;
+    setState(() {
+      _syncState();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -21,99 +48,163 @@ class _SettingPageViewState extends State<SettingPageView> {
       role: ThemeRole.card,
       child: Builder(
         builder: (context) {
-          final material = context.useTheme();
-
           return SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(vertical: 40),
+            padding: const EdgeInsets.symmetric(vertical: 60),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // 1. 图纸内成员：COLOR MODE (ID: color_mode)
-                SizedBox(
-                  width: 420,
-                  child: SuperFocusSelect<String>(
-                    id: 'color_mode',
-                    title: 'COLOR MODE',
-                    options: const [
-                      SelectOption(
-                        value: 'light',
-                        label: 'LIGHT MODE',
-                        id: 'light_mode',
-                      ),
-                      SelectOption(
-                        value: 'night',
-                        label: 'NIGHT MODE',
-                        id: 'night_mode',
-                      ),
-                    ],
-                    selectedValues: [_currentTheme],
-                    onToggle: (val) => setState(() => _currentTheme = val),
-                    roomBuilder: (child) => SuperFocusRoom(id: 'color_mode', child: child),
-                  ),
-                ),
+                // 【THEME SETTING】 入口节点 (属于 settingPage 房间)
+                FocusIdentity(
+                  id: 'theme_setting', // 对应图纸中的 /theme_setting 入口
+                  builder: (context, hasFocus) {
+                    final material = context.useTheme();
+                    final colors = material.colors;
 
-                const SizedBox(height: 32),
+                    // 内部才是 theme_setting 房间
+                    return SuperFocusRoom(
+                      id: 'theme_setting',
+                      child: Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          // 1. 底层大线框
+                          Container(
+                            width: 500,
+                            padding: const EdgeInsets.fromLTRB(32, 48, 32, 32),
+                            decoration: BoxDecoration(
+                              borderRadius: material.shape.radius,
+                              border: Border.all(
+                                color: colors.textPrimary.withValues(
+                                  alpha: hasFocus ? 0.2 : 0.05,
+                                ),
+                                width: 1,
+                              ),
+                            ),
+                            child: Column(
+                              children: [
+                                // 1. COLOR MODE
+                                SuperFocusSelect<String>(
+                                  id: 'color_mode',
+                                  title: 'COLOR MODE',
+                                  options: const [
+                                    SelectOption(
+                                      value: 'light',
+                                      label: 'LIGHT',
+                                      id: 'light_mode',
+                                    ),
+                                    SelectOption(
+                                      value: 'night',
+                                      label: 'NIGHT',
+                                      id: 'night_mode',
+                                    ),
+                                  ],
+                                  selectedValues: [_currentTheme],
+                                  onToggle: (val) =>
+                                      SettingPageCallback.onThemeModeChanged(
+                                        val,
+                                      ),
+                                  roomBuilder: (child) => SuperFocusRoom(
+                                    id: 'color_mode',
+                                    child: child,
+                                  ),
+                                ),
 
-                // 2. 装饰性内容 (图纸外)：PUSH NOTIFICATIONS
-                // 移除了 FocusIdentity，它现在只是一个好看的 UI 元素，无法获得焦点
-                SizedBox(
-                  width: 420,
-                  child: Container(
-                    padding: const EdgeInsets.all(24),
-                    decoration: BoxDecoration(
-                      color: material.colors.surface,
-                      borderRadius: material.shape.radius,
-                      boxShadow: material.visual.outerShadows,
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'PUSH NOTIFICATIONS',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: 2.0,
-                            color: material.colors.textPrimary.withValues(alpha: 0.4), // 调淡表示不可交互
+                                const SizedBox(height: 32),
+
+                                // 2. VISUAL MODE
+                                SuperFocusSelect<String>(
+                                  id: 'visual_mode',
+                                  title: 'VISUAL MODE',
+                                  options: const [
+                                    SelectOption(
+                                      value: 'flat',
+                                      label: 'FLAT',
+                                      id: 'flat',
+                                    ),
+                                    SelectOption(
+                                      value: 'glassy',
+                                      label: 'GLASSY',
+                                      id: 'glassy',
+                                    ),
+                                    SelectOption(
+                                      value: 'neumorphic',
+                                      label: 'NEUMORPHIC',
+                                      id: 'neumorphic',
+                                    ),
+                                  ],
+                                  selectedValues: [_currentVisual],
+                                  onToggle: (val) =>
+                                      SettingPageCallback.onVisualModeChanged(
+                                        val,
+                                      ),
+                                  roomBuilder: (child) => SuperFocusRoom(
+                                    id: 'visual_mode',
+                                    child: child,
+                                  ),
+                                ),
+
+                                const SizedBox(height: 32),
+
+                                // 3. SHAPE MODE
+                                SuperFocusSelect<String>(
+                                  id: 'shape_mode',
+                                  title: 'SHAPE MODE',
+                                  options: const [
+                                    SelectOption(
+                                      value: 'rightangle',
+                                      label: 'RIGHT',
+                                      id: 'rightangle',
+                                    ),
+                                    SelectOption(
+                                      value: 'round',
+                                      label: 'ROUND',
+                                      id: 'round',
+                                    ),
+                                    SelectOption(
+                                      value: 'soft',
+                                      label: 'SOFT',
+                                      id: 'soft',
+                                    ),
+                                  ],
+                                  selectedValues: [_currentShape],
+                                  onToggle: (val) =>
+                                      SettingPageCallback.onShapeModeChanged(
+                                        val,
+                                      ),
+                                  roomBuilder: (child) => SuperFocusRoom(
+                                    id: 'shape_mode',
+                                    child: child,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                        // 这是一个普通的视觉 Switch，没有物理焦点
-                        Switch(
-                          value: _notificationsEnabled,
-                          onChanged: (val) => setState(() => _notificationsEnabled = val),
-                          activeColor: material.colors.accent,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
 
-                const SizedBox(height: 32),
-
-                // 3. 装饰性卡片 (图纸外)：COMING SOON
-                // 彻底移除了 FocusIdentity，回归纯净图纸
-                SizedBox(
-                  width: 420,
-                  height: 120,
-                  child: Container(
-                    padding: const EdgeInsets.all(24),
-                    decoration: BoxDecoration(
-                      color: material.colors.surface,
-                      borderRadius: material.shape.radius,
-                      boxShadow: material.visual.outerShadows,
-                    ),
-                    child: const Center(
-                      child: Text(
-                        'COMING SOON...',
-                        style: TextStyle(
-                          color: Colors.white10,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 2.0,
-                        ),
+                          // 2. 嵌入在顶部的标题文字 (卡口效果)
+                          Positioned(
+                            top: -10,
+                            left: 32,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                              ),
+                              color: colors.surface,
+                              child: Text(
+                                'THEME SETTING',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: 2.0,
+                                  color: colors.textPrimary.withValues(
+                                    alpha: hasFocus ? 0.8 : 0.3,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                  ),
+                    );
+                  },
                 ),
               ],
             ),

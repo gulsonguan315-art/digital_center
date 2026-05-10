@@ -12,13 +12,13 @@ const _baseDefaultMenu = NeumorphPhysics(
   shadowOffsetY: -10.0,
   shadowAlpha: 0.6,
   shadowBlur: 10.0,
-  highlightOffsetX: 5.0,
+  highlightOffsetX: 10.0,
   highlightOffsetY: -5.0,
-  highlightAlpha: 1.0,
+  highlightAlpha: 0.2,
   highlightBlur: 5.0,
   // 描边参数 (只给 Base 层开启)
-  borderWidth: 0.0,
-  borderAlpha: 0.0,
+  borderWidth: 3.0,
+  borderAlpha: 0.2,
   borderBlur: 0.0,
 );
 

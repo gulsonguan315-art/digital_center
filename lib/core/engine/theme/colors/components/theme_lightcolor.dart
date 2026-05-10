@@ -13,9 +13,11 @@ const lightColorLayer = ThemeColorLayer(
     accent: Color(0xFF673AB7),
     textPrimary: Color(0xFFFFFFFF),
     textSecondary: Color(0xFF000000),
+    textActive: Color(0xFF673AB7), // 新增
+    textFocused: Color(0xFFFFFFFF), // 新增
   ),
   card: RoleColors(
-    surface: Color(0xFF2F4F4F),
+    surface: Color(0xFFD3D3D3),
     foreground: Color(0x33000000),
     foregroundActive: Color(0xFF673AB7),
     foregroundDisabled: Color(0x00000000),
@@ -23,8 +25,10 @@ const lightColorLayer = ThemeColorLayer(
     backgroundActive: Color(0x2E673AB7),
     border: Color(0xFFFFFFFF),
     accent: Color(0xFF673AB7),
-    textPrimary: Color(0x00000000),
+    textPrimary: Color(0xFF000000),
     textSecondary: Color(0x00000000),
+    textActive: Color(0xFF673AB7), // 新增
+    textFocused: Color(0xFF000000), // 新增
   ),
   appBackground: RoleColors(
     surface: Color(0xFFD3D3D3),
@@ -37,6 +41,8 @@ const lightColorLayer = ThemeColorLayer(
     accent: Color(0xFF673AB7),
     textPrimary: Color(0xFF000000),
     textSecondary: Color(0xFF000000),
+    textActive: Color(0xFF673AB7), // 新增
+    textFocused: Color(0xFF673AB7), // 新增
   ),
   button: RoleColors(
     surface: Color(0xFF2F4F4F),
@@ -49,5 +55,7 @@ const lightColorLayer = ThemeColorLayer(
     accent: Color(0xFF673AB7),
     textPrimary: Color(0xFF000000),
     textSecondary: Color(0xFF000000),
+    textActive: Color(0xFF673AB7), // 新增
+    textFocused: Color(0xFF673AB7), // 新增
   ),
 );

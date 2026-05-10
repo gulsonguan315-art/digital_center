@@ -16,6 +16,8 @@ class RoleColors {
     required this.accent,
     required this.textPrimary,
     required this.textSecondary,
+    required this.textActive,   // 新增
+    required this.textFocused,  // 新增
   });
 
   final Color surface;
@@ -28,6 +30,8 @@ class RoleColors {
   final Color accent;
   final Color textPrimary;
   final Color textSecondary;
+  final Color textActive;   // 新增
+  final Color textFocused;  // 新增
 }
 
 @immutable
@@ -102,6 +106,8 @@ class ThemeColorLayer extends ThemeExtension<ThemeColorLayer> {
       accent: Color.lerp(a.accent, b.accent, t)!,
       textPrimary: Color.lerp(a.textPrimary, b.textPrimary, t)!,
       textSecondary: Color.lerp(a.textSecondary, b.textSecondary, t)!,
+      textActive: Color.lerp(a.textActive, b.textActive, t)!,     // 新增
+      textFocused: Color.lerp(a.textFocused, b.textFocused, t)!,  // 新增
     );
   }
 }

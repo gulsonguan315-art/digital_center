@@ -7,7 +7,11 @@ class SelectOption<T> {
   final T value;
   final String label;
   final String id;
-  const SelectOption({required this.value, required this.label, required this.id});
+  const SelectOption({
+    required this.value,
+    required this.label,
+    required this.id,
+  });
 }
 
 /// 标准超焦点开关
@@ -61,8 +65,10 @@ class SuperFocusSwitch extends StatelessWidget {
                 : colors.surface,
             boxShadow: hasFocus || value ? chrome.outerShadows : null,
             border: Border.all(
-              color: hasFocus ? colors.accent : (chrome.borderColor ?? colors.border),
-              width: hasFocus ? 2.0 : chrome.borderWidth,
+              color: hasFocus
+                  ? colors.accent
+                  : (chrome.borderColor ?? colors.border),
+              width: chrome.borderWidth,
             ),
           ),
           child: AnimatedAlign(
@@ -90,9 +96,13 @@ class SuperFocusSwitch extends StatelessWidget {
               Text(
                 label!,
                 style: TextStyle(
-                  color: colors.textPrimary.withValues(alpha: _enabled ? 1.0 : 0.4),
+                  color: hasFocus
+                      ? colors.textFocused
+                      : colors.textPrimary.withValues(
+                          alpha: _enabled ? 1.0 : 0.4,
+                        ),
                   fontSize: 16,
-                  fontWeight: hasFocus ? FontWeight.bold : FontWeight.normal,
+                  fontWeight: FontWeight.normal,
                 ),
               ),
             ],
@@ -126,54 +136,85 @@ class _OptionItem<T> extends StatelessWidget {
         borderRadius: BorderRadius.all(Radius.circular(12)),
       ),
       builder: (context, hasFocus) {
-        final material = context.useTheme();
-        final colors = material.colors;
+        // 只有在聚焦状态下才进入 above 层
+        final activeLayer = hasFocus ? ThemeLayer.above : ThemeLayer.base;
 
-        return AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          decoration: BoxDecoration(
-            borderRadius: material.shape.radius,
-            color: hasFocus 
-                ? colors.textPrimary.withValues(alpha: 0.1) 
-                : Colors.transparent,
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 250),
-                width: 14,
-                height: 14,
+        return ThemeIdentity(
+          role: ThemeRole.card,
+          layer: activeLayer,
+          child: Builder(
+            builder: (context) {
+              final material = context.useTheme();
+              final colors = material.colors;
+              final visual = material.visual;
+
+              return Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 10,
+                ),
                 decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: isSelected ? colors.accent : colors.textPrimary.withValues(alpha: 0.3),
-                    width: 2,
-                  ),
+                  borderRadius: material.shape.radius,
+                  color: colors.surface, // 使用主题定义的 surface 颜色
                 ),
-                padding: const EdgeInsets.all(2),
-                child: AnimatedScale(
-                  scale: isSelected ? 1.0 : 0.0,
-                  duration: const Duration(milliseconds: 200),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: colors.accent,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // 状态指示圆圈
+                    AnimatedContainer(
+                      duration: const Duration(milliseconds: 250),
+                      width: 14,
+                      height: 14,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: isSelected ? colors.accent : colors.surface,
+                        // 只有在 above 层时（即聚焦时）才显示悬浮阴影
+                        boxShadow: hasFocus ? visual.outerShadows : null,
+                        border: Border.all(
+                          color: isSelected
+                              ? colors.accent
+                              : colors.textPrimary.withValues(alpha: 0.1),
+                          width: 2,
+                        ),
+                      ),
                     ),
-                  ),
+                    const SizedBox(width: 12),
+                    // 文字
+                    AnimatedScale(
+                      scale: hasFocus ? 1.05 : 1.0,
+                      duration: const Duration(milliseconds: 200),
+                      curve: Curves.easeOutCubic,
+                      child: Text(
+                        label,
+                        style: TextStyle(
+                          fontSize: 15,
+                          color: isSelected
+                              ? colors.textActive
+                              : (hasFocus
+                                    ? colors.textFocused
+                                    : colors.textPrimary.withValues(
+                                        alpha: 0.6,
+                                      )),
+                          fontWeight: FontWeight.w900,
+                          // 文字阴影也只在聚焦时出现
+                          shadows: hasFocus
+                              ? visual.outerShadows
+                                    .map(
+                                      (s) => Shadow(
+                                        color: s.color,
+                                        offset: s.offset,
+                                        blurRadius: s.blurRadius,
+                                      ),
+                                    )
+                                    .toList()
+                              : null,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-              const SizedBox(width: 12),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 15,
-                  color: isSelected ? colors.textPrimary : colors.textPrimary.withValues(alpha: 0.6),
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                ),
-              ),
-            ],
+              );
+            },
           ),
         );
       },
@@ -213,9 +254,7 @@ class SuperFocusSelect<T> extends StatelessWidget {
           child: Builder(
             builder: (context) {
               final material = context.useTheme();
-              return roomBuilder(
-                _buildCardFrame(context, isFocused, material),
-              );
+              return roomBuilder(_buildCardFrame(context, isFocused, material));
             },
           ),
         );
@@ -223,7 +262,11 @@ class SuperFocusSelect<T> extends StatelessWidget {
     );
   }
 
-  Widget _buildCardFrame(BuildContext context, bool isFocused, ResolvedThemeMaterial material) {
+  Widget _buildCardFrame(
+    BuildContext context,
+    bool isFocused,
+    ResolvedThemeMaterial material,
+  ) {
     final colors = material.colors;
     final chrome = material.visual;
 
