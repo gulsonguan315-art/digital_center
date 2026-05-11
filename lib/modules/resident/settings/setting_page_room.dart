@@ -2,20 +2,14 @@ import 'package:flutter/material.dart';
 import '../../../core/control/superfocus/focus_widgets.dart';
 import '../../../core/control/superfocus/building_map.dart';
 import 'setting_page_view.dart';
+import 'setting_page_model.dart';
 
 /// 设置页主房间
 class SettingPageRoom extends StatelessWidget {
   final Widget? child;
   const SettingPageRoom({super.key, this.child});
 
-  static const String roomId = 'settingPage';
-
-  // 补回丢失的测试按钮 ID
-  static const String testId = 'test';
-  static const String systemThemeSwitchId = 'settingSystemTheme';
-  static const String darkModeSwitchId = 'settingDarkMode';
-  static const String visualStyleId = 'settingVisualStyle';
-  static const String shapeStyleId = 'settingShapeStyle';
+  static const String roomId = SettingPageModel.settingPageId;
 
   @override
   Widget build(BuildContext context) {
@@ -24,12 +18,25 @@ class SettingPageRoom extends StatelessWidget {
   }
 }
 
+/// 主题设置区域房间 (Room/Zone)
+class ThemeSettingRoom extends StatelessWidget {
+  final Widget child;
+  const ThemeSettingRoom({super.key, required this.child});
+
+  static const String roomId = SettingPageModel.themeGroupId;
+
+  @override
+  Widget build(BuildContext context) {
+    return SuperFocusRoom(id: roomId, child: child);
+  }
+}
+
 /// 颜色模式房间 (Room/Zone)
 class ThemeColorRoom extends StatelessWidget {
   final Widget child;
   const ThemeColorRoom({super.key, required this.child});
 
-  static const String roomId = 'themeColor';
+  static const String roomId = SettingPageModel.colorSelectId;
   static List<String> get memberIds => BuildingMap.getMembers(roomId);
 
   @override
@@ -43,7 +50,7 @@ class ThemeVisualRoom extends StatelessWidget {
   final Widget child;
   const ThemeVisualRoom({super.key, required this.child});
 
-  static const String roomId = 'themeVisual';
+  static const String roomId = SettingPageModel.visualSelectId;
   static List<String> get memberIds => BuildingMap.getMembers(roomId);
 
   @override
@@ -56,7 +63,7 @@ class ThemeShapeRoom extends StatelessWidget {
   final Widget child;
   const ThemeShapeRoom({super.key, required this.child});
 
-  static const String roomId = 'themeShape';
+  static const String roomId = SettingPageModel.shapeSelectId;
   static List<String> get memberIds => BuildingMap.getMembers(roomId);
 
   @override
