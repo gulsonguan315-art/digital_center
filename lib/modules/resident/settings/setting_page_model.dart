@@ -50,7 +50,7 @@ class SettingPageModel {
       id: flatId,
     ),
     SelectOption(
-      value: 'glassy',
+      value: 'glass',
       label: 'GLASSY',
       id: glassyId,
     ),
@@ -63,7 +63,7 @@ class SettingPageModel {
 
   static const List<SelectOption<String>> shapeOptions = [
     SelectOption(
-      value: 'rightangle',
+      value: 'rightAngle',
       label: 'RIGHT',
       id: rightangleId,
     ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/engine/theme/theme_api.dart';
 import '../../../core/control/superfocus/focus_widgets.dart';
 import '../../../ui/base/input/ui_base_switch.dart';
 import 'setting_page_model.dart';
@@ -19,7 +20,9 @@ class SettingPageRoom extends StatelessWidget {
       id: roomId,
       // 如果没有传入外部 child，则组装默认的 View
       child: child ?? const SettingPageView(
-        themeSettingSlot: ThemeSettingRoom(),
+        slots: {
+          'theme_setting': ThemeSettingRoom(),
+        },
       ),
     );
   }
@@ -32,43 +35,48 @@ class ThemeSettingRoom extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 1. 定义该区域的根焦点
-    return FocusIdentity(
-      id: SettingPageModel.themeGroupId,
-      builder: (context, hasFocus) {
-        // 2. 召唤 View 并注入拼好的插槽
-        return SuperFocusRoom(
+    // ✅ 关键：让包工头监听状态变化，一旦状态变了，立即重新缝合插槽并下发
+    return ListenableBuilder(
+      listenable: ThemeProvider.instance,
+      builder: (context, _) {
+        return FocusIdentity(
           id: SettingPageModel.themeGroupId,
-          child: ThemeSettingView(
-            slots: {
-              // 颜色模式插槽
-              SettingPageModel.colorSelectId: _buildSelectNode(
-                id: SettingPageModel.colorSelectId,
-                title: SettingPageModel.colorSelectTitle,
-                options: SettingPageModel.colorOptions,
-                selectedValue: SettingPageCallback.getCurrentThemeKey(),
-                onToggle: SettingPageCallback.onThemeModeChanged,
-              ),
+          builder: (context, hasFocus) {
+            // 2. 召唤 View 并注入拼好的插槽
+            return SuperFocusRoom(
+              id: SettingPageModel.themeGroupId,
+              child: ThemeSettingView(
+                slots: {
+                  // 颜色模式插槽
+                  SettingPageModel.colorSelectId: _buildSelectNode(
+                    id: SettingPageModel.colorSelectId,
+                    title: SettingPageModel.colorSelectTitle,
+                    options: SettingPageModel.colorOptions,
+                    selectedValue: SettingPageCallback.getCurrentThemeKey(),
+                    onToggle: SettingPageCallback.onThemeModeChanged,
+                  ),
 
-              // 视觉风格插槽
-              SettingPageModel.visualSelectId: _buildSelectNode(
-                id: SettingPageModel.visualSelectId,
-                title: SettingPageModel.visualSelectTitle,
-                options: SettingPageModel.visualOptions,
-                selectedValue: SettingPageCallback.getCurrentVisualKey(),
-                onToggle: SettingPageCallback.onVisualModeChanged,
-              ),
+                  // 视觉风格插槽
+                  SettingPageModel.visualSelectId: _buildSelectNode(
+                    id: SettingPageModel.visualSelectId,
+                    title: SettingPageModel.visualSelectTitle,
+                    options: SettingPageModel.visualOptions,
+                    selectedValue: SettingPageCallback.getCurrentVisualKey(),
+                    onToggle: SettingPageCallback.onVisualModeChanged,
+                  ),
 
-              // 形状风格插槽
-              SettingPageModel.shapeSelectId: _buildSelectNode(
-                id: SettingPageModel.shapeSelectId,
-                title: SettingPageModel.shapeSelectTitle,
-                options: SettingPageModel.shapeOptions,
-                selectedValue: SettingPageCallback.getCurrentShapeKey(),
-                onToggle: SettingPageCallback.onShapeModeChanged,
+                  // 形状风格插槽
+                  SettingPageModel.shapeSelectId: _buildSelectNode(
+                    id: SettingPageModel.shapeSelectId,
+                    title: SettingPageModel.shapeSelectTitle,
+                    options: SettingPageModel.shapeOptions,
+                    selectedValue: SettingPageCallback.getCurrentShapeKey(),
+                    onToggle: SettingPageCallback.onShapeModeChanged,
+                  ),
+                },
               ),
-            },
-          ),
+            );
+          },
         );
       },
     );
