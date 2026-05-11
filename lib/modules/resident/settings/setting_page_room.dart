@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import '../../../core/control/superfocus/focus_widgets.dart';
-import '../../../core/control/superfocus/building_map.dart';
-import 'setting_page_view.dart';
+import '../../../ui/base/input/ui_base_switch.dart';
 import 'setting_page_model.dart';
+import 'setting_page_callback.dart';
+import 'setting_page_view.dart';
+import 'views_components/theme_setting_view.dart';
 
-/// 设置页主房间
+/// 设置页主入口房间 (总承包商)
 class SettingPageRoom extends StatelessWidget {
   final Widget? child;
   const SettingPageRoom({super.key, this.child});
@@ -13,61 +15,84 @@ class SettingPageRoom extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 如果没有传入 child，默认展示 SettingPageView
-    return SuperFocusRoom(id: roomId, child: child ?? const SettingPageView());
+    return SuperFocusRoom(
+      id: roomId,
+      // 如果没有传入外部 child，则组装默认的 View
+      child: child ?? const SettingPageView(
+        themeSettingSlot: ThemeSettingRoom(),
+      ),
+    );
   }
 }
 
-/// 主题设置区域房间 (Room/Zone)
+/// 主题设置装配房间 (二级包工头)
+/// 负责将数据 (Model) 与动作 (Callback) 缝合成具体的 Widget，并注入给 View。
 class ThemeSettingRoom extends StatelessWidget {
-  final Widget child;
-  const ThemeSettingRoom({super.key, required this.child});
-
-  static const String roomId = SettingPageModel.themeGroupId;
+  const ThemeSettingRoom({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return SuperFocusRoom(id: roomId, child: child);
+    // 1. 定义该区域的根焦点
+    return FocusIdentity(
+      id: SettingPageModel.themeGroupId,
+      builder: (context, hasFocus) {
+        // 2. 召唤 View 并注入拼好的插槽
+        return SuperFocusRoom(
+          id: SettingPageModel.themeGroupId,
+          child: ThemeSettingView(
+            slots: {
+              // 颜色模式插槽
+              SettingPageModel.colorSelectId: _buildSelectNode(
+                id: SettingPageModel.colorSelectId,
+                title: SettingPageModel.colorSelectTitle,
+                options: SettingPageModel.colorOptions,
+                selectedValue: SettingPageCallback.getCurrentThemeKey(),
+                onToggle: SettingPageCallback.onThemeModeChanged,
+              ),
+
+              // 视觉风格插槽
+              SettingPageModel.visualSelectId: _buildSelectNode(
+                id: SettingPageModel.visualSelectId,
+                title: SettingPageModel.visualSelectTitle,
+                options: SettingPageModel.visualOptions,
+                selectedValue: SettingPageCallback.getCurrentVisualKey(),
+                onToggle: SettingPageCallback.onVisualModeChanged,
+              ),
+
+              // 形状风格插槽
+              SettingPageModel.shapeSelectId: _buildSelectNode(
+                id: SettingPageModel.shapeSelectId,
+                title: SettingPageModel.shapeSelectTitle,
+                options: SettingPageModel.shapeOptions,
+                selectedValue: SettingPageCallback.getCurrentShapeKey(),
+                onToggle: SettingPageCallback.onShapeModeChanged,
+              ),
+            },
+          ),
+        );
+      },
+    );
   }
-}
 
-/// 颜色模式房间 (Room/Zone)
-class ThemeColorRoom extends StatelessWidget {
-  final Widget child;
-  const ThemeColorRoom({super.key, required this.child});
-
-  static const String roomId = SettingPageModel.colorSelectId;
-  static List<String> get memberIds => BuildingMap.getMembers(roomId);
-
-  @override
-  Widget build(BuildContext context) {
-    return SuperFocusRoom(id: roomId, child: child);
-  }
-}
-
-/// 视觉风格房间 (Room/Zone)
-class ThemeVisualRoom extends StatelessWidget {
-  final Widget child;
-  const ThemeVisualRoom({super.key, required this.child});
-
-  static const String roomId = SettingPageModel.visualSelectId;
-  static List<String> get memberIds => BuildingMap.getMembers(roomId);
-
-  @override
-  Widget build(BuildContext context) {
-    return SuperFocusRoom(id: roomId, child: child);
-  }
-}
-
-class ThemeShapeRoom extends StatelessWidget {
-  final Widget child;
-  const ThemeShapeRoom({super.key, required this.child});
-
-  static const String roomId = SettingPageModel.shapeSelectId;
-  static List<String> get memberIds => BuildingMap.getMembers(roomId);
-
-  @override
-  Widget build(BuildContext context) {
-    return SuperFocusRoom(id: roomId, child: child);
+  /// 核心装配逻辑：将一个普通的选择器包装成带 Room 的焦点节点
+  Widget _buildSelectNode({
+    required String id,
+    required String title,
+    required List<SelectOption<String>> options,
+    required String selectedValue,
+    required ValueChanged<String> onToggle,
+  }) {
+    return SuperFocusSelect<String>(
+      id: id,
+      title: title,
+      options: options,
+      selectedValues: [selectedValue],
+      onToggle: onToggle,
+      // 在这里统一处理 Sub-Room 逻辑
+      roomBuilder: (child) => SuperFocusRoom(
+        id: id,
+        child: child,
+      ),
+    );
   }
 }
