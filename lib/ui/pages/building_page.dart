@@ -4,7 +4,9 @@ import '../../core/control/superfocus/focus_manager.dart';
 import '../../core/engine/theme/theme_api.dart';
 import '../../modules/resident/settings/setting_page.dart';
 import '../../modules/resident/dashboard/dashboard_page.dart';
+import '../../modules/resident/test/test_page.dart';
 import '../../modules/resident/sidebar/sidebar_view.dart';
+import '../../modules/resident/sidebar/sidebar_room.dart';
 import '../../core/layout/stage_metrics.dart';
 import '../../core/layout/grid/grid_extensions.dart';
 
@@ -31,7 +33,7 @@ class BuildingPage extends StatelessWidget {
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      const SidebarView(),
+                      const SidebarRoom(),
                       Expanded(
                         child: Scaffold(
                           backgroundColor: Colors.transparent,
@@ -84,9 +86,16 @@ class _MainContent extends StatelessWidget {
     final showDashboard =
         context.useIsActive(DashboardRoom.roomId) ||
         intentionId == DashboardRoom.roomId;
+    final showTestPage =
+        context.useIsActive(TestPageRoom.roomId) ||
+        intentionId == TestPageRoom.roomId;
 
     if (showSettings) {
       return const SettingPageRoom();
+    }
+
+    if (showTestPage) {
+      return const TestPageRoom();
     }
 
     if (showDashboard) {

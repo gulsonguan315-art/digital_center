@@ -30,10 +30,14 @@ class BuildingMap {
       '*dashboard=>dashboardPage',
       '+media',
       '+music',
+      '+book',
       '*setting=>settingPage',
       '*exit',
     ],
+
     'media': ['*mov', '*tv', '*ani', '*doc', '*adt'],
+    'music': ['*宫', '*商', '*角', '*徵', '*羽'],
+    'book': ['*科幻', '*人文=>testPage'],
 
     'dashboardPage': [
       '*dash_weather',
@@ -52,7 +56,7 @@ class BuildingMap {
     'visual_mode': ['*flat', '*glassy', '*neumorphic'],
     'shape_mode': ['*rightangle', '*round', '*soft'],
 
-    'music': ['*宫', '*商', '*角', '*徵', '*羽'],
+    'testPage': ['*card1'],
 
     '公共区域': ['/空中花园'],
     '空中花园': ['*秋千', '*花盆'],

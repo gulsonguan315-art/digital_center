@@ -1,34 +1,152 @@
 import 'package:flutter/material.dart';
 import '../../../core/control/superfocus/focus_api.dart';
+import '../../../core/control/superfocus/focus_manager.dart';
+import '../../../core/control/superfocus/building_map.dart';
+import 'sidebar_model.dart';
+import 'sidebar_view.dart';
+import 'sidebar_tile.dart';
+import 'sidebar_callback.dart';
 
-class SidebarRoom extends StatelessWidget {
-  const SidebarRoom({super.key, required this.child});
+/// 侧边栏装配房间 (总包工头)
+class SidebarRoom extends StatefulWidget {
+  final Widget? child;
+  const SidebarRoom({super.key, this.child});
 
-  final Widget child;
+  @override
+  State<SidebarRoom> createState() => _SidebarRoomState();
+}
 
-  static const String roomId = 'sidebar';
-  static const String dashboardId = 'dashboard';
-  static const String mediaId = 'media';
-  static const String musicId = 'music';
-  static const String settingId = 'setting';
-  static const String exitId = 'exit';
-
-  // Media 区域子项
-  static const String movId = 'mov';
-  static const String tvId = 'tv';
-  static const String aniId = 'ani';
-  static const String docId = 'doc';
-  static const String adtId = 'adt';
-
-  // Book 区域子项
-  static const String gongId = '宫';
-  static const String shangId = '商';
-  static const String jiaoId = '角';
-  static const String zhiId = '徵';
-  static const String yuId = '羽';
+class _SidebarRoomState extends State<SidebarRoom> {
+  String? _expandedZoneId;
 
   @override
   Widget build(BuildContext context) {
-    return SuperFocusRoom(id: roomId, child: child);
+    return SuperFocusRoom(
+      id: SidebarModel.sidebarRoomId,
+      child: ValueListenableBuilder<FocusTopology>(
+        valueListenable: SuperFocusManager.instance.topologyNotifier,
+        builder: (context, topology, _) {
+          return FocusTopologyScope(
+            topology: topology,
+            child: Builder(
+              builder: (context) {
+                final activeId = _findActiveLeafId(context, SidebarModel.menuItems);
+                
+                final effectiveActiveId = activeId ?? 
+                    (_isItemActive(context, SidebarModel.exitId) ? SidebarModel.exitId : null);
+                
+                final String autofocusId = effectiveActiveId ?? SidebarModel.dashboardId;
+
+                return widget.child ?? SidebarView(
+                  activeId: effectiveActiveId,
+                  expandedZoneId: _expandedZoneId,
+                  slots: _buildTiles(context, autofocusId),
+                  zoneWrappers: _buildZoneWrappers(),
+                  exitSlot: _buildExitTile(context, autofocusId),
+                );
+              }
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  /// ✅ 增强型激活判断：支持全域穿透 (扫描所有侧边栏相关房间)
+  bool _isItemActive(BuildContext context, String id) {
+    if (context.useIsActive(id)) return true;
+
+    // 1. 确定需要扫描的候选房间列表 (主侧边栏 + 所有 Zone)
+    final List<String> candidateRooms = [
+      SidebarModel.sidebarRoomId,
+      ...SidebarModel.menuItems
+          .where((m) => m.children != null && m.children!.isNotEmpty)
+          .map((m) => m.id),
+    ];
+
+    // 2. 在这些房间中寻找该 ID 的跳转目标
+    for (final roomId in candidateRooms) {
+      final String? targetRoom = BuildingMap.resolveNavTarget(roomId, id) ??
+                               BuildingMap.resolvePortalDestination(roomId, id) ??
+                               BuildingMap.resolveRoomEntry(roomId, id);
+      
+      // 3. 如果找到了目标，且目标处于激活路径，则判定该 ID 激活
+      if (targetRoom != null && context.useIsActive(targetRoom)) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  String? _findActiveLeafId(BuildContext context, List<SidebarItemModel> items) {
+    for (final item in items) {
+      if (_isItemActive(context, item.id)) {
+        if (item.children != null && item.children!.isNotEmpty) {
+          final leafId = _findActiveLeafId(context, item.children!);
+          if (leafId != null) return leafId;
+          return null; 
+        } else {
+          return item.id;
+        }
+      }
+    }
+    return null;
+  }
+
+  Map<String, Widget Function(Widget child)> _buildZoneWrappers() {
+    final Map<String, Widget Function(Widget child)> wrappers = {};
+    for (final item in SidebarModel.menuItems) {
+      if (item.children != null && item.children!.isNotEmpty) {
+        wrappers[item.id] = (Widget child) => SuperFocusRoom(
+          id: item.id,
+          child: child,
+        );
+      }
+    }
+    return wrappers;
+  }
+
+  Map<String, Widget> _buildTiles(BuildContext context, String autofocusId) {
+    final Map<String, Widget> slots = {};
+    void collect(List<SidebarItemModel> items) {
+      for (final item in items) {
+        slots[item.id] = _buildSingleTile(context, item, autofocusId);
+        if (item.children != null) collect(item.children!);
+      }
+    }
+    collect(SidebarModel.menuItems);
+    return slots;
+  }
+
+  Widget _buildSingleTile(BuildContext context, SidebarItemModel item, String autofocusId) {
+    final hasChildren = item.children != null && item.children!.isNotEmpty;
+    return SidebarTile(
+      id: item.id,
+      label: item.label,
+      icon: item.icon,
+      isActive: _isItemActive(context, item.id),
+      autofocus: autofocusId == item.id,
+      onTap: () {
+        if (hasChildren) {
+          setState(() {
+            _expandedZoneId = (_expandedZoneId == item.id) ? null : item.id;
+          });
+        } else {
+          SidebarCallback.onNavigate(item.id);
+        }
+      },
+    );
+  }
+
+  Widget _buildExitTile(BuildContext context, String autofocusId) {
+    return SidebarTile(
+      id: SidebarModel.exitId,
+      label: SidebarModel.exitItem.label,
+      icon: SidebarModel.exitItem.icon,
+      isActive: _isItemActive(context, SidebarModel.exitId),
+      autofocus: autofocusId == SidebarModel.exitId,
+      onTap: () => SidebarCallback.onExit(),
+    );
   }
 }

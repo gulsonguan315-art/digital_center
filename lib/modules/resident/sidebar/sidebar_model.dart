@@ -1,0 +1,85 @@
+import 'package:flutter/material.dart';
+
+/// 侧边栏菜单项配置模型
+class SidebarItemModel {
+  final String id;
+  final String label;
+  final IconData icon;
+  final List<SidebarItemModel>? children;
+  final bool isZone;
+
+  const SidebarItemModel({
+    required this.id,
+    required this.label,
+    required this.icon,
+    this.children,
+    this.isZone = false,
+  });
+}
+
+/// 侧边栏数据模型：中央 IDs 与 菜单静态配置
+class SidebarModel {
+  static const String sidebarRoomId = 'sidebar';
+  
+  static const String dashboardId = 'dashboard';
+  static const String mediaId = 'media';
+  static const String musicId = 'music';
+  static const String bookId = 'book';
+  static const String settingId = 'setting';
+  static const String exitId = 'exit';
+
+  static const List<SidebarItemModel> menuItems = [
+    SidebarItemModel(
+      id: dashboardId,
+      label: 'DashBoard',
+      icon: Icons.dashboard_rounded,
+    ),
+    SidebarItemModel(
+      id: mediaId,
+      label: 'media',
+      icon: Icons.play_circle_outline_rounded,
+      isZone: true,
+      children: [
+        SidebarItemModel(id: 'mov', label: 'movie', icon: Icons.movie_filter_rounded),
+        SidebarItemModel(id: 'tv', label: 'tvShow', icon: Icons.tv_rounded),
+        SidebarItemModel(id: 'ani', label: 'Anime', icon: Icons.animation_rounded),
+        SidebarItemModel(id: 'doc', label: 'Documentary', icon: Icons.description_rounded),
+        SidebarItemModel(id: 'adt', label: 'Adult', icon: Icons.explicit_rounded),
+      ],
+    ),
+    SidebarItemModel(
+      id: musicId,
+      label: 'music',
+      icon: Icons.auto_stories_rounded,
+      isZone: true,
+      children: [
+        SidebarItemModel(id: '宫', label: '宫', icon: Icons.bookmark_rounded),
+        SidebarItemModel(id: '商', label: '商', icon: Icons.bookmark_rounded),
+        SidebarItemModel(id: '角', label: '角', icon: Icons.bookmark_rounded),
+        SidebarItemModel(id: '徵', label: '徵', icon: Icons.bookmark_rounded),
+        SidebarItemModel(id: '羽', label: '羽', icon: Icons.bookmark_rounded),
+      ],
+    ),
+    SidebarItemModel(
+      id: bookId,
+      label: 'book',
+      icon: Icons.menu_book_rounded,
+      isZone: true,
+      children: [
+        SidebarItemModel(id: '科幻', label: 'Science Fiction', icon: Icons.rocket_launch_rounded),
+        SidebarItemModel(id: '人文', label: 'Humanities', icon: Icons.account_balance_rounded),
+      ],
+    ),
+    SidebarItemModel(
+      id: settingId,
+      label: 'setting',
+      icon: Icons.settings_rounded,
+    ),
+  ];
+
+  static const SidebarItemModel exitItem = SidebarItemModel(
+    id: exitId,
+    label: 'exit',
+    icon: Icons.power_settings_new_rounded,
+  );
+}

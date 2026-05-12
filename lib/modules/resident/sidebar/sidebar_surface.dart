@@ -2,46 +2,39 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../../../core/engine/theme/theme_api.dart';
 import '../../../core/layout/grid/grid_extensions.dart';
+import '../../../core/control/superfocus/focus_api.dart'; // 这里引用是合理的，因为它是 UI 装饰逻辑
 import 'sidebar_metrics.dart';
 
 class SidebarSurface extends StatelessWidget {
   const SidebarSurface({
     super.key,
     required this.child,
-    this.notchPath,
+    this.activeRect, // 接收当前激活项的矩形区域
     this.radius,
     this.width,
     this.roundLeft = true,
   });
 
   final Widget child;
-  final Path? notchPath;
+  final Rect? activeRect;
   final double? radius;
   final double? width;
   final bool roundLeft;
 
   @override
   Widget build(BuildContext context) {
-    // 1. 进饭店（核验身份）
     final material = context.useTheme();
-
-    // 2. 定形状参数
     final double effectiveWidth = width ?? context.units(SidebarMetrics.widthU);
-    final double effectiveRadius =
-        radius ?? context.units(SidebarMetrics.surfaceRadiusU);
+    final double effectiveRadius = radius ?? context.units(SidebarMetrics.surfaceRadiusU);
 
-    // 3. 呼叫“自动上菜机”：
-    // 把身份证（material）和盘子图纸（pathBuilder）交出去。
-    // 这里不再有任何绘图代码，全部由 ThemePainter 在底层搞定。
     return ThemePainter(
       material: material,
-      pathBuilder: (size) => _buildPath(size, effectiveWidth, effectiveRadius),
+      pathBuilder: (size) => _buildPath(context, size, effectiveWidth, effectiveRadius),
       child: child,
     );
   }
 
-  /// 形状构建逻辑（组件的本分）
-  Path _buildPath(Size size, double width, double radius) {
+  Path _buildPath(BuildContext context, Size size, double width, double radius) {
     if (size.height <= 0 || size.width <= 0) return Path();
     final drawWidth = (width == size.width) ? width : size.width;
     final safeRadius = radius.clamp(0.0, size.height / 2.0);
@@ -60,7 +53,16 @@ class SidebarSurface extends StatelessWidget {
         ),
       );
 
+    if (activeRect == null) return platePath;
+
+    // 在内部处理 Notch 的几何计算
+    final notchPath = SidebarTileFocusGeometry(
+      borderRadius: BorderRadius.circular(context.units(SidebarMetrics.tileRadiusU)),
+      openRightness: 1.0,
+      concaveRadius: context.units(SidebarMetrics.surfaceRadiusU),
+    ).buildCutoutPath(activeRect!);
+
     if (notchPath == null) return platePath;
-    return Path.combine(PathOperation.difference, platePath, notchPath!);
+    return Path.combine(PathOperation.difference, platePath, notchPath);
   }
 }
