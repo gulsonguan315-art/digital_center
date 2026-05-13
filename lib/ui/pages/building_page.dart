@@ -1,15 +1,13 @@
 import 'package:flutter/material.dart';
-import '../../core/control/superfocus/focus_api.dart';
-import '../../core/control/superfocus/focus_manager.dart';
 import '../../core/engine/theme/theme_api.dart';
-import '../../modules/resident/settings/setting_page.dart';
-import '../../modules/resident/dashboard/dashboard_page.dart';
-import '../../modules/resident/test/test_page.dart';
-import '../../modules/resident/sidebar/sidebar_view.dart';
 import '../../modules/resident/sidebar/sidebar_room.dart';
-import '../../core/layout/stage_metrics.dart';
-import '../../core/layout/grid/grid_extensions.dart';
+import '../../core/stage/stage_view.dart';
 
+/// 沉浸式大屏架构：“商管”调度系统 (Stage Manager)
+/// 职责：
+/// 1. 作为应用的顶级容器，提供背景和基础布局。
+/// 2. 组装侧边栏 (Sidebar) 和舞台 (Stage)。
+/// 3. ✅ 保持静态：它不再监听信号，信号由内部组件自行处理。
 class BuildingPage extends StatelessWidget {
   const BuildingPage({super.key});
 
@@ -21,87 +19,23 @@ class BuildingPage extends StatelessWidget {
         builder: (context) {
           final material = context.useTheme();
 
-          // 使用 ValueListenableBuilder 建立全局监听
-          // 这种方式不需要在 BuildingMap 里增加任何新的 Room 节点
-          return ValueListenableBuilder<FocusTopology>(
-            valueListenable: SuperFocusManager.instance.topologyNotifier,
-            builder: (context, topology, _) {
-              return FocusTopologyScope(
-                topology: topology,
-                child: Container(
-                  color: material.colors.surface,
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      const SidebarRoom(),
-                      Expanded(
-                        child: Scaffold(
-                          backgroundColor: Colors.transparent,
-                          appBar: AppBar(
-                            title: null,
-                            backgroundColor: Colors.transparent,
-                            elevation: 0,
-                          ),
-                          body: Padding(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: context.units(
-                                StageMetrics.paddingHorizontalU,
-                              ),
-                              vertical: context.units(
-                                StageMetrics.paddingVerticalU,
-                              ),
-                            ),
-                            child: ValueListenableBuilder<String?>(
-                              valueListenable:
-                                  SuperFocusManager.instance.intentionRoomId,
-                              builder: (context, intentionId, __) =>
-                                  _MainContent(intentionId: intentionId),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+          return Container(
+            color: material.colors.surface,
+            child: const Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // 侧边栏：内部自带 Room 和监听
+                SidebarRoom(),
+                
+                // 舞台区：由商管系统 (StageView) 内部自动调度
+                Expanded(
+                  child: StageView(),
                 ),
-              );
-            },
+              ],
+            ),
           );
         },
       ),
     );
-  }
-}
-
-class _MainContent extends StatelessWidget {
-  const _MainContent({required this.intentionId});
-
-  final String? intentionId;
-
-  @override
-  Widget build(BuildContext context) {
-    // 信号链路现在是通的
-    final showSettings =
-        context.useIsActive(SettingPageRoom.roomId) ||
-        intentionId == SettingPageRoom.roomId;
-    final showDashboard =
-        context.useIsActive(DashboardRoom.roomId) ||
-        intentionId == DashboardRoom.roomId;
-    final showTestPage =
-        context.useIsActive(TestPageRoom.roomId) ||
-        intentionId == TestPageRoom.roomId;
-
-    if (showSettings) {
-      return const SettingPageRoom();
-    }
-
-    if (showTestPage) {
-      return const TestPageRoom();
-    }
-
-    if (showDashboard) {
-      return const DashboardRoom();
-    }
-
-    return const DashboardRoom();
   }
 }

@@ -275,6 +275,7 @@ class SuperFocusManager with FocusTraceLogger {
       final newPath = <String>{};
       _fillAncestorPath(roomId, newPath);
 
+      print('📡 FocusSystem: 正在更新拓扑电报 -> 激活点: $roomId, 路径: $newPath');
       state.topologyNotifier.value = FocusTopology(
         activeRoom: roomId,
         activePath: newPath,

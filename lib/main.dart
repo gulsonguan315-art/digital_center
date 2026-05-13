@@ -10,10 +10,16 @@ import 'core/engine/theme/theme_factory.dart';
 import 'ui/visual/cursor/floating_cursor.dart';
 import 'ui/pages/building_page.dart';
 
+import 'core/stage/stage_initializer.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('zh_CN', null);
-  // 启动设备管理模块，接管所有物理输入信号
+  
+  // 1. 初始化舞台调度中心 (招商登记)
+  StageInitializer.init();
+  
+  // 2. 启动设备管理模块，接管所有物理输入信号
   SuperInputManager.instance.init();
   runApp(const MyApp());
 }
