@@ -50,13 +50,18 @@ class BuildingMap {
       '*dash_energy',
     ],
 
-    'settingPage': ['/theme_setting'],
+    'settingPage': ['/theme_setting', '/custom_setting'],
+
     'theme_setting': ['+color_mode', '+visual_mode', '+shape_mode'],
     'color_mode': ['*light_mode', '*night_mode'],
     'visual_mode': ['*flat', '*glassy', '*neumorphic'],
     'shape_mode': ['*rightangle', '*round', '*soft'],
 
-    'testPage': ['*card1'],
+    'custom_setting': ['*setting_a', '*setting_b', '*setting_c'],
+
+    'testPage': ['*card1', '/work_setting'],
+    'work_setting': ['*work_a', '*work_b', '/work_grop'],
+    'work_grop': ['*work_c', '*work_d'],
 
     '公共区域': ['/空中花园'],
     '空中花园': ['*秋千', '*花盆'],

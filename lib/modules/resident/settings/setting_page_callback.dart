@@ -10,18 +10,19 @@ class SettingPageCallback {
     final mode = ThemeProvider.instance.themeMode;
     if (mode == ThemeMode.light) return 'light';
     if (mode == ThemeMode.dark) return 'night';
-    final brightness = WidgetsBinding.instance.platformDispatcher.platformBrightness;
+    final brightness =
+        WidgetsBinding.instance.platformDispatcher.platformBrightness;
     return brightness == Brightness.light ? 'light' : 'night';
   }
 
   /// 获取当前视觉风格 Key
   static String getCurrentVisualKey() {
-    return ThemeProvider.instance.visualStyle.name; // flat, glassy, neumorphic
+    return ThemeProvider.instance.visualStyle.name;
   }
 
   /// 获取当前形状风格 Key
   static String getCurrentShapeKey() {
-    return ThemeProvider.instance.shapeStyle.name; // rightangle, round, soft
+    return ThemeProvider.instance.shapeStyle.name;
   }
 
   /// 注册主题监听
@@ -50,5 +51,15 @@ class SettingPageCallback {
   static void onShapeModeChanged(String shapeKey) {
     final style = ShapeStyle.values.firstWhere((e) => e.name == shapeKey);
     ThemeProvider.instance.setShapeStyle(style);
+  }
+
+  // --- Mock Custom Settings ---
+
+  static final customModeNotifier = ValueNotifier<String>('a');
+
+  static String getCurrentCustomKey() => customModeNotifier.value;
+
+  static void onCustomModeChanged(String key) {
+    customModeNotifier.value = key;
   }
 }

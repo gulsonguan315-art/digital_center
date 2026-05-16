@@ -20,10 +20,8 @@ class SettingPageView extends StatelessWidget {
           children: [
             // 从收纳盒中按需取件
             slots['theme_setting'] ?? const SizedBox.shrink(),
-
-            // 以后在这里可以继续通过 slots 扩展
-            // const SizedBox(height: 32),
-            // slots['network_setting'] ?? const SizedBox.shrink(),
+            const SizedBox(height: 64),
+            slots['custom_setting'] ?? const SizedBox.shrink(),
           ],
         ),
       ),

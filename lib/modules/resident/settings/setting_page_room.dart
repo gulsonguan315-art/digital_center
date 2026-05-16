@@ -6,6 +6,7 @@ import 'setting_page_model.dart';
 import 'setting_page_callback.dart';
 import 'setting_page_view.dart';
 import 'views_components/theme_setting_view.dart';
+import 'views_components/custom_setting_view.dart';
 
 /// 设置页主入口房间 (总承包商)
 class SettingPageRoom extends StatelessWidget {
@@ -22,6 +23,7 @@ class SettingPageRoom extends StatelessWidget {
       child: child ?? const SettingPageView(
         slots: {
           'theme_setting': ThemeSettingRoom(),
+          'custom_setting': CustomSettingRoom(),
         },
       ),
     );
@@ -81,26 +83,59 @@ class ThemeSettingRoom extends StatelessWidget {
       },
     );
   }
+}
 
-  /// 核心装配逻辑：将一个普通的选择器包装成带 Room 的焦点节点
-  Widget _buildSelectNode({
-    required String id,
-    required String title,
-    required List<SelectOption<String>> options,
-    required String selectedValue,
-    required ValueChanged<String> onToggle,
-  }) {
-    return SuperFocusSelect<String>(
-      id: id,
-      title: title,
-      options: options,
-      selectedValues: [selectedValue],
-      onToggle: onToggle,
-      // 在这里统一处理 Sub-Room 逻辑
-      roomBuilder: (child) => SuperFocusRoom(
-        id: id,
-        child: child,
-      ),
+/// 自定义设置装配房间 (二级包工头)
+class CustomSettingRoom extends StatelessWidget {
+  const CustomSettingRoom({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: SettingPageCallback.customModeNotifier,
+      builder: (context, _) {
+        return FocusIdentity(
+          id: SettingPageModel.customGroupId,
+          builder: (context, hasFocus) {
+            return SuperFocusRoom(
+              id: SettingPageModel.customGroupId,
+              child: CustomSettingView(
+                slots: {
+                  SettingPageModel.customSelectId: _buildSelectNode(
+                    id: '', // 卡片逻辑 ID 设为空，使其在拓扑中透明，实现“跳过卡片”直接选中选项
+                    title: SettingPageModel.customSelectTitle,
+                    options: SettingPageModel.customOptions,
+                    selectedValue: SettingPageCallback.getCurrentCustomKey(),
+                    onToggle: SettingPageCallback.onCustomModeChanged,
+                  ),
+                },
+              ),
+            );
+          },
+        );
+      },
     );
   }
+}
+
+/// 核心装配逻辑：将一个普通的选择器包装成带 Room 的焦点节点
+Widget _buildSelectNode({
+  required String id,
+  required String title,
+  required List<SelectOption<String>> options,
+  required String selectedValue,
+  required ValueChanged<String> onToggle,
+}) {
+  return SuperFocusSelect<String>(
+    id: id,
+    title: title,
+    options: options,
+    selectedValues: [selectedValue],
+    onToggle: onToggle,
+    // 在这里统一处理 Sub-Room 逻辑
+    roomBuilder: (child) => SuperFocusRoom(
+      id: id,
+      child: child,
+    ),
+  );
 }
