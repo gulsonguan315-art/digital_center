@@ -8,6 +8,7 @@ class DashboardItemConfig {
     required this.y,
     required this.spanX,
     required this.spanY,
+    this.enabled = true,
   });
 
   final String id;
@@ -15,6 +16,7 @@ class DashboardItemConfig {
   final int y;
   final int spanX;
   final int spanY;
+  final bool enabled;
 
   DashboardItemConfig copyWith({
     String? id,
@@ -22,6 +24,7 @@ class DashboardItemConfig {
     int? y,
     int? spanX,
     int? spanY,
+    bool? enabled,
   }) {
     return DashboardItemConfig(
       id: id ?? this.id,
@@ -29,6 +32,7 @@ class DashboardItemConfig {
       y: y ?? this.y,
       spanX: spanX ?? this.spanX,
       spanY: spanY ?? this.spanY,
+      enabled: enabled ?? this.enabled,
     );
   }
 
@@ -51,6 +55,7 @@ class DashboardItemConfig {
       'y': y,
       'spanX': spanX,
       'spanY': spanY,
+      'enabled': enabled,
     };
   }
 
@@ -62,6 +67,7 @@ class DashboardItemConfig {
       y: json['y'] as int,
       spanX: json['spanX'] as int,
       spanY: json['spanY'] as int,
+      enabled: json['enabled'] as bool? ?? true,
     );
   }
 
@@ -74,9 +80,15 @@ class DashboardItemConfig {
           x == other.x &&
           y == other.y &&
           spanX == other.spanX &&
-          spanY == other.spanY;
+          spanY == other.spanY &&
+          enabled == other.enabled;
 
   @override
   int get hashCode =>
-      id.hashCode ^ x.hashCode ^ y.hashCode ^ spanX.hashCode ^ spanY.hashCode;
+      id.hashCode ^
+      x.hashCode ^
+      y.hashCode ^
+      spanX.hashCode ^
+      spanY.hashCode ^
+      enabled.hashCode;
 }

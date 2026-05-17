@@ -9,6 +9,7 @@ import '../engine/theme/visuals/theme_visuals.dart';
 import '../log/log.dart';
 import 'local/local_config_store.dart';
 import 'models/dashboard_item_config.dart';
+import 'models/poetry_data.dart';
 import 'models/system_settings.dart';
 import 'remote/remote_api_client.dart';
 
@@ -19,6 +20,7 @@ class DataManager {
   DataManager._() {
     _localStore = LocalConfigStore();
     _remoteClient = RemoteApiClient();
+    _restoreSystemSettings(); // 🚀 启动时自动恢复用户所有的偏好配置
   }
 
   /// 全局唯一单例入口，业务层通过 DataManager.instance 统一访问
@@ -28,10 +30,22 @@ class DataManager {
   late final RemoteApiClient _remoteClient;
 
   Stream<List<DashboardItemConfig>>? _dashboardStream;
+  Stream<PoetryData>? _poetryStream;
+  PoetryData? _lastPoetry; // 内存高保真缓存，支持 Web 重用与零延时同步
+  List<DashboardItemConfig>? _lastLayout; // 布局内存高保真缓存，解决广播流二次载入的历史空白问题
+
+  PoetryData get latestPoetry => _lastPoetry ?? PoetryData.defaultPoetry;
+  List<DashboardItemConfig> get latestLayout => _lastLayout ?? [];
 
   /// 暴露异步初始化入口，供 main() 显式阻塞等待偏好配置加载（避免冷启动主题闪烁）
   Future<void> init() async {
     await _restoreSystemSettings();
+    try {
+      _lastPoetry = await _localStore.poetry.readPoetry();
+    } catch (_) {}
+    try {
+      _lastLayout = await _localStore.dashboard.readDashboardItems();
+    } catch (_) {}
   }
 
   // ===========================================================================
@@ -57,6 +71,7 @@ class DataManager {
 
     // 1. Offline-First: 立即向本地磁盘子仓读取并添加缓存数据，实现 0 延时 UI 秒开
     _localStore.dashboard.readDashboardItems().then((cached) {
+      _lastLayout = cached; // 🌟 内存高保真缓存
       if (!controller.isClosed) {
         controller.add(cached);
       }
@@ -64,9 +79,10 @@ class DataManager {
       _syncDashboardItemsInBackground();
     });
 
-    // 3. Reactive Piping: 持续订阅本地网格磁盘子仓的响应式广播
+    // 3. Reactive Piping: 持续订阅本地网格磁盘子仓 of 响应式广播
     final subscription = _localStore.dashboard.watchDashboardItems().listen(
       (items) {
+        _lastLayout = items; // 🌟 内存高保真缓存
         if (!controller.isClosed) {
           controller.add(items);
         }
@@ -87,12 +103,13 @@ class DataManager {
       subscription.cancel();
     };
 
-    // 🌟 配合 listEquals 进行元素级深比较去重，杜绝重复渲染，性能达到最高峰！
+    // 🌟 配合 listEquals 进行元素级深比较去重，杜举重复渲染，性能达到最高峰！
     return controller.stream.distinct(listEquals);
   }
 
   /// 业务层向总管理员申请：将磁贴数据落锁保存进专属排版子仓中
   Future<void> saveDashboardItems(List<DashboardItemConfig> items) async {
+    _lastLayout = items; // 🌟 瞬间缓存
     await _localStore.dashboard.writeDashboardItems(items);
   }
 
@@ -100,10 +117,102 @@ class DataManager {
   Future<void> _syncDashboardItemsInBackground() async {
     try {
       final freshItems = await _remoteClient.fetchDashboardLayout();
+      _lastLayout = freshItems; // 🌟 内存高保真缓存
       // 如果云端拉取到了新排版，立刻覆写本地缓存并广播（触发UI响应式热更新）
       await _localStore.dashboard.writeDashboardItems(freshItems);
     } catch (e) {
       // 静默吞下异常，不干扰前台已正常渲染的本地缓存数据
+    }
+  }
+
+  // ===========================================================================
+  // 每日推荐网络古诗词 API (Daily Poetry API)
+  // ===========================================================================
+
+  /// 业务层向总管理员申请：响应式收听每日推荐网络诗词。
+  /// 同样使用“自销毁共享广播流”，确保高频/并发订阅时 0 重复网络开销、0 内存泄露！
+  Stream<PoetryData> watchTodayPoetry() {
+    _poetryStream ??= _createPoetryStream().asBroadcastStream(
+      onCancel: (subscription) {
+        // 🛡️ 自销毁：订阅者全部离开时清空缓存，断开管道防泄漏
+        _poetryStream = null;
+        subscription.cancel();
+      },
+    );
+    return _poetryStream!;
+  }
+
+  /// 创建底层的网络古诗监控管道流
+  Stream<PoetryData> _createPoetryStream() {
+    final controller = StreamController<PoetryData>();
+
+    // 1. Offline-First: 立即向本地磁盘诗词子仓读取缓存，实现 0 延时闪瞬秒开
+    _localStore.poetry.readPoetry().then((cached) {
+      _lastPoetry = cached;
+      if (!controller.isClosed) {
+        controller.add(cached);
+      }
+      // 2. Background Sync (SWR): 发起后台异步网络请求，对用户无感
+      _syncPoetryInBackground();
+    });
+
+    // 3. Reactive Piping: 订阅本地磁盘缓存子仓的更改广播
+    final subscription = _localStore.poetry.watchPoetry().listen(
+      (data) {
+        _lastPoetry = data;
+        if (!controller.isClosed) {
+          controller.add(data);
+        }
+      },
+      onError: (e) {
+        if (!controller.isClosed) {
+          controller.addError(e);
+        }
+      },
+      onDone: () {
+        if (!controller.isClosed) {
+          controller.close();
+        }
+      },
+    );
+
+    controller.onCancel = () {
+      subscription.cancel();
+    };
+
+    // 🌟 配合重载的 PoetryData.== 操作符进行去重，杜绝网络获取相同数据时的重复刷新！
+    return controller.stream.distinct();
+  }
+
+  /// 后台异步诗词数据拉取同步逻辑
+  Future<void> _syncPoetryInBackground() async {
+    try {
+      final fresh = await _remoteClient.fetchTodayPoetry();
+      // 拉取成功后直接刷写本地磁盘缓存，自动广播触发前台 UI 刷新
+      await _localStore.poetry.writePoetry(fresh);
+    } catch (e) {
+      // 容错：网络离线或接口异常时，静默捕获异常，前台完美展示上一次缓存的古诗
+    }
+  }
+
+  /// 业务层向总管理员申请：保存并回写诗词标记数据（离线秒写 + 异步网络回传 SWR）
+  Future<void> savePoetryMarks(PoetryData updatedPoetry) async {
+    _lastPoetry = updatedPoetry;
+    // 1. 立刻写入本地缓存子仓，以触发前台 UI 看板同步响应式更新
+    await _localStore.poetry.writePoetry(updatedPoetry);
+
+    // 2. 后台异步发送网络回传保存，完全对前台无阻碍，支持断网离线操作
+    _uploadPoetryMarksInBackground(updatedPoetry.id, updatedPoetry.markedLines);
+  }
+
+  Future<void> _uploadPoetryMarksInBackground(
+    String poemId,
+    List<int> markedLines,
+  ) async {
+    try {
+      await _remoteClient.uploadPoemMark(poemId, markedLines);
+    } catch (e) {
+      // 容错：静默吸收网络异常，保障极端的离线手账体验
     }
   }
 
@@ -124,8 +233,8 @@ class DataManager {
       final mode = settings.themeMode == 'light'
           ? ThemeMode.light
           : settings.themeMode == 'night'
-              ? ThemeMode.dark
-              : ThemeMode.system;
+          ? ThemeMode.dark
+          : ThemeMode.system;
       ThemeProvider.instance.setThemeMode(mode);
 
       // 2. 恢复视觉风格 (扁平/玻璃/新拟态)
@@ -146,7 +255,9 @@ class DataManager {
       SettingPageCallback.customModeNotifier.value = settings.customMode;
 
       // 5. 恢复日志过滤白名单列表
-      Log.enabledGroupsNotifier.value = Set<String>.from(settings.enabledLogGroups);
+      Log.enabledGroupsNotifier.value = Set<String>.from(
+        settings.enabledLogGroups,
+      );
     } catch (e) {
       // 容错防御：防止在应用早期启动时，部分静态引擎未初始化完毕
     }

@@ -49,6 +49,8 @@ class BuildingMap {
       '*dash_air_conditioner',
       '*dash_security',
       '*dash_energy',
+      '*dash_poetry=>poetry_overlay', // 🌟 注册静态导航跳转链接到古诗沉浸空间
+      '/dash_widget_manager', // 🌟 挂件中控直接作为一个子房间
     ],
 
     'settingPage': ['/theme_setting', '/custom_setting', '/log_setting'],
@@ -64,6 +66,8 @@ class BuildingMap {
 
     'testPage': ['*card1', '/explorer'],
     'explorer': ['/*', '*'],
+    'poetry_overlay': ['*'], // 🌟 注册沉浸 Overlay 房间，使用通配符以动态支持行点击高亮
+    'dash_widget_manager': ['*'], // 🌟 挂件中控房间，支持内部元素进行焦点交互
 
     'work_setting': ['*work_a', '*work_b', '/work_grop'],
     'work_grop': ['*work_c', '*work_d'],
@@ -116,7 +120,7 @@ class BuildingMap {
   static bool isRoom(String id, {String? inRoomId}) {
     _ensureInitialized();
     if (structure.containsKey(id)) return true;
-    
+
     // 如果已知父房间，检查父房间是否允许动态子房间
     if (inRoomId != null) {
       final items = _getEffectiveItems(inRoomId);
@@ -141,7 +145,11 @@ class BuildingMap {
 
   /// 动态注册父子关系（用于动态生成的文件夹/房间）
   /// [asTerminalRoom] - 标记为终端叶子房间，阻断继承父级的通配符结构
-  static void registerDynamicParent(String childId, String parentId, {bool asTerminalRoom = false}) {
+  static void registerDynamicParent(
+    String childId,
+    String parentId, {
+    bool asTerminalRoom = false,
+  }) {
     _ensureInitialized();
     if (_parentCache.containsKey(childId)) return;
 
@@ -179,7 +187,8 @@ class BuildingMap {
     if (parentId != null) {
       final parentItems = _getEffectiveItems(parentId);
       // 如果父级包含 /* 通配符，则子级继承该结构
-      if (parentItems != null && parentItems.contains(FocusSyntax.dynamicRoom)) {
+      if (parentItems != null &&
+          parentItems.contains(FocusSyntax.dynamicRoom)) {
         return parentItems;
       }
     }

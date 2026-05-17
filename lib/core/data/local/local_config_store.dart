@@ -1,6 +1,8 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 
 import 'stores/local_dashboard_store.dart';
+import 'stores/local_poetry_store.dart';
 import 'stores/local_settings_store.dart';
 
 /// 👑 本地持久化主调度大管家 (Local Config Storage Coordinator)
@@ -8,9 +10,12 @@ import 'stores/local_settings_store.dart';
 /// 遵循开闭原则 (OCP)，当新增存储需求时只需创建子仓并在此挂载，无需在此编写具体读写代码。
 class LocalConfigStore {
   LocalConfigStore() {
-    _initDirectory();
+    if (!kIsWeb) {
+      _initDirectory();
+    }
     dashboard = LocalDashboardStore(configDirPath: _configDirPath);
     settings = LocalSettingsStore(configDirPath: _configDirPath);
+    poetry = LocalPoetryStore(configDirPath: _configDirPath); // 📂 注册诗词子仓
   }
 
   /// 📂 看板卡片排版专属子仓
@@ -19,14 +24,19 @@ class LocalConfigStore {
   /// 📂 系统偏好与日志白名单专属子仓
   late final LocalSettingsStore settings;
 
+  /// 📂 每日网络诗词专属子仓
+  late final LocalPoetryStore poetry;
+
   /// 获取系统 AppData 存储路径
   String get _configDirPath {
+    if (kIsWeb) return '';
     final String appData = Platform.environment['APPDATA'] ?? Directory.systemTemp.path;
     return '$appData/digital_center';
   }
 
   /// 检查并安全初始化本地存储主目录
   void _initDirectory() {
+    if (kIsWeb) return;
     try {
       final dir = Directory(_configDirPath);
       if (!dir.existsSync()) {
@@ -40,5 +50,6 @@ class LocalConfigStore {
   /// 安全释放全局防抖计时器并落锁执行各子仓的关机同步刷盘
   void dispose() {
     dashboard.dispose();
+    poetry.dispose();
   }
 }

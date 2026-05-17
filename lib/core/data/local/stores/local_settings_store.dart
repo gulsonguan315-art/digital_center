@@ -25,6 +25,9 @@ class LocalSettingsStore {
 
   /// Reads system settings from disk. Offloads decoding to a background Isolate.
   Future<SystemSettings> readSystemSettings() async {
+    if (kIsWeb) {
+      return SystemSettings.defaultSettings;
+    }
     try {
       final file = File(_settingsFilePath);
       if (!file.existsSync()) {
@@ -43,6 +46,7 @@ class LocalSettingsStore {
 
   /// Writes system settings to disk. Offloads encoding to a background Isolate.
   Future<void> writeSystemSettings(SystemSettings settings) async {
+    if (kIsWeb) return;
     try {
       final file = File(_settingsFilePath);
       // 🚀 Isolate-based JSON encoding

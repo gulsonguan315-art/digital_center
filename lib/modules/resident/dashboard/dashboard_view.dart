@@ -7,6 +7,7 @@ import '../../../core/engine/theme/theme_api.dart';
 import '../../../core/layout/grid/grid_extensions.dart';
 import '../../widgets/clock/clock_view.dart';
 import '../../widgets/poetry/poetry_view.dart';
+import '../../widgets/widget_manager/widget_manager_view.dart'; // 🌟 引入挂件中控枢纽卡片
 import 'engine/dashboard_controller.dart';
 
 import '../../../core/data/data_manager.dart';
@@ -70,21 +71,27 @@ class _DashboardViewState extends State<DashboardView> {
                       return Focus(
                         autofocus: true,
                         onKeyEvent: (node, event) {
-                          if (!_controller.isEditMode) return KeyEventResult.ignored;
-                          if (event is KeyUpEvent) return KeyEventResult.ignored;
+                          if (!_controller.isEditMode)
+                            return KeyEventResult.ignored;
+                          if (event is KeyUpEvent)
+                            return KeyEventResult.ignored;
 
                           final logicalKey = event.logicalKey;
-                          
+
                           // 获取当前聚焦卡片的物理 ID
-                          final focusedId = SuperFocusManager.instance.state.nodeRegistry.entries
+                          final focusedId = SuperFocusManager
+                              .instance
+                              .state
+                              .nodeRegistry
+                              .entries
                               .where((e) => e.value.node.hasPrimaryFocus)
                               .firstOrNull
                               ?.key;
-                              
+
                           if (focusedId == null) return KeyEventResult.ignored;
 
                           // 1. 如果按下确认键 (Enter / Space)：切换抓取/放置状态
-                          if (logicalKey == LogicalKeyboardKey.enter || 
+                          if (logicalKey == LogicalKeyboardKey.enter ||
                               logicalKey == LogicalKeyboardKey.space ||
                               logicalKey == LogicalKeyboardKey.select) {
                             _controller.toggleGrabItem(focusedId);
@@ -98,8 +105,11 @@ class _DashboardViewState extends State<DashboardView> {
                               return KeyEventResult.handled;
                             }
 
-                            final isShiftPressed = HardwareKeyboard.instance.isShiftPressed;
-                            final itemIndex = _controller.items.indexWhere((item) => item.id == focusedId);
+                            final isShiftPressed =
+                                HardwareKeyboard.instance.isShiftPressed;
+                            final itemIndex = _controller.items.indexWhere(
+                              (item) => item.id == focusedId,
+                            );
                             if (itemIndex == -1) return KeyEventResult.handled;
                             final item = _controller.items[itemIndex];
 
@@ -110,17 +120,24 @@ class _DashboardViewState extends State<DashboardView> {
 
                               if (logicalKey == LogicalKeyboardKey.arrowLeft) {
                                 newSpanX = (item.spanX - 1).clamp(1, 12);
-                              } else if (logicalKey == LogicalKeyboardKey.arrowRight) {
+                              } else if (logicalKey ==
+                                  LogicalKeyboardKey.arrowRight) {
                                 newSpanX = (item.spanX + 1).clamp(1, 12);
-                              } else if (logicalKey == LogicalKeyboardKey.arrowUp) {
+                              } else if (logicalKey ==
+                                  LogicalKeyboardKey.arrowUp) {
                                 newSpanY = (item.spanY - 1).clamp(1, 12);
-                              } else if (logicalKey == LogicalKeyboardKey.arrowDown) {
+                              } else if (logicalKey ==
+                                  LogicalKeyboardKey.arrowDown) {
                                 newSpanY = (item.spanY + 1).clamp(1, 12);
                               } else {
                                 return KeyEventResult.ignored;
                               }
 
-                              _controller.updateItemSpan(focusedId, newSpanX, newSpanY);
+                              _controller.updateItemSpan(
+                                focusedId,
+                                newSpanX,
+                                newSpanY,
+                              );
                               return KeyEventResult.handled;
                             } else {
                               // 普通方向键 -> 平移位置 (x, y)
@@ -129,17 +146,24 @@ class _DashboardViewState extends State<DashboardView> {
 
                               if (logicalKey == LogicalKeyboardKey.arrowLeft) {
                                 newX = (item.x - 1).clamp(0, 11);
-                              } else if (logicalKey == LogicalKeyboardKey.arrowRight) {
+                              } else if (logicalKey ==
+                                  LogicalKeyboardKey.arrowRight) {
                                 newX = (item.x + 1).clamp(0, 11);
-                              } else if (logicalKey == LogicalKeyboardKey.arrowUp) {
+                              } else if (logicalKey ==
+                                  LogicalKeyboardKey.arrowUp) {
                                 newY = (item.y - 1).clamp(0, 100);
-                              } else if (logicalKey == LogicalKeyboardKey.arrowDown) {
+                              } else if (logicalKey ==
+                                  LogicalKeyboardKey.arrowDown) {
                                 newY = (item.y + 1).clamp(0, 100);
                               } else {
                                 return KeyEventResult.ignored;
                               }
 
-                              _controller.updateItemPosition(focusedId, newX, newY);
+                              _controller.updateItemPosition(
+                                focusedId,
+                                newX,
+                                newY,
+                              );
                               return KeyEventResult.handled;
                             }
                           }
@@ -166,13 +190,15 @@ class _DashboardViewState extends State<DashboardView> {
                                           ? Colors.orangeAccent
                                           : material.colors.accent,
                                       borderRadius: BorderRadius.circular(20),
-                                      boxShadow: _controller.grabbedItemId != null
+                                      boxShadow:
+                                          _controller.grabbedItemId != null
                                           ? [
                                               BoxShadow(
-                                                color: Colors.orangeAccent.withValues(alpha: 0.3),
+                                                color: Colors.orangeAccent
+                                                    .withValues(alpha: 0.3),
                                                 blurRadius: 10,
                                                 spreadRadius: 1,
-                                              )
+                                              ),
                                             ]
                                           : null,
                                     ),
@@ -190,94 +216,157 @@ class _DashboardViewState extends State<DashboardView> {
                                   ),
                                 ),
                               ),
-                            ..._controller.items.map((config) {
-                              final rect = config.toRect(unitSize, gap);
-                              final isGrabbed = grabbedItemId == config.id;
+                            ..._controller.items
+                                .where(
+                                  (config) =>
+                                      config.enabled ||
+                                      config.id == 'dash_widget_manager',
+                                )
+                                .map((config) {
+                                  final rect = config.toRect(unitSize, gap);
+                                  final isGrabbed = grabbedItemId == config.id;
 
-                              return AnimatedPositioned(
-                                key: ValueKey(config.id),
-                                duration: const Duration(milliseconds: 300),
-                                curve: Curves.easeOutCubic,
-                                left: rect.left,
-                                top: rect.top,
-                                width: rect.width,
-                                height: rect.height,
-                                child: FocusIdentity(
-                                  id: config.id,
-                                  focusGeometry: RoundedRectFocusGeometry(
-                                    borderRadius:
-                                        material.shape.radius as BorderRadius,
-                                  ),
-                                  builder: (context, hasFocus) {
-                                    final Map<String, Widget> registry = {
-                                      'dash_clock': const ClockView(),
-                                      'dash_poetry': const PoetryView(),
-                                      // 以后这里可以加 'dash_weather': const WeatherView(), 等
-                                    };
+                                  return AnimatedPositioned(
+                                    key: ValueKey(config.id),
+                                    duration: const Duration(milliseconds: 300),
+                                    curve: Curves.easeOutCubic,
+                                    left: rect.left,
+                                    top: rect.top,
+                                    width: rect.width,
+                                    height: rect.height,
+                                    child: FocusIdentity(
+                                      id: config.id,
+                                      focusGeometry: RoundedRectFocusGeometry(
+                                        borderRadius:
+                                            material.shape.radius
+                                                as BorderRadius,
+                                      ),
+                                      builder: (context, hasFocus) {
+                                        final Map<String, Widget> registry = {
+                                          'dash_clock': const ClockView(),
+                                          'dash_poetry': const PoetryView(),
+                                          'dash_widget_manager':
+                                              const WidgetManagerView(),
+                                          // 以后这里可以加 'dash_weather': const WeatherView(), 等
+                                        };
 
-                                    // 2. 获取组件：如果地图里没有，就直接显示文字（不干预任何效果，不领盘子）
-                                    final Widget card =
-                                        registry[config.id] ??
-                                        Center(
-                                          child: Text(
-                                            config.id
-                                                .replaceAll('dash_', '')
-                                                .toUpperCase(),
-                                            style: TextStyle(
-                                              fontWeight: hasFocus
-                                                  ? FontWeight.w900
-                                                  : FontWeight.bold,
-                                              color: hasFocus
-                                                  ? (isGrabbed
-                                                      ? Colors.orangeAccent
-                                                      : material.colors.accent)
-                                                  : material.colors.textPrimary
-                                                        .withValues(alpha: 0.2),
-                                              letterSpacing: 1.2,
-                                            ),
-                                          ),
-                                        );
-
-                                    // 3. 装饰层：只负责叠加框架逻辑（编辑模式等）
-                                    return Stack(
-                                      children: [
-                                        Positioned.fill(child: card),
-                                        // 编辑模式的半透明边框覆盖
-                                        if (_controller.isEditMode)
-                                          Positioned.fill(
-                                            child: IgnorePointer(
-                                              child: AnimatedContainer(
-                                                duration: const Duration(milliseconds: 200),
-                                                decoration: BoxDecoration(
-                                                  borderRadius:
-                                                      material.shape.radius,
-                                                  border: Border.all(
-                                                    color: isGrabbed
-                                                        ? Colors.orangeAccent
-                                                        : (hasFocus
-                                                            ? material.colors.accent
-                                                            : material.colors.accent.withValues(alpha: 0.4)),
-                                                    width: isGrabbed ? 4 : 2,
-                                                  ),
-                                                  boxShadow: isGrabbed
-                                                      ? [
-                                                          BoxShadow(
-                                                            color: Colors.orangeAccent.withValues(alpha: 0.4),
-                                                            blurRadius: 12,
-                                                            spreadRadius: 2,
-                                                          )
-                                                        ]
-                                                      : null,
+                                        // 2. 获取组件：如果地图里没有，就直接显示文字（不干预任何效果，不领盘子）
+                                        final Widget card =
+                                            registry[config.id] ??
+                                            Center(
+                                              child: Text(
+                                                config.id
+                                                    .replaceAll('dash_', '')
+                                                    .toUpperCase(),
+                                                style: TextStyle(
+                                                  fontWeight: hasFocus
+                                                      ? FontWeight.w900
+                                                      : FontWeight.bold,
+                                                  color: hasFocus
+                                                      ? (isGrabbed
+                                                            ? Colors
+                                                                  .orangeAccent
+                                                            : material
+                                                                  .colors
+                                                                  .accent)
+                                                      : material
+                                                            .colors
+                                                            .textPrimary
+                                                            .withValues(
+                                                              alpha: 0.2,
+                                                            ),
+                                                  letterSpacing: 1.2,
                                                 ),
                                               ),
-                                            ),
+                                            );
+
+                                        // 3. 装饰层：只负责叠加框架逻辑（编辑模式等）
+                                        return GestureDetector(
+                                          behavior: HitTestBehavior.opaque,
+                                          onTap: () {
+                                            // 正常或编辑模式下，点击任何卡片都应当先聚焦
+                                            final nodeInfo = SuperFocusManager
+                                                .instance
+                                                .state
+                                                .nodeRegistry[config.id];
+                                            if (nodeInfo != null) {
+                                              nodeInfo.node.requestFocus();
+                                            }
+
+                                            if (_controller.isEditMode) {
+                                              _controller.toggleGrabItem(
+                                                config.id,
+                                              );
+                                            } else {
+                                              // 正常模式：触发默认 confirmation 动作
+                                              SuperFocusManager.instance
+                                                  .onAction(
+                                                    'dashboardPage',
+                                                    config.id,
+                                                  );
+                                            }
+                                          },
+                                          child: Stack(
+                                            children: [
+                                              Positioned.fill(child: card),
+                                              // 编辑模式的半透明边框覆盖
+                                              if (_controller.isEditMode)
+                                                Positioned.fill(
+                                                  child: IgnorePointer(
+                                                    child: AnimatedContainer(
+                                                      duration: const Duration(
+                                                        milliseconds: 200,
+                                                      ),
+                                                      decoration: BoxDecoration(
+                                                        borderRadius: material
+                                                            .shape
+                                                            .radius,
+                                                        border: Border.all(
+                                                          color: isGrabbed
+                                                              ? Colors
+                                                                    .orangeAccent
+                                                              : (hasFocus
+                                                                    ? material
+                                                                          .colors
+                                                                          .accent
+                                                                    : material
+                                                                          .colors
+                                                                          .accent
+                                                                          .withValues(
+                                                                            alpha:
+                                                                                0.4,
+                                                                          )),
+                                                          width: isGrabbed
+                                                              ? 4
+                                                              : 2,
+                                                        ),
+                                                        boxShadow: isGrabbed
+                                                            ? [
+                                                                BoxShadow(
+                                                                  color: Colors
+                                                                      .orangeAccent
+                                                                      .withValues(
+                                                                        alpha:
+                                                                            0.4,
+                                                                      ),
+                                                                  blurRadius:
+                                                                      12,
+                                                                  spreadRadius:
+                                                                      2,
+                                                                ),
+                                                              ]
+                                                            : null,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+                                            ],
                                           ),
-                                      ],
-                                    );
-                                  },
-                                ),
-                              );
-                            }),
+                                        );
+                                      },
+                                    ),
+                                  );
+                                }),
                           ],
                         ),
                       );

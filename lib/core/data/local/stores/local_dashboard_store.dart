@@ -23,15 +23,13 @@ class LocalDashboardStore {
   LocalDashboardStore({required this.configDirPath});
 
   static const List<DashboardItemConfig> _defaultItems = [
-    DashboardItemConfig(id: 'dash_weather', x: 0, y: 0, spanX: 2, spanY: 2),
-    DashboardItemConfig(id: 'dash_music', x: 2, y: 1, spanX: 1, spanY: 1),
-    DashboardItemConfig(id: 'dash_clock', x: 2, y: 0, spanX: 2, spanY: 1),
-    DashboardItemConfig(id: 'dash_stats', x: 3, y: 1, spanX: 1, spanY: 1),
-    DashboardItemConfig(id: 'dash_lights', x: 0, y: 2, spanX: 4, spanY: 1),
-    DashboardItemConfig(id: 'dash_poetry', x: 0, y: 3, spanX: 4, spanY: 1),
+    DashboardItemConfig(id: 'dash_clock', x: 0, y: 0, spanX: 4, spanY: 1),
+    DashboardItemConfig(id: 'dash_poetry', x: 0, y: 1, spanX: 4, spanY: 1),
+    DashboardItemConfig(id: 'dash_widget_manager', x: 0, y: 2, spanX: 4, spanY: 1),
   ];
 
-  final _dashboardController = StreamController<List<DashboardItemConfig>>.broadcast();
+  final _dashboardController =
+      StreamController<List<DashboardItemConfig>>.broadcast();
 
   Timer? _writeTimer;
   List<DashboardItemConfig>? _pendingItems;
@@ -39,10 +37,14 @@ class LocalDashboardStore {
   String get _filePath => '$configDirPath/dashboard_layout.json';
 
   /// Exposes a responsive stream monitoring local dashboard card changes.
-  Stream<List<DashboardItemConfig>> watchDashboardItems() => _dashboardController.stream;
+  Stream<List<DashboardItemConfig>> watchDashboardItems() =>
+      _dashboardController.stream;
 
   /// Reads items from the disk. Offloads heavy JSON decoding to a background Isolate.
   Future<List<DashboardItemConfig>> readDashboardItems() async {
+    if (kIsWeb) {
+      return _defaultItems;
+    }
     try {
       final file = File(_filePath);
       if (!file.existsSync()) {
@@ -62,13 +64,69 @@ class LocalDashboardStore {
           .map((e) => DashboardItemConfig.fromJson(e as Map<String, dynamic>))
           .toList();
 
-      // 🛡️ Failsafe Migration: If the user already has a layout file but it doesn't contain 'dash_poetry',
-      // we automatically append it so they can see this new beautiful widget immediately!
-      if (!items.any((e) => e.id == 'dash_poetry')) {
-        items.add(const DashboardItemConfig(id: 'dash_poetry', x: 0, y: 3, spanX: 4, spanY: 1));
-        await writeDashboardItems(items);
+      // 🛡️ Clean up and Failsafe Migration: Only keep Clock, Poetry and Widget Manager
+      final List<String> activeIds = [
+        'dash_clock',
+        'dash_poetry',
+        'dash_widget_manager',
+      ];
+      final List<DashboardItemConfig> filteredItems = items
+          .where((e) => activeIds.contains(e.id))
+          .toList();
+
+      bool migrated = false;
+      if (filteredItems.length != items.length) {
+        migrated = true;
       }
-      return items;
+
+      // Ensure all 3 active cards exist. If not, append them
+      if (!filteredItems.any((e) => e.id == 'dash_clock')) {
+        filteredItems.add(
+          const DashboardItemConfig(
+            id: 'dash_clock',
+            x: 0,
+            y: 0,
+            spanX: 4,
+            spanY: 1,
+          ),
+        );
+        migrated = true;
+      }
+      if (!filteredItems.any((e) => e.id == 'dash_poetry')) {
+        filteredItems.add(
+          const DashboardItemConfig(
+            id: 'dash_poetry',
+            x: 0,
+            y: 1,
+            spanX: 4,
+            spanY: 1,
+          ),
+        );
+        migrated = true;
+      }
+      if (!filteredItems.any((e) => e.id == 'dash_widget_manager')) {
+        filteredItems.add(
+          const DashboardItemConfig(
+            id: 'dash_widget_manager',
+            x: 0,
+            y: 2,
+            spanX: 4,
+            spanY: 1,
+          ),
+        );
+        migrated = true;
+      }
+
+      if (migrated) {
+        // Sort items by coordinate to look organized
+        filteredItems.sort((a, b) {
+          int cmp = a.y.compareTo(b.y);
+          if (cmp != 0) return cmp;
+          return a.x.compareTo(b.x);
+        });
+        await writeDashboardItems(filteredItems);
+      }
+      return filteredItems;
     } catch (e) {
       return _defaultItems;
     }
@@ -79,6 +137,8 @@ class LocalDashboardStore {
   Future<void> writeDashboardItems(List<DashboardItemConfig> items) async {
     // 1. Snappiness First: Immediately emit events to UI streams for maximum responsiveness
     _dashboardController.add(items);
+
+    if (kIsWeb) return;
 
     // 2. Buffer state in memory
     _pendingItems = items;
@@ -102,13 +162,19 @@ class LocalDashboardStore {
 
   /// Transaction-safe teardown: synchronous flush of any pending writes during application shutdown.
   void dispose() {
+    if (kIsWeb) {
+      _dashboardController.close();
+      return;
+    }
     if (_writeTimer != null && _writeTimer!.isActive) {
       _writeTimer?.cancel();
       final itemsToSave = _pendingItems;
       if (itemsToSave != null) {
         try {
           final file = File(_filePath);
-          final encoded = jsonEncode(itemsToSave.map((e) => e.toJson()).toList());
+          final encoded = jsonEncode(
+            itemsToSave.map((e) => e.toJson()).toList(),
+          );
           file.writeAsStringSync(encoded, flush: true);
         } catch (e) {
           // Silent catch for OS disk write stability
