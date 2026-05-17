@@ -29,6 +29,8 @@ class TestPageView extends StatelessWidget {
             slots[TestPageModel.card1Id] ?? const SizedBox.shrink(),
             const SizedBox(height: 40),
             slots[TestPageModel.workSettingId] ?? const SizedBox.shrink(),
+            const SizedBox(height: 40),
+            slots[TestPageModel.explorerId] ?? const SizedBox.shrink(),
           ],
         ),
       ),

@@ -16,6 +16,7 @@ abstract class FocusSyntax {
   static const String dynamicPortal = '*->';
   static const String staticPortal = '->';
   static const String room = '/';
+  static const String dynamicRoom = '/*';
   static const String zone = '+';
   static const String staticNode = '*';
 }
@@ -59,7 +60,9 @@ class BuildingMap {
 
     'custom_setting': ['*setting_a', '*setting_b', '*setting_c'],
 
-    'testPage': ['*card1', '/work_setting'],
+    'testPage': ['*card1', '/explorer'],
+    'explorer': ['/*', '*'],
+
     'work_setting': ['*work_a', '*work_b', '/work_grop'],
     'work_grop': ['*work_c', '*work_d'],
 
@@ -78,6 +81,9 @@ class BuildingMap {
 
   // --- O(1) 缓存表 ---
   static final Map<String, String> _parentCache = {};
+  static final Map<String, String> _dynamicParentCache = {};
+  static final Set<String> _terminalRoomsCache = {};
+  static const int _maxDynamicCacheSize = 500;
   static final Map<String, String> _entryNodeCache = {};
   static final Set<String> _zoneCache = {};
   static bool _initialized = false;
@@ -105,7 +111,22 @@ class BuildingMap {
     _initialized = true;
   }
 
-  static bool isRoom(String id) => structure.containsKey(id);
+  static bool isRoom(String id, {String? inRoomId}) {
+    _ensureInitialized();
+    if (structure.containsKey(id)) return true;
+    
+    // 如果已知父房间，检查父房间是否允许动态子房间
+    if (inRoomId != null) {
+      final items = _getEffectiveItems(inRoomId);
+      if (items != null && items.contains(FocusSyntax.dynamicRoom)) {
+        return true;
+      }
+    }
+
+    // 检查是否已经动态注册过
+    return _parentCache.containsKey(id) || _dynamicParentCache.containsKey(id);
+  }
+
   static bool isZone(String id) {
     _ensureInitialized();
     return _zoneCache.contains(id);
@@ -113,7 +134,31 @@ class BuildingMap {
 
   static String? getParentRoom(String id) {
     _ensureInitialized();
-    return _parentCache[id];
+    return _parentCache[id] ?? _dynamicParentCache[id];
+  }
+
+  /// 动态注册父子关系（用于动态生成的文件夹/房间）
+  /// [asTerminalRoom] - 标记为终端叶子房间，阻断继承父级的通配符结构
+  static void registerDynamicParent(String childId, String parentId, {bool asTerminalRoom = false}) {
+    _ensureInitialized();
+    if (_parentCache.containsKey(childId)) return;
+
+    // LRU 策略：更新最近使用顺序
+    _dynamicParentCache.remove(childId);
+    _dynamicParentCache[childId] = parentId;
+
+    if (asTerminalRoom) {
+      _terminalRoomsCache.add(childId);
+    } else {
+      _terminalRoomsCache.remove(childId);
+    }
+
+    // 容量控制，防止缓慢的内存泄漏
+    if (_dynamicParentCache.length > _maxDynamicCacheSize) {
+      final oldest = _dynamicParentCache.keys.first;
+      _dynamicParentCache.remove(oldest);
+      _terminalRoomsCache.remove(oldest);
+    }
   }
 
   static String? getEntryNodeForRoom(String parentRoomId, String targetRoomId) {
@@ -121,14 +166,32 @@ class BuildingMap {
     return _entryNodeCache[_entryNodeKey(parentRoomId, targetRoomId)];
   }
 
-  static List<String> getMembers(String roomId) {
+  /// 获取房间的有效成员列表（支持递归继承）
+  static List<String>? _getEffectiveItems(String roomId) {
+    // 1. 尝试获取显式定义的成员
     final items = structure[roomId];
+    if (items != null) return items;
+
+    // 2. 尝试从父房间继承通配符结构
+    final parentId = getParentRoom(roomId);
+    if (parentId != null) {
+      final parentItems = _getEffectiveItems(parentId);
+      // 如果父级包含 /* 通配符，则子级继承该结构
+      if (parentItems != null && parentItems.contains(FocusSyntax.dynamicRoom)) {
+        return parentItems;
+      }
+    }
+    return null;
+  }
+
+  static List<String> getMembers(String roomId) {
+    final items = _getEffectiveItems(roomId);
     if (items == null) return [];
     return items.map((item) => _normalizeMember(item)).toList();
   }
 
   static String? resolveNavTarget(String currentRoomId, String buttonId) {
-    final items = structure[currentRoomId];
+    final items = _getEffectiveItems(currentRoomId);
     if (items == null) return null;
     for (final item in items) {
       final link = _parseNavLink(item);
@@ -141,7 +204,7 @@ class BuildingMap {
     String currentRoomId,
     String buttonId,
   ) {
-    final items = structure[currentRoomId];
+    final items = _getEffectiveItems(currentRoomId);
     if (items == null) return null;
     if (items.contains('${FocusSyntax.staticPortal}$buttonId')) return buttonId;
     for (final item in items) {
@@ -160,12 +223,20 @@ class BuildingMap {
   }
 
   static String? resolveRoomEntry(String currentRoomId, String buttonId) {
-    final items = structure[currentRoomId];
+    final items = _getEffectiveItems(currentRoomId);
     if (items == null) return null;
+
+    // 静态匹配：/id 或 +id
     if (items.contains('${FocusSyntax.room}$buttonId') ||
         items.contains('${FocusSyntax.zone}$buttonId')) {
       return buttonId;
     }
+
+    // 动态匹配：如果当前房间支持动态子房间 (/*)
+    if (items.contains(FocusSyntax.dynamicRoom)) {
+      return buttonId;
+    }
+
     return null;
   }
 

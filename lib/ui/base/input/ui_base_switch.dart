@@ -243,6 +243,19 @@ class SuperFocusSelect<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (id.isEmpty) {
+      // 如果 ID 为空，则作为焦点透明的卡片直接渲染内容（不生成额外的房间和门控）
+      return ThemeIdentity(
+        role: ThemeRole.card,
+        child: Builder(
+          builder: (context) {
+            final material = context.useTheme();
+            return _buildCardFrame(context, false, material);
+          },
+        ),
+      );
+    }
+
     return FocusIdentity(
       id: id,
       focusGeometry: const RoundedRectFocusGeometry(

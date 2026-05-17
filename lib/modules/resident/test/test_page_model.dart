@@ -2,6 +2,7 @@
 class TestPageModel {
   // --- Room IDs ---
   static const String testPageId = 'testPage';
+  static const String explorerId = 'explorer';
   static const String workSettingId = 'work_setting';
   static const String workGropId = 'work_grop';
 
@@ -14,6 +15,7 @@ class TestPageModel {
 
   // --- Titles ---
   static const String testPageTitle = 'NESTED ROOM TEST';
+  static const String explorerTitle = 'DYNAMIC EXPLORER';
   static const String workSettingTitle = 'WORK SETTING (LEVEL 2)';
   static const String workGropTitle = 'WORK GROP (LEVEL 3)';
 }

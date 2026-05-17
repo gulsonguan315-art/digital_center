@@ -353,7 +353,7 @@ class SuperFocusManager with FocusTraceLogger {
   /// 保留向后兼容，内部委托给 onBackCommand()
   void onBack(BuildContext context) => onBackCommand();
 
-  void onAction(String sourceRoom, String id) {
+  void onAction(String sourceRoom, String id, {bool asTerminalRoom = false}) {
     _lastActionSource = '[$sourceRoom:$id]';
     final String? portalTarget = BuildingMap.resolvePortalDestination(sourceRoom, id);
     if (portalTarget != null) {
@@ -371,6 +371,14 @@ class SuperFocusManager with FocusTraceLogger {
     final String? roomTarget = BuildingMap.resolveRoomEntry(sourceRoom, id);
     if (roomTarget != null) {
       logRoomAction(sourceRoom, id, roomTarget);
+      
+      // ✅ 关键：动态报备父子关系，确保 Back 逻辑能通过 _parentCache 飞回来
+      // 传入 asTerminalRoom 标识，防止死胡同房间无限继承动态通配符
+      BuildingMap.registerDynamicParent(roomTarget, sourceRoom, asTerminalRoom: asTerminalRoom);
+      
+      // ✅ 关键：立即更新拓扑状态，让 UI 渲染出子房间内容
+      onRoomEnter(roomTarget, printLog: false);
+      
       intentionRoomId.value = roomTarget;
       _executeSearch(roomTarget);
       return;
@@ -379,12 +387,13 @@ class SuperFocusManager with FocusTraceLogger {
     final String? navTarget = BuildingMap.resolveNavTarget(sourceRoom, id);
     if (navTarget != null) {
       logRoomAction(sourceRoom, id, navTarget);
+      onRoomEnter(navTarget, printLog: false);
       intentionRoomId.value = navTarget;
       _executeSearch(navTarget);
       return;
     }
 
-    if (BuildingMap.isRoom(id)) {
+    if (BuildingMap.isRoom(id, inRoomId: sourceRoom)) {
       logUnauthorizedAction(sourceRoom, id);
     }
   }

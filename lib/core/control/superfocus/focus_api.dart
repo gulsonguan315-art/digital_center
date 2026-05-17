@@ -16,8 +16,9 @@ export 'focus_geometry.dart'
 /// 3. 【暴露命令】UI 发号施令的唯一遥控器
 abstract class FocusAPI {
   /// 发送焦点动作意图
-  static void dispatchAction(String currentRoom, String id) {
-    SuperFocusManager.instance.onAction(currentRoom, id);
+  /// [asTerminalRoom] - 如果进入的是一个死胡同/预览房间，设置为 true 可阻断动态子房间继承
+  static void dispatchAction(String currentRoom, String id, {bool asTerminalRoom = false}) {
+    SuperFocusManager.instance.onAction(currentRoom, id, asTerminalRoom: asTerminalRoom);
   }
 
   /// 手动请求返回

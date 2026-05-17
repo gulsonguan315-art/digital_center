@@ -6,6 +6,7 @@ import 'test_page_callback.dart';
 import 'test_page_view.dart';
 import 'views_components/work_setting_view.dart';
 import 'views_components/work_grop_view.dart';
+import 'views_components/explorer_view.dart';
 
 /// 测试页总承包商
 class TestPageRoom extends StatelessWidget {
@@ -21,8 +22,22 @@ class TestPageRoom extends StatelessWidget {
         backgroundColor: Colors.transparent,
         body: TestPageView(
           slots: {
-            TestPageModel.card1Id: _buildLeaf(TestPageModel.card1Id, 'CARD 1'),
-            TestPageModel.workSettingId: const WorkSettingRoom(),
+            TestPageModel.card1Id: _buildLeaf(TestPageModel.card1Id, 'ROOT CARD'),
+            
+            // 入口门控：负责开启 explorer 房间
+            TestPageModel.explorerId: FocusIdentity(
+              id: TestPageModel.explorerId,
+              onPressed: () => FocusAPI.dispatchAction(roomId, TestPageModel.explorerId),
+              builder: (context, hasFocus) => DynamicExplorerRoom(
+                roomId: TestPageModel.explorerId,
+                hasFocus: hasFocus,
+              ),
+            ),
+
+            TestPageModel.workSettingId: FocusIdentity(
+              id: TestPageModel.workSettingId,
+              builder: (context, hasFocus) => const WorkSettingRoom(),
+            ),
           },
         ),
       ),
@@ -30,31 +45,41 @@ class TestPageRoom extends StatelessWidget {
   }
 }
 
-/// 第二层房间承包商
+/// 动态房间容器：仅负责 SuperFocusRoom，不再内部加门，避免 ID 冲突
+class DynamicExplorerRoom extends StatelessWidget {
+  final String roomId;
+  final bool hasFocus;
+  const DynamicExplorerRoom({super.key, required this.roomId, this.hasFocus = false});
+
+  @override
+  Widget build(BuildContext context) {
+    return SuperFocusRoom(
+      id: roomId,
+      child: ExplorerView(roomId: roomId),
+    );
+  }
+}
+
+/// 第二层房间承包商 (静态)
 class WorkSettingRoom extends StatelessWidget {
   const WorkSettingRoom({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return FocusIdentity(
+    return SuperFocusRoom(
       id: TestPageModel.workSettingId,
-      builder: (context, hasFocus) {
-        return SuperFocusRoom(
-          id: TestPageModel.workSettingId,
-          child: WorkSettingView(
-            slots: {
-              TestPageModel.workAId: _buildLeaf(TestPageModel.workAId, 'WORK A'),
-              TestPageModel.workBId: _buildLeaf(TestPageModel.workBId, 'WORK B'),
-              TestPageModel.workGropId: const WorkGropRoom(),
-            },
-          ),
-        );
-      },
+      child: WorkSettingView(
+        slots: {
+          TestPageModel.workAId: _buildLeaf(TestPageModel.workAId, 'WORK A'),
+          TestPageModel.workBId: _buildLeaf(TestPageModel.workBId, 'WORK B'),
+          TestPageModel.workGropId: const WorkGropRoom(),
+        },
+      ),
     );
   }
 }
 
-/// 第三层房间承包商
+/// 第三层房间承包商 (静态)
 class WorkGropRoom extends StatelessWidget {
   const WorkGropRoom({super.key});
 
