@@ -1,5 +1,3 @@
-import 'package:flutter/material.dart';
-
 /// 舞台防区枚举
 enum StageZone {
   /// 常规主舞台：受 Padding 约束，与侧边栏并排，带圆角，作为应用主要展示区。

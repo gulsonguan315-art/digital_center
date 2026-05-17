@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '../../../../core/control/superfocus/focus_api.dart';
 import '../../../../ui/base/surface/group_frame.dart';
 import '../../../../core/engine/theme/theme_api.dart';
-import '../test_page_model.dart';
 import '../test_page_callback.dart';
 import '../test_page_room.dart';
 
@@ -16,7 +15,7 @@ class ExplorerView extends StatelessWidget {
   Widget build(BuildContext context) {
     // 关键：根据当前房间 ID 获取模拟数据
     final List<MockFileItem> items = TestPageCallback.getItemsFor(roomId);
-    
+
     return GroupFrame(
       title: 'ROOM: $roomId (${items.length} items)',
       child: Column(
@@ -27,7 +26,7 @@ class ExplorerView extends StatelessWidget {
               padding: EdgeInsets.all(20),
               child: Text('EMPTY FOLDER', style: TextStyle(color: Colors.grey)),
             ),
-          
+
           Wrap(
             spacing: 15,
             runSpacing: 15,
@@ -52,7 +51,11 @@ class ExplorerView extends StatelessWidget {
           onPressed: () {
             // 触发进入动作
             // 如果是文件（非文件夹），将其标记为死胡同房间，阻断继承
-            FocusAPI.dispatchAction(roomId, item.id, asTerminalRoom: !item.isFolder);
+            FocusAPI.dispatchAction(
+              roomId,
+              item.id,
+              asTerminalRoom: !item.isFolder,
+            );
           },
           builder: (context, hasFocus) {
             return _ItemBox(
@@ -63,7 +66,7 @@ class ExplorerView extends StatelessWidget {
             );
           },
         ),
-        
+
         // 递归渲染子房间
         if (item.isFolder && isActive) ...[
           const SizedBox(height: 10),
@@ -100,12 +103,16 @@ class _ItemBox extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         // 如果被激活（正在其子文件夹中），显示特殊背景
-        color: hasFocus 
-            ? colors.accent 
-            : (isActive ? colors.accent.withValues(alpha: 0.2) : colors.surface),
+        color: hasFocus
+            ? colors.accent
+            : (isActive
+                  ? colors.accent.withValues(alpha: 0.2)
+                  : colors.surface),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: hasFocus ? Colors.white : (isActive ? colors.accent : colors.border),
+          color: hasFocus
+              ? Colors.white
+              : (isActive ? colors.accent : colors.border),
           width: 2,
         ),
       ),
@@ -113,7 +120,9 @@ class _ItemBox extends StatelessWidget {
         label,
         style: TextStyle(
           color: hasFocus ? Colors.white : colors.textPrimary,
-          fontWeight: isActive || hasFocus ? FontWeight.bold : FontWeight.normal,
+          fontWeight: isActive || hasFocus
+              ? FontWeight.bold
+              : FontWeight.normal,
         ),
       ),
     );
