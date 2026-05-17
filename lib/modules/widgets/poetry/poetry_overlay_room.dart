@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../../core/data/data_manager.dart';
 import '../../../core/data/models/poetry_data.dart';
 import '../../../core/control/superfocus/focus_manager.dart'; // 🌟 引入焦点管理器以触发 backCommand
+import '../../../core/control/superfocus/focus_api.dart';
 import '../../../core/control/superfocus/focus_widgets.dart';
 import '../../../core/engine/theme/theme_api.dart';
 import '../../../ui/base/text/surface_text.dart';
@@ -352,6 +353,9 @@ class _PoetryOverlayContentState extends State<PoetryOverlayContent>
       child: FocusIdentity(
         id: 'poetry_line_$index',
         onPressed: () => _toggleLine(index),
+        focusGeometry: RoundedRectFocusGeometry(
+          borderRadius: theme.shape.radius as BorderRadius,
+        ),
         builder: (context, hasFocus) {
           // 👑 东方轻奢美学金箔勾勒高亮效果
           final Color inkGold = Colors.amber.shade700;

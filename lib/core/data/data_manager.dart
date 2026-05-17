@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
@@ -40,6 +41,19 @@ class DataManager {
   /// 暴露异步初始化入口，供 main() 显式阻塞等待偏好配置加载（避免冷启动主题闪烁）
   Future<void> init() async {
     await _restoreSystemSettings();
+    try {
+      final endpoints = await _localStore.endpoints.readData();
+      _remoteClient.apiBaseUrl = endpoints.poetryBaseUrl;
+      
+      // 🚀 打印当前配置来源提醒 (Print dynamic API endpoints configuration source info)
+      final String rawPath = '${_localStore.endpoints.configDirPath}/api_endpoints.json';
+      final String formattedPath = Platform.isWindows ? rawPath.replaceAll('/', '\\') : rawPath.replaceAll('\\', '/');
+      print('🚀 [System] Loaded API endpoints from: $formattedPath | Poetry Base URL: ${endpoints.poetryBaseUrl}');
+      Log.d(LogGroup.network, 'Loaded API endpoints from persistent storage. Path: $formattedPath, Poetry URL: ${endpoints.poetryBaseUrl}');
+    } catch (e) {
+      print('🚀 [System] Failed to load custom API endpoints. Using default: https://poetry.gulson.cc');
+      Log.d(LogGroup.network, 'Failed to load custom API endpoints. Using default: https://poetry.gulson.cc');
+    }
     try {
       _lastPoetry = await _localStore.poetry.readPoetry();
     } catch (_) {}

@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 
 import 'stores/local_dashboard_store.dart';
+import 'stores/local_endpoints_store.dart';
 import 'stores/local_poetry_store.dart';
 import 'stores/local_settings_store.dart';
 
@@ -16,6 +17,7 @@ class LocalConfigStore {
     dashboard = LocalDashboardStore(configDirPath: _configDirPath);
     settings = LocalSettingsStore(configDirPath: _configDirPath);
     poetry = LocalPoetryStore(configDirPath: _configDirPath); // 📂 注册诗词子仓
+    endpoints = LocalEndpointsStore(configDirPath: _configDirPath); // 📂 注册全局 API 终端子仓
   }
 
   /// 📂 看板卡片排版专属子仓
@@ -26,6 +28,9 @@ class LocalConfigStore {
 
   /// 📂 每日网络诗词专属子仓
   late final LocalPoetryStore poetry;
+
+  /// 📂 全局 API 接口终端配置专属子仓
+  late final LocalEndpointsStore endpoints;
 
   /// 获取系统 AppData 存储路径
   String get _configDirPath {

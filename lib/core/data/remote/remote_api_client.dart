@@ -7,6 +7,10 @@ import '../models/poetry_data.dart';
 /// Simulates communication with a remote cloud server (e.g., NAS, Alist, or Jellyfin).
 /// Managed exclusively by the DataManager.
 class RemoteApiClient {
+  /// The base URL for the poetry API server.
+  /// Can be overridden dynamically by DataManager loading from a local config file.
+  String apiBaseUrl = 'https://poetry.gulson.cc';
+
   /// Mocks fetching the latest dashboard layout configuration from the cloud.
   Future<List<DashboardItemConfig>> fetchDashboardLayout() async {
     // Simulate typical network latency (200ms)
@@ -21,7 +25,7 @@ class RemoteApiClient {
   Future<PoetryData> fetchTodayPoetry() async {
     try {
       final response = await http
-          .get(Uri.parse('https://poetry.gulson.cc/api/poetry/today'))
+          .get(Uri.parse('$apiBaseUrl/api/poetry/today'))
           .timeout(const Duration(seconds: 5));
       if (response.statusCode == 200) {
         // Decode body using UTF-8 explicitly to guarantee Chinese characters display correctly
@@ -41,7 +45,7 @@ class RemoteApiClient {
     try {
       final response = await http
           .post(
-            Uri.parse('https://poetry.gulson.cc/api/poetry/mark/$poemId'),
+            Uri.parse('$apiBaseUrl/api/poetry/mark/$poemId'),
             headers: {'Content-Type': 'application/json'},
             body: jsonEncode({'marked_lines': markedLines}),
           )

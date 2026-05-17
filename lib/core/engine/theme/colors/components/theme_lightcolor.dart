@@ -24,7 +24,7 @@ const lightColorLayer = ThemeColorLayer(
     backgroundFocused: Color(0x1F673AB7),
     backgroundActive: Color(0x2E673AB7),
     border: Color(0xFFFFFFFF),
-    accent: Color(0xFF673AB7),
+    accent: Color(0xFFD2691E),
     textPrimary: Color(0xFF000000),
     textSecondary: Color(0x00000000),
     textActive: Color(0xFF673AB7), // 新增
