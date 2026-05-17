@@ -7,6 +7,7 @@ import 'setting_page_callback.dart';
 import 'setting_page_view.dart';
 import 'views_components/theme_setting_view.dart';
 import 'views_components/custom_setting_view.dart';
+import 'views_components/log_setting_view.dart';
 
 /// 设置页主入口房间 (总承包商)
 class SettingPageRoom extends StatelessWidget {
@@ -24,6 +25,7 @@ class SettingPageRoom extends StatelessWidget {
         slots: {
           'theme_setting': ThemeSettingRoom(),
           'custom_setting': CustomSettingRoom(),
+          'log_setting': LogSettingRoom(),
         },
       ),
     );
@@ -118,19 +120,54 @@ class CustomSettingRoom extends StatelessWidget {
   }
 }
 
+/// 日志设置装配房间
+class LogSettingRoom extends StatelessWidget {
+  const LogSettingRoom({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: SettingPageCallback.logGroupsNotifier,
+      builder: (context, _) {
+        return FocusIdentity(
+          id: SettingPageModel.logGroupId,
+          builder: (context, hasFocus) {
+            return SuperFocusRoom(
+              id: SettingPageModel.logGroupId,
+              child: LogSettingView(
+                slots: {
+                  SettingPageModel.logSelectId: _buildSelectNode(
+                    id: '', // 让内部组件透明，直接暴露选项
+                    title: SettingPageModel.logSelectTitle,
+                    options: SettingPageModel.logOptions,
+                    // 支持多选，将 Set 转换为 List 传入
+                    selectedValues: SettingPageCallback.logGroupsNotifier.value.toList(),
+                    onToggle: SettingPageCallback.onLogGroupToggled,
+                  ),
+                },
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+}
+
 /// 核心装配逻辑：将一个普通的选择器包装成带 Room 的焦点节点
 Widget _buildSelectNode({
   required String id,
   required String title,
   required List<SelectOption<String>> options,
-  required String selectedValue,
+  String? selectedValue,
+  List<String>? selectedValues,
   required ValueChanged<String> onToggle,
 }) {
   return SuperFocusSelect<String>(
     id: id,
     title: title,
     options: options,
-    selectedValues: [selectedValue],
+    selectedValues: selectedValues ?? (selectedValue != null ? [selectedValue] : []),
     onToggle: onToggle,
     // 在这里统一处理 Sub-Room 逻辑
     roomBuilder: (child) => SuperFocusRoom(

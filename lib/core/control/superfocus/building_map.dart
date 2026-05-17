@@ -51,7 +51,7 @@ class BuildingMap {
       '*dash_energy',
     ],
 
-    'settingPage': ['/theme_setting', '/custom_setting'],
+    'settingPage': ['/theme_setting', '/custom_setting', '/log_setting'],
 
     'theme_setting': ['+color_mode', '+visual_mode', '+shape_mode'],
     'color_mode': ['*light_mode', '*night_mode'],
@@ -59,6 +59,8 @@ class BuildingMap {
     'shape_mode': ['*rightangle', '*round', '*soft'],
 
     'custom_setting': ['*setting_a', '*setting_b', '*setting_c'],
+
+    'log_setting': ['*log_focus', '*log_network', '*log_ui', '*log_system'],
 
     'testPage': ['*card1', '/explorer'],
     'explorer': ['/*', '*'],

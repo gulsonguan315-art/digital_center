@@ -13,6 +13,9 @@ class SettingPageModel {
   static const String customGroupId = 'custom_setting';
   static const String customSelectId = 'custom_setting';
 
+  static const String logGroupId = 'log_setting';
+  static const String logSelectId = 'log_setting';
+
   // --- Leaf Node IDs ---
   static const String lightModeId = 'light_mode';
   static const String nightModeId = 'night_mode';
@@ -29,6 +32,11 @@ class SettingPageModel {
   static const String settingBId = 'setting_b';
   static const String settingCId = 'setting_c';
 
+  static const String logFocusId = 'log_focus';
+  static const String logNetworkId = 'log_network';
+  static const String logUiId = 'log_ui';
+  static const String logSystemId = 'log_system';
+
   // --- Group Titles ---
   static const String themeGroupTitle = 'THEME SETTING';
   static const String colorSelectTitle = 'COLOR MODE';
@@ -37,6 +45,9 @@ class SettingPageModel {
 
   static const String customGroupTitle = 'CUSTOM SETTING';
   static const String customSelectTitle = 'CUSTOM MODE';
+
+  static const String logGroupTitle = 'LOG SETTING';
+  static const String logSelectTitle = 'ENABLED GROUPS';
 
   // --- Options Configuration ---
   
@@ -104,6 +115,29 @@ class SettingPageModel {
       value: 'c',
       label: 'SETTING C',
       id: settingCId,
+    ),
+  ];
+
+  static const List<SelectOption<String>> logOptions = [
+    SelectOption(
+      value: 'Focus',
+      label: 'FOCUS',
+      id: logFocusId,
+    ),
+    SelectOption(
+      value: 'Network',
+      label: 'NETWORK',
+      id: logNetworkId,
+    ),
+    SelectOption(
+      value: 'UI',
+      label: 'UI',
+      id: logUiId,
+    ),
+    SelectOption(
+      value: 'System',
+      label: 'SYSTEM',
+      id: logSystemId,
     ),
   ];
 }

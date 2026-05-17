@@ -1,6 +1,7 @@
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import '../superfocus/focus_api.dart';
+import '../../log/log_api.dart';
 import 'components/keyboard/keyboard_source.dart';
 
 export 'components/keyboard/keyboard_source.dart';
@@ -92,28 +93,19 @@ class SuperInputManager {
   void addSource(InputSource source) {
     _sources.add(source);
     source.attach(_handleSignal);
-    assert(() {
-      print('[DeviceManager] 已接入设备：${source.name}');
-      return true;
-    }());
+    Log.d(LogGroup.system, '已接入设备：${source.name}', subGroup: 'DeviceManager');
   }
 
   /// 卸载一个输入设备
   void removeSource(InputSource source) {
     source.detach();
     _sources.remove(source);
-    assert(() {
-      print('[DeviceManager] 已断开设备：${source.name}');
-      return true;
-    }());
+    Log.d(LogGroup.system, '已断开设备：${source.name}', subGroup: 'DeviceManager');
   }
 
   /// 接收来自任意输入源的 [InputSignal]，下发给焦点系统
   void _handleSignal(InputSignal signal) {
-    assert(() {
-      print('[DeviceManager] 信号接收：$signal');
-      return true;
-    }());
+    Log.d(LogGroup.system, '信号接收：$signal', subGroup: 'DeviceManager');
 
     switch (signal) {
       case InputSignal.up:

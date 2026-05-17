@@ -4,6 +4,7 @@ import '../control/superfocus/focus_manager.dart';
 import 'stage_models.dart';
 import 'stage_registry.dart';
 import 'stage_physical_frame.dart';
+import '../log/log_api.dart';
 
 /// 商管总调度台 (The Stage Manager Brain)
 /// 职责：打破“先有鸡还是先有蛋”的悖论，监听意图并提前施工。
@@ -30,7 +31,7 @@ class _StageViewState extends State<StageView> {
         final topology = SuperFocusManager.instance.topologyNotifier.value;
         final intentionId = SuperFocusManager.instance.intentionRoomId.value;
         
-        print('🎭 StageBrain: 收到信号! 激活点: ${topology.activeRoom}, 意图点: $intentionId');
+        Log.d(LogGroup.ui, '🎭 收到信号! 激活点: ${topology.activeRoom}, 意图点: $intentionId', subGroup: 'StageBrain');
         
         // 副作用排队
         WidgetsBinding.instance.addPostFrameCallback((_) => _syncRooms(topology, intentionId));
@@ -53,7 +54,7 @@ class _StageViewState extends State<StageView> {
 
       if (isNeeded) {
         if (!_suspendedRooms.containsKey(contract.roomId)) {
-          print('🎭 StageBrain: 🚀 意图检测/路径激活! 提前为 [${contract.roomId}] 施工...');
+          Log.d(LogGroup.ui, '🚀 意图检测/路径激活! 提前为 [${contract.roomId}] 施工...', subGroup: 'StageBrain');
           _suspendedRooms[contract.roomId] = contract.builder(context);
           needsUpdate = true;
         }
@@ -68,7 +69,7 @@ class _StageViewState extends State<StageView> {
           !activePath.contains(roomId) && 
           roomId != intentionId && 
           !contract.keepAlive) {
-        print('🎭 StageBrain: 🧹 撤场 [${roomId}]...');
+        Log.d(LogGroup.ui, '🧹 撤场 [$roomId]...', subGroup: 'StageBrain');
         idsToRemove.add(roomId);
         needsUpdate = true;
       }

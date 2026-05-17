@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../core/engine/theme/theme_provider.dart';
 import '../../../core/engine/theme/visuals/theme_visuals.dart';
 import '../../../core/engine/theme/shapes/theme_shapes.dart';
+import '../../../core/log/log_api.dart';
 
 /// 设置页面的交互回调逻辑 - 业务层 (Data Source & Action)
 class SettingPageCallback {
@@ -61,5 +62,13 @@ class SettingPageCallback {
 
   static void onCustomModeChanged(String key) {
     customModeNotifier.value = key;
+  }
+
+  // --- 日志分组动作 ---
+
+  static ValueNotifier<Set<String>> get logGroupsNotifier => Log.enabledGroupsNotifier;
+
+  static void onLogGroupToggled(String group) {
+    Log.toggle(group);
   }
 }

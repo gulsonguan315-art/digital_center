@@ -21,7 +21,15 @@ class SettingPageView extends StatelessWidget {
             // 从收纳盒中按需取件
             slots['theme_setting'] ?? const SizedBox.shrink(),
             const SizedBox(height: 64),
-            slots['custom_setting'] ?? const SizedBox.shrink(),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Flexible(child: slots['custom_setting'] ?? const SizedBox.shrink()),
+                const SizedBox(width: 40),
+                Flexible(child: slots['log_setting'] ?? const SizedBox.shrink()),
+              ],
+            ),
           ],
         ),
       ),

@@ -5,86 +5,52 @@ import 'building_map.dart';
 import 'focus_report.dart';
 import 'focus_state.dart';
 
+import '../../log/log_api.dart';
+
 mixin FocusTraceLogger {
   void logCancel(String? target) {
-    assert(() {
-      print('⏹️ 导航意图已取消：[$target]');
-      return true;
-    }());
+    Log.d(LogGroup.focus, '⏹️ 导航意图已取消：[$target]');
   }
 
   void logStatusFire(String? deactivated, String? activated) {
-    assert(() {
-      if (deactivated != null && deactivated.isNotEmpty)
-        print('状态熄灭：$deactivated');
-      if (activated != null && activated.isNotEmpty) print('状态激活：$activated');
-      return true;
-    }());
+    if (deactivated != null && deactivated.isNotEmpty) {
+      Log.d(LogGroup.focus, '状态熄灭：$deactivated');
+    }
+    if (activated != null && activated.isNotEmpty) {
+      Log.d(LogGroup.focus, '状态激活：$activated');
+    }
   }
 
   void logLanding(String? source, String roomId, String nodeId, String tag) {
-    assert(() {
-      print('4，目标回应：[$roomId] 准备就绪 (Atomic)');
-      print('5，准备跳转：${source ?? "系统"} ——> [$roomId:$nodeId] $tag');
-      print('6，成功落地：[$roomId:$nodeId]');
-      return true;
-    }());
+    Log.d(LogGroup.focus, '\n4，目标回应：[$roomId] 准备就绪 (Atomic)\n5，准备跳转：${source ?? "系统"} ——> [$roomId:$nodeId] $tag\n6，成功落地：[$roomId:$nodeId]\n---');
   }
 
   void logBackStart(String currentPos) {
-    assert(() {
-      print('---\n1，当前位置：$currentPos');
-      return true;
-    }());
+    Log.d(LogGroup.focus, '---\n1，当前位置：$currentPos');
   }
 
   void logBackIntent(String targetId, String reason) {
-    assert(() {
-      print('2，意图回归：[$targetId] ($reason)');
-      print('3，协议校验：Back 序列已启动');
-      return true;
-    }());
+    Log.d(LogGroup.focus, '2，意图回归：[$targetId] ($reason)\n3，协议校验：Back 序列已启动');
   }
 
   void logPortalReturn(String targetId, String currentPos) {
-    assert(() {
-      print('4，目标回应：[$targetId] 准备就绪 (Portal Return)');
-      print('5，准备跳转：$currentPos ——> [$targetId] (传送门节点)');
-      print('6，成功落地：[$targetId]\n---');
-      return true;
-    }());
+    Log.d(LogGroup.focus, '\n4，目标回应：[$targetId] 准备就绪 (Portal Return)\n5，准备跳转：$currentPos ——> [$targetId] (传送门节点)\n6，成功落地：[$targetId]\n---');
   }
 
   void logBackFail(String reason) {
-    assert(() {
-      print('⚠️ 返回失败：$reason\n---');
-      return true;
-    }());
+    Log.d(LogGroup.focus, '⚠️ 返回失败：$reason\n---');
   }
 
   void logPortalAction(String currentRoom, String id, String portalTarget) {
-    assert(() {
-      print('---\n1，当前位置：[$currentRoom:$id]');
-      print('2，意图房间：[Portal:$portalTarget]');
-      print('3，传送门压栈：[$currentRoom] → [$portalTarget]，Esc 可取消');
-      return true;
-    }());
+    Log.d(LogGroup.focus, '---\n1，当前位置：[$currentRoom:$id]\n2，意图房间：[Portal:$portalTarget]\n3，传送门压栈：[$currentRoom] → [$portalTarget]，Esc 可取消');
   }
 
   void logRoomAction(String currentRoom, String id, String roomTarget) {
-    assert(() {
-      print('---\n1，当前位置：[$currentRoom:$id]');
-      print('2，意图房间：[Room:$roomTarget]');
-      print('3，推门进入：[$currentRoom] → [$roomTarget]');
-      return true;
-    }());
+    Log.d(LogGroup.focus, '---\n1，当前位置：[$currentRoom:$id]\n2，意图房间：[Room:$roomTarget]\n3，推门进入：[$currentRoom] → [$roomTarget]');
   }
 
   void logUnauthorizedAction(String currentRoom, String id) {
-    assert(() {
-      print('🚨 【架构拦截报告】 检测到非授权跨域跳转！[$currentRoom] → [$id]');
-      return true;
-    }());
+    Log.d(LogGroup.focus, '🚨 【架构拦截报告】 检测到非授权跨域跳转！[$currentRoom] → [$id]');
   }
 }
 
@@ -161,6 +127,8 @@ class SuperFocusManager with FocusTraceLogger {
     policy.inDirection(primaryFocus, direction);
   }
 
+  bool _actionDispatched = false;
+
   /// 【确认指令】触发当前聚焦节点的 onPressed 及 onAction
   /// 中间态守卫：系统正在执行意图跳转时，忽略确认指令，防止重叠跳转。
   void onConfirm() {
@@ -173,10 +141,15 @@ class SuperFocusManager with FocusTraceLogger {
     final info = entry.value;
     final id = entry.key;
 
-    // 触发业务回调
+    // 触发业务回调前重置标志
+    _actionDispatched = false;
     info.onPressed?.call();
 
-    // 触发焦点导航动作
+    // 如果业务层在 onPressed 中已经手动发起了导航（例如明确传递了 asTerminalRoom 等参数），
+    // 则跳过引擎的默认自动导航，防止动作被执行两遍。
+    if (_actionDispatched) return;
+
+    // 触发默认的焦点导航动作
     final String sourceRoom =
         info.roomId.isNotEmpty ? info.roomId : (currentRoomId ?? '未知');
     if (sourceRoom != '未知') {
@@ -275,7 +248,6 @@ class SuperFocusManager with FocusTraceLogger {
       final newPath = <String>{};
       _fillAncestorPath(roomId, newPath);
 
-      print('📡 FocusSystem: 正在更新拓扑电报 -> 激活点: $roomId, 路径: $newPath');
       state.topologyNotifier.value = FocusTopology(
         activeRoom: roomId,
         activePath: newPath,
@@ -285,10 +257,6 @@ class SuperFocusManager with FocusTraceLogger {
       final activated = newPath.difference(oldPath);
 
       if (printLog && (deactivated.isNotEmpty || activated.isNotEmpty)) {
-        assert(() {
-          print('---');
-          return true;
-        }());
         logStatusFire(
           deactivated.isNotEmpty ? deactivated.toString() : null,
           activated.isNotEmpty ? activated.toString() : null,
@@ -354,6 +322,7 @@ class SuperFocusManager with FocusTraceLogger {
   void onBack(BuildContext context) => onBackCommand();
 
   void onAction(String sourceRoom, String id, {bool asTerminalRoom = false}) {
+    _actionDispatched = true;
     _lastActionSource = '[$sourceRoom:$id]';
     final String? portalTarget = BuildingMap.resolvePortalDestination(sourceRoom, id);
     if (portalTarget != null) {
