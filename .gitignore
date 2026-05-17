@@ -46,3 +46,8 @@ app.*.map.json
 
 # User backup
 Reference/
+build/
+ios/
+linux/
+macos/
+web/
