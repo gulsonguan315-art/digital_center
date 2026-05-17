@@ -6,8 +6,10 @@ import '../../../core/control/superfocus/focus_manager.dart';
 import '../../../core/engine/theme/theme_api.dart';
 import '../../../core/layout/grid/grid_extensions.dart';
 import '../../widgets/clock/clock_view.dart';
+import '../../widgets/poetry/poetry_view.dart';
 import 'engine/dashboard_controller.dart';
-import 'engine/dashboard_models.dart';
+
+import '../../../core/data/data_manager.dart';
 
 class DashboardView extends StatefulWidget {
   const DashboardView({super.key});
@@ -23,44 +25,7 @@ class _DashboardViewState extends State<DashboardView> {
   @override
   void initState() {
     super.initState();
-    _controller = DashboardController();
-    _controller.setItems([
-      const DashboardItemConfig(
-        id: 'dash_weather',
-        x: 0,
-        y: 0,
-        spanX: 2,
-        spanY: 2,
-      ),
-      const DashboardItemConfig(
-        id: 'dash_music',
-        x: 2,
-        y: 1,
-        spanX: 1,
-        spanY: 1,
-      ),
-      const DashboardItemConfig(
-        id: 'dash_clock',
-        x: 2,
-        y: 0,
-        spanX: 2,
-        spanY: 1,
-      ),
-      const DashboardItemConfig(
-        id: 'dash_stats',
-        x: 3,
-        y: 1,
-        spanX: 1,
-        spanY: 1,
-      ),
-      const DashboardItemConfig(
-        id: 'dash_lights',
-        x: 0,
-        y: 2,
-        spanX: 4,
-        spanY: 1,
-      ),
-    ]);
+    _controller = DashboardController(DataManager.instance);
   }
 
   @override
@@ -244,9 +209,9 @@ class _DashboardViewState extends State<DashboardView> {
                                         material.shape.radius as BorderRadius,
                                   ),
                                   builder: (context, hasFocus) {
-                                    // 1. 业务组件地图：DashboardView 只负责查表，不负责画画
                                     final Map<String, Widget> registry = {
                                       'dash_clock': const ClockView(),
+                                      'dash_poetry': const PoetryView(),
                                       // 以后这里可以加 'dash_weather': const WeatherView(), 等
                                     };
 

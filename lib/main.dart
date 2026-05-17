@@ -10,11 +10,15 @@ import 'core/engine/theme/theme_factory.dart';
 import 'ui/visual/cursor/floating_cursor.dart';
 import 'ui/pages/building_page.dart';
 
+import 'core/data/data_manager.dart';
 import 'core/stage/stage_initializer.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('zh_CN', null);
+  
+  // 0. 初始化大管家并阻塞等待加载偏好（避免冷启动主题闪烁）
+  await DataManager.instance.init();
   
   // 1. 初始化舞台调度中心 (招商登记)
   StageInitializer.init();

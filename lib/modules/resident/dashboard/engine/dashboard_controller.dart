@@ -1,9 +1,20 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+
+import '../../../../core/data/data_manager.dart';
 import 'dashboard_models.dart';
 import 'dashboard_grid_engine.dart';
 
 /// Simplified controller for Dashboard state and interactions.
+/// Cleanly decoupled: depends exclusively on the centralized DataManager.
 class DashboardController extends ChangeNotifier {
+  final DataManager _dataManager;
+  StreamSubscription<List<DashboardItemConfig>>? _subscription;
+
+  DashboardController(this._dataManager) {
+    _subscribeToDataManager();
+  }
+
   List<DashboardItemConfig> _items = [];
   List<DashboardItemConfig> get items => _items;
 
@@ -17,11 +28,24 @@ class DashboardController extends ChangeNotifier {
   String? _grabbedItemId;
   String? get grabbedItemId => _grabbedItemId;
 
+  void _subscribeToDataManager() {
+    _subscription = _dataManager.watchDashboardItems().listen((newItems) {
+      // 🛡️ Interaction Gate (交互栅栏机制)：
+      // 只有在非编辑模式且没有抓取任何卡片时，才接收后台SWR流式同步，防止正在编辑的卡片重置或闪烁！
+      if (!_isEditMode && _grabbedItemId == null) {
+        _items = newItems;
+        notifyListeners();
+      }
+    });
+  }
+
   void setEditMode(bool value) {
     if (_isEditMode == value) return;
     _isEditMode = value;
     if (!_isEditMode) {
       _grabbedItemId = null;
+      // 退出编辑模式时，安全保存最终布局到本地数据库
+      _dataManager.saveDashboardItems(_items);
     }
     notifyListeners();
   }
@@ -29,25 +53,19 @@ class DashboardController extends ChangeNotifier {
   void toggleGrabItem(String id) {
     if (_grabbedItemId == id) {
       _grabbedItemId = null;
-      finalizeLayout(); // 摆放完毕，运行重力下拽沉降
+      finalizeLayout(); // 摆放完毕，运行重力下拽沉降并安全落锁保存
     } else {
       _grabbedItemId = id;
     }
     notifyListeners();
   }
 
-  void setItems(List<DashboardItemConfig> newItems) {
-    _items = DashboardGridEngine.applyGravity(newItems);
-    notifyListeners();
-  }
-
-  /// Updates an item's position during drag.
+  /// Updates an item's position during drag or keyboard move.
   void updateItemPosition(String id, int newX, int newY) {
     final index = _items.indexWhere((item) => item.id == id);
     if (index == -1) return;
 
     final item = _items[index];
-    // Check for boundaries (e.g., 0 <= x < gridColumns)
     if (newX < 0) newX = 0;
     if (newY < 0) newY = 0;
 
@@ -79,6 +97,14 @@ class DashboardController extends ChangeNotifier {
   void finalizeLayout() {
     _items = DashboardGridEngine.applyGravity(_items);
     _activeItemId = null;
+    // 摆放落锁时，立刻将最终重力对齐后的排版写入本地持久化
+    _dataManager.saveDashboardItems(_items);
     notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _subscription?.cancel();
+    super.dispose();
   }
 }

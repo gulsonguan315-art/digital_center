@@ -1,0 +1,44 @@
+import 'dart:io';
+
+import 'stores/local_dashboard_store.dart';
+import 'stores/local_settings_store.dart';
+
+/// 👑 本地持久化主调度大管家 (Local Config Storage Coordinator)
+/// 负责全局数字中心持久化文件夹的初始化，并统一挂载注册所有具体的业务子存储仓。
+/// 遵循开闭原则 (OCP)，当新增存储需求时只需创建子仓并在此挂载，无需在此编写具体读写代码。
+class LocalConfigStore {
+  LocalConfigStore() {
+    _initDirectory();
+    dashboard = LocalDashboardStore(configDirPath: _configDirPath);
+    settings = LocalSettingsStore(configDirPath: _configDirPath);
+  }
+
+  /// 📂 看板卡片排版专属子仓
+  late final LocalDashboardStore dashboard;
+
+  /// 📂 系统偏好与日志白名单专属子仓
+  late final LocalSettingsStore settings;
+
+  /// 获取系统 AppData 存储路径
+  String get _configDirPath {
+    final String appData = Platform.environment['APPDATA'] ?? Directory.systemTemp.path;
+    return '$appData/digital_center';
+  }
+
+  /// 检查并安全初始化本地存储主目录
+  void _initDirectory() {
+    try {
+      final dir = Directory(_configDirPath);
+      if (!dir.existsSync()) {
+        dir.createSync(recursive: true);
+      }
+    } catch (e) {
+      // 容错防御：静默拦截系统级 I/O 权限异常
+    }
+  }
+
+  /// 安全释放全局防抖计时器并落锁执行各子仓的关机同步刷盘
+  void dispose() {
+    dashboard.dispose();
+  }
+}
