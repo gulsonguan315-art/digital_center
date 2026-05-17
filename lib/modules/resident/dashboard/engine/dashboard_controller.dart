@@ -14,9 +14,25 @@ class DashboardController extends ChangeNotifier {
   String? _activeItemId;
   String? get activeItemId => _activeItemId;
 
+  String? _grabbedItemId;
+  String? get grabbedItemId => _grabbedItemId;
+
   void setEditMode(bool value) {
     if (_isEditMode == value) return;
     _isEditMode = value;
+    if (!_isEditMode) {
+      _grabbedItemId = null;
+    }
+    notifyListeners();
+  }
+
+  void toggleGrabItem(String id) {
+    if (_grabbedItemId == id) {
+      _grabbedItemId = null;
+      finalizeLayout(); // 摆放完毕，运行重力下拽沉降
+    } else {
+      _grabbedItemId = id;
+    }
     notifyListeners();
   }
 
@@ -38,8 +54,8 @@ class DashboardController extends ChangeNotifier {
     _items[index] = item.copyWith(x: newX, y: newY);
     _activeItemId = id;
     
-    // We apply gravity only on drag end for stability, 
-    // or continuously if you want "live compaction".
+    // 实时触发碰撞下推排版物理
+    _items = DashboardGridEngine.adjustLayout(_items, id);
     notifyListeners();
   }
 
@@ -53,6 +69,9 @@ class DashboardController extends ChangeNotifier {
 
     _items[index] = _items[index].copyWith(spanX: spanX, spanY: spanY);
     _activeItemId = id;
+
+    // 实时触发碰撞下推排版物理
+    _items = DashboardGridEngine.adjustLayout(_items, id);
     notifyListeners();
   }
 

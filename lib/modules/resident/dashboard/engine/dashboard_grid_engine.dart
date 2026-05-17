@@ -57,4 +57,69 @@ class DashboardGridEngine {
 
     return results;
   }
+
+  /// Adjusts the layout when an item is being actively dragged, moved, or resized.
+  /// The active item is treated as a fixed obstacle, and colliding items are pushed down.
+  static List<DashboardItemConfig> adjustLayout(
+    List<DashboardItemConfig> items,
+    String activeId,
+  ) {
+    // 1. Separate the active item and other items
+    final activeItem = items.firstWhere((item) => item.id == activeId);
+    final otherItems = items.where((item) => item.id != activeId).toList();
+
+    // 2. Sort other items from top to bottom
+    otherItems.sort((a, b) => a.y != b.y ? a.y.compareTo(b.y) : a.x.compareTo(b.x));
+
+    // 3. The active item is placed first as an immovable obstacle
+    final placed = <DashboardItemConfig>[activeItem];
+
+    // 4. Place other items, pushing them down if they collide with already placed items
+    for (final item in otherItems) {
+      var currentY = item.y;
+      while (true) {
+        final hasCollision = checkCollision(
+          id: item.id,
+          x: item.x,
+          y: currentY,
+          spanX: item.spanX,
+          spanY: item.spanY,
+          items: placed,
+        );
+        if (!hasCollision) break;
+        currentY++; // Push down by 1 unit
+      }
+      placed.add(item.copyWith(y: currentY));
+    }
+
+    // 5. Compact non-active items upwards as much as possible
+    final sortedPlaced = List<DashboardItemConfig>.from(placed)
+      ..sort((a, b) => a.y != b.y ? a.y.compareTo(b.y) : a.x.compareTo(b.x));
+
+    final compacted = <DashboardItemConfig>[];
+    for (final item in sortedPlaced) {
+      if (item.id == activeId) {
+        compacted.add(item);
+        continue;
+      }
+
+      var currentY = item.y;
+      while (currentY > 0) {
+        final nextY = currentY - 1;
+        final collision = checkCollision(
+          id: item.id,
+          x: item.x,
+          y: nextY,
+          spanX: item.spanX,
+          spanY: item.spanY,
+          items: compacted,
+        );
+        if (collision) break;
+        currentY = nextY;
+      }
+      compacted.add(item.copyWith(y: currentY));
+    }
+
+    return compacted;
+  }
 }

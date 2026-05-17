@@ -109,17 +109,29 @@ class _SidebarRoomState extends State<SidebarRoom> {
 
   Map<String, Widget> _buildTiles(BuildContext context, String autofocusId) {
     final Map<String, Widget> slots = {};
-    void collect(List<SidebarItemModel> items) {
+    void collect(List<SidebarItemModel> items, {String? parentRoomId}) {
       for (final item in items) {
-        slots[item.id] = _buildSingleTile(context, item, autofocusId);
-        if (item.children != null) collect(item.children!);
+        slots[item.id] = _buildSingleTile(
+          context,
+          item,
+          autofocusId,
+          parentRoomId: parentRoomId,
+        );
+        if (item.children != null) {
+          collect(item.children!, parentRoomId: item.id);
+        }
       }
     }
-    collect(SidebarModel.menuItems);
+    collect(SidebarModel.menuItems, parentRoomId: SidebarModel.sidebarRoomId);
     return slots;
   }
 
-  Widget _buildSingleTile(BuildContext context, SidebarItemModel item, String autofocusId) {
+  Widget _buildSingleTile(
+    BuildContext context,
+    SidebarItemModel item,
+    String autofocusId, {
+    String? parentRoomId,
+  }) {
     final hasChildren = item.children != null && item.children!.isNotEmpty;
     return SidebarTile(
       id: item.id,
@@ -133,7 +145,7 @@ class _SidebarRoomState extends State<SidebarRoom> {
             _expandedZoneId = (_expandedZoneId == item.id) ? null : item.id;
           });
         } else {
-          SidebarCallback.onNavigate(item.id);
+          SidebarCallback.onNavigate(item.id, parentRoomId: parentRoomId);
         }
       },
     );
