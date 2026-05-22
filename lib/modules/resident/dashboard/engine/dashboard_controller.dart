@@ -21,18 +21,14 @@ class DashboardController extends ChangeNotifier {
   bool _isEditMode = false;
   bool get isEditMode => _isEditMode;
 
-  /// ID of the item currently being dragged or resized.
-  String? _activeItemId;
-  String? get activeItemId => _activeItemId;
-
   String? _grabbedItemId;
   String? get grabbedItemId => _grabbedItemId;
 
   void _subscribeToDataManager() {
     _subscription = _dataManager.watchDashboardItems().listen((newItems) {
       // 🛡️ Interaction Gate (交互栅栏机制)：
-      // 只有在非编辑模式且没有抓取任何卡片时，才接收后台SWR流式同步，防止正在编辑的卡片重置或闪烁！
-      if (!_isEditMode && _grabbedItemId == null) {
+      // 只有在没有抓取任何卡片进行拖拽/缩放时，才接收外部或后台SWR流式同步，防止正在交互的卡片重置
+      if (_grabbedItemId == null) {
         _items = newItems;
         notifyListeners();
       }
@@ -45,7 +41,7 @@ class DashboardController extends ChangeNotifier {
     if (!_isEditMode) {
       _grabbedItemId = null;
       // 退出编辑模式时，安全保存最终布局到本地数据库
-      _dataManager.saveDashboardItems(_items);
+      _dataManager.saveDashboardLayout(_items);
     }
     notifyListeners();
   }
@@ -70,7 +66,6 @@ class DashboardController extends ChangeNotifier {
     if (newY < 0) newY = 0;
 
     _items[index] = item.copyWith(x: newX, y: newY);
-    _activeItemId = id;
     
     // 实时触发碰撞下推排版物理
     _items = DashboardGridEngine.adjustLayout(_items, id);
@@ -86,7 +81,6 @@ class DashboardController extends ChangeNotifier {
     if (spanY < 1) spanY = 1;
 
     _items[index] = _items[index].copyWith(spanX: spanX, spanY: spanY);
-    _activeItemId = id;
 
     // 实时触发碰撞下推排版物理
     _items = DashboardGridEngine.adjustLayout(_items, id);
@@ -96,9 +90,8 @@ class DashboardController extends ChangeNotifier {
   /// Finalizes any interaction and settles the layout.
   void finalizeLayout() {
     _items = DashboardGridEngine.applyGravity(_items);
-    _activeItemId = null;
     // 摆放落锁时，立刻将最终重力对齐后的排版写入本地持久化
-    _dataManager.saveDashboardItems(_items);
+    _dataManager.saveDashboardLayout(_items);
     notifyListeners();
   }
 

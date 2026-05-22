@@ -1,10 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/control/superfocus/focus_api.dart';
-import '../../widgets/clock/clock_view.dart';
-import '../../widgets/poetry/poetry_view.dart';
-import '../../widgets/system_monitor/system_monitor_view.dart';
-import '../../widgets/widget_manager/widget_manager_view.dart';
 import 'dashboard_model.dart';
 import 'dashboard_view.dart';
 
@@ -21,12 +17,9 @@ class DashboardRoom extends StatelessWidget {
     return SuperFocusRoom(
       id: DashboardModel.dashboardPageId,
       child: child ??
-          const DashboardView(
+          DashboardView(
             slots: {
-              DashboardModel.clockCardId: ClockView(),
-              DashboardModel.poetryCardId: PoetryView(),
-              DashboardModel.systemMonitorCardId: SystemMonitorView(),
-              DashboardModel.widgetManagerCardId: WidgetManagerView(),
+              for (final card in DashboardModel.registry) card.id: card.widget,
             },
           ),
     );

@@ -5,6 +5,8 @@ import '../../../core/control/superfocus/focus_widgets.dart';
 import '../../../core/engine/theme/theme_api.dart';
 import '../../../ui/base/text/surface_text.dart';
 import '../../../ui/base/surface/dashboard_card.dart';
+import '../../resident/dashboard/dashboard_model.dart';
+import '../../resident/dashboard/engine/dashboard_grid_engine.dart';
 
 /// 📂 挂件中控枢纽磁贴 (Widget Control Center Card Room)
 /// 既是 Dashboard 上的一个 4x1 卡片，同时也是一个独立的 SuperFocus 子房间。
@@ -25,23 +27,8 @@ class _WidgetManagerPanel extends StatelessWidget {
   const _WidgetManagerPanel();
 
   /// 可定制挂件静态元数据清单
-  static const List<_CardMeta> _cards = [
-    _CardMeta(
-      id: 'dash_clock',
-      title: '极简时钟',
-      icon: Icons.access_time_rounded,
-    ),
-    _CardMeta(
-      id: 'dash_poetry',
-      title: '每日诗词',
-      icon: Icons.auto_stories_rounded,
-    ),
-    _CardMeta(
-      id: 'dash_system_monitor',
-      title: '系统监控',
-      icon: Icons.developer_board_rounded,
-    ),
-  ];
+  static List<DashboardCardMeta> get _cards =>
+      DashboardModel.registry.where((c) => c.showInManager).toList();
 
   /// 切换挂件启用/禁用状态，并触发响应式写库与 SWR 同步
   void _toggleWidget(String id, List<DashboardItemConfig> currentConfigs) {
@@ -50,8 +37,11 @@ class _WidgetManagerPanel extends StatelessWidget {
       final oldItem = currentConfigs[index];
       final updated = oldItem.copyWith(enabled: !oldItem.enabled);
       
-      final updatedList = List<DashboardItemConfig>.from(currentConfigs)
+      var updatedList = List<DashboardItemConfig>.from(currentConfigs)
         ..[index] = updated;
+
+      // 🌟 当更改启用状态时，重新运行网格重力沉降，使布局紧凑并避开潜在的位置重叠
+      updatedList = DashboardGridEngine.applyGravity(updatedList);
 
       // 瞬间保存，主网格与控制面板同步响应式刷新
       DataManager.instance.saveDashboardItems(updatedList);
@@ -300,17 +290,7 @@ class _WidgetManagerPanel extends StatelessWidget {
   }
 }
 
-class _CardMeta {
-  final String id;
-  final String title;
-  final IconData icon;
 
-  const _CardMeta({
-    required this.id,
-    required this.title,
-    required this.icon,
-  });
-}
 
 /// 呼吸状态绿灯
 class _StatusDot extends StatefulWidget {

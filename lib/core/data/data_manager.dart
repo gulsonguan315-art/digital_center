@@ -124,7 +124,26 @@ class DataManager {
   /// 业务层向总管理员申请：将磁贴数据落锁保存进专属排版子仓中
   Future<void> saveDashboardItems(List<DashboardItemConfig> items) async {
     _lastLayout = items; // 🌟 瞬间缓存
-    await _localStore.dashboard.writeDashboardItems(items);
+    await _localStore.dashboard.writeDashboardItemsDebounced(items);
+  }
+
+  /// 业务层向总管理员申请：仅更新排版坐标和大小（x, y, spanX, spanY），
+  /// 保持当前最新实时的启用状态（enabled）不被覆盖。
+  Future<void> saveDashboardLayout(List<DashboardItemConfig> layoutItems) async {
+    final currentItems = List<DashboardItemConfig>.from(latestLayout);
+    for (final layoutItem in layoutItems) {
+      final idx = currentItems.indexWhere((e) => e.id == layoutItem.id);
+      if (idx != -1) {
+        currentItems[idx] = currentItems[idx].copyWith(
+          x: layoutItem.x,
+          y: layoutItem.y,
+          spanX: layoutItem.spanX,
+          spanY: layoutItem.spanY,
+        );
+      }
+    }
+    _lastLayout = currentItems; // 🌟 瞬间缓存
+    await _localStore.dashboard.writeDashboardItemsDebounced(currentItems);
   }
 
   /// 后台异步云端同步逻辑
@@ -133,7 +152,7 @@ class DataManager {
       final freshItems = await _remoteClient.fetchDashboardLayout();
       _lastLayout = freshItems; // 🌟 内存高保真缓存
       // 如果云端拉取到了新排版，立刻覆写本地缓存并广播（触发UI响应式热更新）
-      await _localStore.dashboard.writeDashboardItems(freshItems);
+      await _localStore.dashboard.writeDashboardItemsDebounced(freshItems);
     } catch (e) {
       // 静默吞下异常，不干扰前台已正常渲染的本地缓存数据
     }
@@ -286,5 +305,10 @@ class DataManager {
   Future<void> saveSettings(SystemSettings settings) async {
     await _localStore.settings.writeSystemSettings(settings);
     _applySettingsToEngine(settings);
+  }
+
+  /// 释放大管家持有的底层存储并落锁执行临终同步刷盘
+  void dispose() {
+    _localStore.dispose();
   }
 }

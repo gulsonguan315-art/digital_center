@@ -15,6 +15,7 @@ class DashboardGridEngine {
   }) {
     for (final other in items) {
       if (other.id == id) continue;
+      if (!other.enabled) continue; // 🛡️ Ignore disabled cards in collision check
       
       // Standard AABB collision check in grid coordinates
       final overlap = !(x + spanX <= other.x ||
@@ -27,15 +28,56 @@ class DashboardGridEngine {
     return false;
   }
 
-  /// Compacts items upwards to fill gaps, maintaining their relative order.
+  /// Compacts items upwards to fill gaps, maintaining their relative order and resolving any starting overlaps.
   static List<DashboardItemConfig> applyGravity(List<DashboardItemConfig> items) {
-    // Sort by Y then X to process top-to-bottom
+    // 1. Sort by Y then X to process top-to-bottom (with a deterministic ID tie-breaker)
     final sorted = List<DashboardItemConfig>.from(items)
-      ..sort((a, b) => a.y != b.y ? a.y.compareTo(b.y) : a.x.compareTo(b.x));
+      ..sort((a, b) {
+        if (a.y != b.y) return a.y.compareTo(b.y);
+        if (a.x != b.x) return a.x.compareTo(b.x);
+        return a.id.compareTo(b.id);
+      });
 
-    final results = <DashboardItemConfig>[];
+    final placed = <DashboardItemConfig>[];
 
+    // 2. First Pass: Settle initial positions. If any item overlaps with already placed items,
+    // push it down until it finds a collision-free slot.
     for (final item in sorted) {
+      if (!item.enabled) {
+        placed.add(item);
+        continue;
+      }
+      var currentY = item.y;
+      while (true) {
+        final hasCollision = checkCollision(
+          id: item.id,
+          x: item.x,
+          y: currentY,
+          spanX: item.spanX,
+          spanY: item.spanY,
+          items: placed,
+        );
+        if (!hasCollision) break;
+        currentY++; // Resolve overlap by pushing down
+      }
+      placed.add(item.copyWith(y: currentY));
+    }
+
+    // 3. Second Pass: Apply upward gravity compaction to pull everything up tightly
+    final results = <DashboardItemConfig>[];
+    
+    // Sort again to ensure we process top-to-bottom after push-downs (with a deterministic ID tie-breaker)
+    placed.sort((a, b) {
+      if (a.y != b.y) return a.y.compareTo(b.y);
+      if (a.x != b.x) return a.x.compareTo(b.x);
+      return a.id.compareTo(b.id);
+    });
+
+    for (final item in placed) {
+      if (!item.enabled) {
+        results.add(item);
+        continue;
+      }
       var currentY = item.y;
 
       // Try moving up until a collision occurs or we hit the top
@@ -76,6 +118,11 @@ class DashboardGridEngine {
 
     // 4. Place other items, pushing them down if they collide with already placed items
     for (final item in otherItems) {
+      if (!item.enabled) {
+        // Disabled items do not move or receive layout adjustments
+        placed.add(item);
+        continue;
+      }
       var currentY = item.y;
       while (true) {
         final hasCollision = checkCollision(
@@ -99,6 +146,10 @@ class DashboardGridEngine {
     final compacted = <DashboardItemConfig>[];
     for (final item in sortedPlaced) {
       if (item.id == activeId) {
+        compacted.add(item);
+        continue;
+      }
+      if (!item.enabled) {
         compacted.add(item);
         continue;
       }

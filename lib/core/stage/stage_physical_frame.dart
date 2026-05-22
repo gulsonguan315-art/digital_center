@@ -16,6 +16,7 @@ class StagePhysicalFrame extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Stack(
+      clipBehavior: Clip.none,
       children: [
         Positioned.fill(
           child: Padding(
@@ -27,9 +28,11 @@ class StagePhysicalFrame extends StatelessWidget {
               borderRadius: BorderRadius.circular(
                 context.units(StageMetrics.borderRadiusU),
               ),
+              clipBehavior: Clip.none, // 🌟 允许卡片外部阴影/高光自然向外延伸，防止在边缘处被生硬切边
               child: Material(
                 color: Colors.transparent,
                 child: Stack(
+                  clipBehavior: Clip.none,
                   children: mainStageContent,
                 ),
               ),
@@ -40,6 +43,7 @@ class StagePhysicalFrame extends StatelessWidget {
           child: Material(
             color: Colors.transparent,
             child: Stack(
+              clipBehavior: Clip.none,
               children: overlayStageContent,
             ),
           ),

@@ -19,6 +19,9 @@ void main() async {
   
   // 0. 初始化大管家并阻塞等待加载偏好（避免冷启动主题闪烁）
   await DataManager.instance.init();
+
+  // 0.5 注册应用生命周期监听，确保应用在退出/挂起时同步落锁刷盘，杜绝防抖数据丢失
+  WidgetsBinding.instance.addObserver(_AppLifecycleObserver());
   
   // 1. 初始化舞台调度中心 (招商登记)
   StageInitializer.init();
@@ -26,6 +29,16 @@ void main() async {
   // 2. 启动设备管理模块，接管所有物理输入信号
   SuperInputManager.instance.init();
   runApp(const MyApp());
+}
+
+/// 🔋 临终落锁刷盘生命周期监控器 (App Teardown Lifecycle Observer)
+class _AppLifecycleObserver extends WidgetsBindingObserver {
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused || state == AppLifecycleState.detached) {
+      DataManager.instance.dispose();
+    }
+  }
 }
 
 class MyApp extends StatelessWidget {
