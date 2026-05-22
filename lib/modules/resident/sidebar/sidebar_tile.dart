@@ -99,16 +99,16 @@ class SidebarTile extends StatelessWidget {
                     children: [
                       Icon(
                         icon,
-                        size: 20,
+                        size: context.units(SidebarMetrics.iconSizeU),
                         color: foreground,
                         shadows: shadows, // 应用拟物阴影
                       ),
-                      const SizedBox(width: 12),
+                      SizedBox(width: context.units(SidebarMetrics.iconGapU)),
                       Expanded(
                         child: SurfaceText(
                           label,
                           style: TextStyle(
-                            fontSize: 20,
+                            fontSize: context.units(SidebarMetrics.labelSizeU),
                             fontWeight: isActive
                                 ? FontWeight.bold
                                 : FontWeight.w800,

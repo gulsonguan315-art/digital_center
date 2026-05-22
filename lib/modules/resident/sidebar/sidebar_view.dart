@@ -169,6 +169,42 @@ class _SidebarBrandHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final radius = context.units(SidebarMetrics.brandPanelRadiusU);
-    return ThemeIdentity(role: ThemeRole.sidebar, layer: ThemeLayer.under, child: SidebarSurface(radius: radius, child: Container(height: context.units(SidebarMetrics.brandHeaderHeightU), padding: EdgeInsets.symmetric(horizontal: context.units(SidebarMetrics.brandPanelPaddingHorizontalU)), child: ThemeIdentity(role: ThemeRole.sidebar, layer: ThemeLayer.base, child: Row(children: [Icon(Icons.blur_on_rounded, size: 36, color: context.useTheme().colors.accent), const SizedBox(width: 14), const Expanded(child: SurfaceText('Digital. Center', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 22, letterSpacing: 1)))],))))) ;
+    return ThemeIdentity(
+      role: ThemeRole.sidebar,
+      layer: ThemeLayer.under,
+      child: SidebarSurface(
+        radius: radius,
+        child: Container(
+          height: context.units(SidebarMetrics.brandHeaderHeightU),
+          padding: EdgeInsets.symmetric(
+            horizontal: context.units(SidebarMetrics.brandPanelPaddingHorizontalU),
+          ),
+          child: ThemeIdentity(
+            role: ThemeRole.sidebar,
+            layer: ThemeLayer.base,
+            child: Row(
+              children: [
+                Icon(
+                  Icons.blur_on_rounded,
+                  size: context.units(SidebarMetrics.brandBadgeIconSizeU),
+                  color: context.useTheme().colors.accent,
+                ),
+                SizedBox(width: context.units(SidebarMetrics.brandBadgeGapU)),
+                Expanded(
+                  child: SurfaceText(
+                    'Digital. Center',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w900,
+                      fontSize: context.units(SidebarMetrics.brandTitleSizeU),
+                      letterSpacing: 1,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }

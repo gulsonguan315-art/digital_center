@@ -25,7 +25,8 @@ class LocalDashboardStore {
   static const List<DashboardItemConfig> _defaultItems = [
     DashboardItemConfig(id: 'dash_clock', x: 0, y: 0, spanX: 4, spanY: 1),
     DashboardItemConfig(id: 'dash_poetry', x: 0, y: 1, spanX: 4, spanY: 1),
-    DashboardItemConfig(id: 'dash_widget_manager', x: 0, y: 2, spanX: 4, spanY: 1),
+    DashboardItemConfig(id: 'dash_system_monitor', x: 0, y: 2, spanX: 4, spanY: 1),
+    DashboardItemConfig(id: 'dash_widget_manager', x: 0, y: 3, spanX: 4, spanY: 1),
   ];
 
   final _dashboardController =
@@ -64,10 +65,11 @@ class LocalDashboardStore {
           .map((e) => DashboardItemConfig.fromJson(e as Map<String, dynamic>))
           .toList();
 
-      // 🛡️ Clean up and Failsafe Migration: Only keep Clock, Poetry and Widget Manager
+      // 🛡️ Clean up and Failsafe Migration: Only keep Clock, Poetry, System Monitor and Widget Manager
       final List<String> activeIds = [
         'dash_clock',
         'dash_poetry',
+        'dash_system_monitor',
         'dash_widget_manager',
       ];
       final List<DashboardItemConfig> filteredItems = items
@@ -79,7 +81,7 @@ class LocalDashboardStore {
         migrated = true;
       }
 
-      // Ensure all 3 active cards exist. If not, append them
+      // Ensure all 4 active cards exist. If not, append them
       if (!filteredItems.any((e) => e.id == 'dash_clock')) {
         filteredItems.add(
           const DashboardItemConfig(
@@ -104,12 +106,24 @@ class LocalDashboardStore {
         );
         migrated = true;
       }
+      if (!filteredItems.any((e) => e.id == 'dash_system_monitor')) {
+        filteredItems.add(
+          const DashboardItemConfig(
+            id: 'dash_system_monitor',
+            x: 0,
+            y: 2,
+            spanX: 4,
+            spanY: 1,
+          ),
+        );
+        migrated = true;
+      }
       if (!filteredItems.any((e) => e.id == 'dash_widget_manager')) {
         filteredItems.add(
           const DashboardItemConfig(
             id: 'dash_widget_manager',
             x: 0,
-            y: 2,
+            y: 3,
             spanX: 4,
             spanY: 1,
           ),

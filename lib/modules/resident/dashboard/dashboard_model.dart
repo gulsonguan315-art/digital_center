@@ -9,5 +9,6 @@ class DashboardModel {
   // --- Active Card IDs ---
   static const String clockCardId = 'dash_clock';
   static const String poetryCardId = 'dash_poetry';
+  static const String systemMonitorCardId = 'dash_system_monitor';
   static const String widgetManagerCardId = 'dash_widget_manager';
 }

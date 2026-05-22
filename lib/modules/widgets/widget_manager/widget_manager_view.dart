@@ -36,6 +36,11 @@ class _WidgetManagerPanel extends StatelessWidget {
       title: '每日诗词',
       icon: Icons.auto_stories_rounded,
     ),
+    _CardMeta(
+      id: 'dash_system_monitor',
+      title: '系统监控',
+      icon: Icons.developer_board_rounded,
+    ),
   ];
 
   /// 切换挂件启用/禁用状态，并触发响应式写库与 SWR 同步

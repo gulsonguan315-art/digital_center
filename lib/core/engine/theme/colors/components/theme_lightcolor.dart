@@ -3,7 +3,7 @@ import '../theme_colors.dart';
 
 const lightColorLayer = ThemeColorLayer(
   sidebar: RoleColors(
-    surface: Color(0xFF2F4F4F),
+    surface: Color(0xFF008080),
     foreground: Color(0xFFFFFFFF),
     foregroundActive: Color(0xFF673AB7),
     foregroundDisabled: Color(0xFF121826),
