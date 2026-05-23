@@ -42,6 +42,7 @@ class _SidebarRoomState extends State<SidebarRoom> {
                   expandedZoneId: _expandedZoneId,
                   slots: _buildTiles(context, autofocusId),
                   zoneWrappers: _buildZoneWrappers(),
+                  settingSlot: _buildSettingTile(context, autofocusId),
                   exitSlot: _buildExitTile(context, autofocusId),
                 );
               }
@@ -139,6 +140,7 @@ class _SidebarRoomState extends State<SidebarRoom> {
       icon: item.icon,
       isActive: _isItemActive(context, item.id),
       autofocus: autofocusId == item.id,
+      isExpandable: hasChildren,
       onTap: () {
         if (hasChildren) {
           setState(() {
@@ -148,6 +150,20 @@ class _SidebarRoomState extends State<SidebarRoom> {
           SidebarCallback.onNavigate(item.id, parentRoomId: parentRoomId);
         }
       },
+    );
+  }
+
+  Widget _buildSettingTile(BuildContext context, String autofocusId) {
+    return SidebarTile(
+      id: SidebarModel.settingId,
+      label: SidebarModel.settingItem.label,
+      icon: SidebarModel.settingItem.icon,
+      isActive: _isItemActive(context, SidebarModel.settingId),
+      autofocus: autofocusId == SidebarModel.settingId,
+      onTap: () => SidebarCallback.onNavigate(
+        SidebarModel.settingId,
+        parentRoomId: SidebarModel.sidebarRoomId,
+      ),
     );
   }
 

@@ -13,6 +13,7 @@ import 'sidebar_model.dart';
 class SidebarView extends StatefulWidget {
   final Map<String, Widget> slots;
   final Map<String, Widget Function(Widget child)> zoneWrappers; // ✅ 升级为包装器函数
+  final Widget? settingSlot; // 🌟 新增：设置插槽
   final Widget? exitSlot;
   final String? activeId;
   final String? expandedZoneId;
@@ -21,6 +22,7 @@ class SidebarView extends StatefulWidget {
     super.key,
     required this.slots,
     required this.zoneWrappers,
+    this.settingSlot,
     this.exitSlot,
     this.activeId,
     this.expandedZoneId,
@@ -54,6 +56,7 @@ class _SidebarViewState extends State<SidebarView> {
       }
     }
     register(SidebarModel.menuItems);
+    _tileKeys.putIfAbsent(SidebarModel.settingId, () => GlobalKey());
     _tileKeys.putIfAbsent(SidebarModel.exitId, () => GlobalKey());
   }
 
@@ -82,6 +85,14 @@ class _SidebarViewState extends State<SidebarView> {
                 ...SidebarModel.menuItems.map((item) => _buildLayoutTree(item)),
 
                 const Spacer(),
+
+                if (widget.settingSlot != null) ...[
+                   KeyedSubtree(
+                     key: _tileKeys[SidebarModel.settingId],
+                     child: widget.settingSlot!,
+                   ),
+                   SizedBox(height: context.units(SidebarMetrics.itemGapU)),
+                ],
 
                 if (widget.exitSlot != null)
                    KeyedSubtree(

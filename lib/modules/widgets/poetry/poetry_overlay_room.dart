@@ -117,6 +117,158 @@ class _PoetryOverlayContentState extends State<PoetryOverlayContent>
     }
   }
 
+  void _showEditDialog(BuildContext context, PoetryData data) {
+    final theme = context.useTheme();
+    final colors = theme.colors;
+
+    final titleController = TextEditingController(text: data.title);
+    final authorController = TextEditingController(text: data.author);
+    final paragraphsController = TextEditingController(text: data.paragraphs.join('\n'));
+
+    showDialog(
+      context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.6),
+      builder: (context) {
+        return Center(
+          child: SizedBox(
+            width: 600,
+            child: DashboardCard(
+              layer: ThemeLayer.base,
+              padding: const EdgeInsets.all(32.0),
+              child: Material(
+                color: Colors.transparent,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Center(
+                      child: SurfaceText(
+                        '修改诗词内容',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: colors.textPrimary,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: titleController,
+                            decoration: InputDecoration(
+                              labelText: '标题',
+                              labelStyle: TextStyle(color: colors.textSecondary),
+                              enabledBorder: UnderlineInputBorder(
+                                borderSide: BorderSide(color: colors.border),
+                              ),
+                              focusedBorder: UnderlineInputBorder(
+                                borderSide: BorderSide(color: colors.accent),
+                              ),
+                            ),
+                            style: TextStyle(color: colors.textPrimary),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: TextField(
+                            controller: authorController,
+                            decoration: InputDecoration(
+                              labelText: '作者',
+                              labelStyle: TextStyle(color: colors.textSecondary),
+                              enabledBorder: UnderlineInputBorder(
+                                borderSide: BorderSide(color: colors.border),
+                              ),
+                              focusedBorder: UnderlineInputBorder(
+                                borderSide: BorderSide(color: colors.accent),
+                              ),
+                            ),
+                            style: TextStyle(color: colors.textPrimary),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+                    TextField(
+                      controller: paragraphsController,
+                      maxLines: 10,
+                      minLines: 5,
+                      decoration: InputDecoration(
+                        labelText: '诗词段落（每行一句）',
+                        labelStyle: TextStyle(color: colors.textSecondary),
+                        enabledBorder: OutlineInputBorder(
+                          borderSide: BorderSide(color: colors.border),
+                          borderRadius: theme.shape.radius as BorderRadius,
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderSide: BorderSide(color: colors.accent),
+                          borderRadius: theme.shape.radius as BorderRadius,
+                        ),
+                        alignLabelWithHint: true,
+                      ),
+                      style: TextStyle(
+                        color: colors.textPrimary,
+                        height: 1.6,
+                        letterSpacing: 1.5,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: SurfaceText(
+                            '取消',
+                            style: TextStyle(color: colors.textSecondary),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        ElevatedButton(
+                          onPressed: () {
+                            final newTitle = titleController.text.trim();
+                            final newAuthor = authorController.text.trim();
+                            final newParagraphs = paragraphsController.text
+                                .split('\n')
+                                .map((e) => e.trim())
+                                .where((e) => e.isNotEmpty)
+                                .toList();
+
+                            if (newTitle.isNotEmpty && newParagraphs.isNotEmpty) {
+                              final updated = PoetryData(
+                                id: data.id,
+                                title: newTitle,
+                                author: newAuthor.isEmpty ? '未知' : newAuthor,
+                                paragraphs: newParagraphs,
+                                date: data.date,
+                                markedLines: const [],
+                              );
+                              DataManager.instance.saveCustomPoetry(updated);
+                              Navigator.pop(context);
+                            }
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: colors.accent,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: theme.shape.radius,
+                            ),
+                          ),
+                          child: const Text('保存修改'),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   /// 安全保存并退出房间
   void _saveAndExit() {
     _triggerWriteback(); // 主动执行脏检查
@@ -183,7 +335,7 @@ class _PoetryOverlayContentState extends State<PoetryOverlayContent>
                       scale: _scaleAnimation,
                       child: SizedBox(
                         width: 800,
-                        height: 600,
+                        height: MediaQuery.of(context).size.height * 0.85,
                         child: DashboardCard(
                           layer: ThemeLayer.base,
                           padding: const EdgeInsets.all(40.0),
@@ -225,104 +377,148 @@ class _PoetryOverlayContentState extends State<PoetryOverlayContent>
                               ),
 
                               // 诗词内容交互区
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: [
-                                  // 顶部标题与落款
-                                  Center(
-                                    child: SurfaceText(
-                                      data.title,
-                                      style: TextStyle(
-                                        fontSize: 26,
-                                        fontWeight: FontWeight.w900,
-                                        color: colors.textPrimary,
-                                        letterSpacing: 3,
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Center(
-                                    child: SurfaceText(
-                                      '[ ${data.author} ]',
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w500,
-                                        color: colors.textSecondary.withValues(
-                                          alpha: 0.6,
+                              Positioned.fill(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                                  children: [
+                                    // 顶部标题与落款
+                                    Center(
+                                      child: SurfaceText(
+                                        data.title,
+                                        style: TextStyle(
+                                          fontSize: 26,
+                                          fontWeight: FontWeight.w900,
+                                          color: colors.textPrimary,
+                                          letterSpacing: 3,
                                         ),
-                                        letterSpacing: 2,
                                       ),
                                     ),
-                                  ),
-                                  const SizedBox(height: 40),
+                                    const SizedBox(height: 8),
+                                    Center(
+                                      child: SurfaceText(
+                                        '[ ${data.author} ]',
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w500,
+                                          color: colors.textSecondary.withValues(
+                                            alpha: 0.6,
+                                          ),
+                                          letterSpacing: 2,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 40),
 
-                                  // 中间列表：每一行古诗作为一个带焦点的交互行
-                                  Expanded(
-                                    child: SingleChildScrollView(
-                                      physics: const BouncingScrollPhysics(),
-                                      child: Column(
-                                        children: List.generate(
-                                          data.paragraphs.length,
-                                          (i) => _buildLineNode(
-                                            index: i,
-                                            text: data.paragraphs[i],
-                                            colors: colors,
-                                            theme: theme,
+                                    // 中间列表：每一行古诗作为一个带焦点的交互行
+                                    Expanded(
+                                      child: SingleChildScrollView(
+                                        physics: const BouncingScrollPhysics(),
+                                        child: Column(
+                                          children: List.generate(
+                                            data.paragraphs.length,
+                                            (i) => _buildLineNode(
+                                              index: i,
+                                              text: data.paragraphs[i],
+                                              colors: colors,
+                                              theme: theme,
+                                            ),
                                           ),
                                         ),
                                       ),
                                     ),
-                                  ),
 
-                                  const SizedBox(height: 24),
-                                  // 底部保存返回操作指南
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      FocusIdentity(
-                                        id: 'btn_poetry_exit',
-                                        onPressed: _saveAndExit,
-                                        builder: (context, hasFocus) {
-                                          return AnimatedContainer(
-                                            duration: const Duration(
-                                              milliseconds: 200,
-                                            ),
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 32,
-                                              vertical: 12,
-                                            ),
-                                            decoration: BoxDecoration(
-                                              color: hasFocus
-                                                  ? colors.accent
-                                                  : colors.surface,
-                                              borderRadius: theme.shape.radius,
-                                              boxShadow: hasFocus
-                                                  ? theme.visual.outerShadows
-                                                  : null,
-                                              border: Border.all(
+                                    const SizedBox(height: 24),
+                                    // 底部保存返回操作指南
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        FocusIdentity(
+                                          id: 'btn_poetry_edit',
+                                          onPressed: () => _showEditDialog(context, data),
+                                          builder: (context, hasFocus) {
+                                            return AnimatedContainer(
+                                              duration: const Duration(
+                                                milliseconds: 200,
+                                              ),
+                                              padding: const EdgeInsets.symmetric(
+                                                horizontal: 32,
+                                                vertical: 12,
+                                              ),
+                                              decoration: BoxDecoration(
                                                 color: hasFocus
                                                     ? colors.accent
-                                                    : colors.border,
-                                                width: 2,
+                                                    : colors.surface,
+                                                borderRadius: theme.shape.radius,
+                                                boxShadow: hasFocus
+                                                    ? theme.visual.outerShadows
+                                                    : null,
+                                                border: Border.all(
+                                                  color: hasFocus
+                                                      ? colors.accent
+                                                      : colors.border,
+                                                  width: 2,
+                                                ),
                                               ),
-                                            ),
-                                            child: SurfaceText(
-                                              '保存并返回 (Esc)',
-                                              style: TextStyle(
+                                              child: SurfaceText(
+                                                '修改文字',
+                                                style: TextStyle(
+                                                  color: hasFocus
+                                                      ? Colors.white
+                                                      : colors.textPrimary,
+                                                  fontWeight: FontWeight.bold,
+                                                  letterSpacing: 1.5,
+                                                  fontSize: 13,
+                                                ),
+                                              ),
+                                            );
+                                          },
+                                        ),
+                                        const SizedBox(width: 16),
+                                        FocusIdentity(
+                                          id: 'btn_poetry_exit',
+                                          onPressed: _saveAndExit,
+                                          builder: (context, hasFocus) {
+                                            return AnimatedContainer(
+                                              duration: const Duration(
+                                                milliseconds: 200,
+                                              ),
+                                              padding: const EdgeInsets.symmetric(
+                                                horizontal: 32,
+                                                vertical: 12,
+                                              ),
+                                              decoration: BoxDecoration(
                                                 color: hasFocus
-                                                    ? Colors.white
-                                                    : colors.textPrimary,
-                                                fontWeight: FontWeight.bold,
-                                                letterSpacing: 1.5,
-                                                fontSize: 13,
+                                                    ? colors.accent
+                                                    : colors.surface,
+                                                borderRadius: theme.shape.radius,
+                                                boxShadow: hasFocus
+                                                    ? theme.visual.outerShadows
+                                                    : null,
+                                                border: Border.all(
+                                                  color: hasFocus
+                                                      ? colors.accent
+                                                      : colors.border,
+                                                  width: 2,
+                                                ),
                                               ),
-                                            ),
-                                          );
-                                        },
-                                      ),
-                                    ],
-                                  ),
-                                ],
+                                              child: SurfaceText(
+                                                '保存并返回 (Esc)',
+                                                style: TextStyle(
+                                                  color: hasFocus
+                                                      ? Colors.white
+                                                      : colors.textPrimary,
+                                                  fontWeight: FontWeight.bold,
+                                                  letterSpacing: 1.5,
+                                                  fontSize: 13,
+                                                ),
+                                              ),
+                                            );
+                                          },
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
                               ),
                             ],
                           ),

@@ -33,6 +33,21 @@ class KeyboardInputSource implements InputSource, KeyEventHandler {
   @override
   KeyEventResult handleKey(FocusNode node, KeyEvent event) {
     if (event is! KeyDownEvent) return KeyEventResult.ignored;
+
+    // 🛡️ 核心安全修复：如果当前焦点在文本输入框（TextField）中，禁止全局快捷键拦截退格、回车及方向键，确保原生打字与删除正常
+    final primaryFocus = FocusManager.instance.primaryFocus;
+    if (primaryFocus != null && primaryFocus.context?.widget is EditableText) {
+      if (event.logicalKey == LogicalKeyboardKey.backspace ||
+          event.logicalKey == LogicalKeyboardKey.enter ||
+          event.logicalKey == LogicalKeyboardKey.numpadEnter ||
+          event.logicalKey == LogicalKeyboardKey.arrowLeft ||
+          event.logicalKey == LogicalKeyboardKey.arrowRight ||
+          event.logicalKey == LogicalKeyboardKey.arrowUp ||
+          event.logicalKey == LogicalKeyboardKey.arrowDown) {
+        return KeyEventResult.ignored;
+      }
+    }
+
     final signal = KeyboardTranslate.translate(event.logicalKey);
     if (signal == null) return KeyEventResult.ignored;
     _onSignal?.call(signal);

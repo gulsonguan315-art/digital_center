@@ -10,7 +10,7 @@ import '../theme_visuals.dart';
 const _baseDefaultMenu = NeumorphPhysics(
   shadowOffsetX: 10.0,
   shadowOffsetY: -10.0,
-  shadowAlpha: 0.6,
+  shadowAlpha: 0.4,
   shadowBlur: 10.0,
   highlightOffsetX: 10.0,
   highlightOffsetY: -5.0,
@@ -38,10 +38,10 @@ const _underDefaultMenu = NeumorphPhysics(
 );
 
 const _underSidebarMenu = NeumorphPhysics(
-  shadowOffsetX: 8.0,
-  shadowOffsetY: -8.0,
-  shadowAlpha: 0.6,
-  shadowBlur: 5.0,
+  shadowOffsetX: 6.0,
+  shadowOffsetY: -6.0,
+  shadowAlpha: 0.4,
+  shadowBlur: 3.0,
   highlightOffsetX: 2.0, // 右下方高光
   highlightOffsetY: -2.0,
   highlightAlpha: 0.5,

@@ -4,7 +4,6 @@ import '../../../core/layout/grid/grid_extensions.dart';
 import '../../../core/control/superfocus/focus_api.dart';
 import '../../../ui/base/text/surface_text.dart';
 import 'sidebar_metrics.dart';
-
 class SidebarTile extends StatelessWidget {
   const SidebarTile({
     super.key,
@@ -14,6 +13,7 @@ class SidebarTile extends StatelessWidget {
     this.isActive = false,
     this.isDisabled = false,
     this.autofocus = false,
+    this.isExpandable = false,
     this.onTap,
   });
 
@@ -23,6 +23,7 @@ class SidebarTile extends StatelessWidget {
   final bool isActive;
   final bool isDisabled;
   final bool autofocus;
+  final bool isExpandable;
   final VoidCallback? onTap;
 
   Color _resolveForeground(RoleColors colors) {
@@ -120,7 +121,16 @@ class SidebarTile extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      if (isActive)
+                      const SizedBox(width: 4),
+                      Icon(
+                        isExpandable
+                            ? Icons.keyboard_arrow_down_rounded
+                            : Icons.keyboard_arrow_right_rounded,
+                        size: 14,
+                        color: foreground.withValues(alpha: 0.5),
+                      ),
+                      if (isActive) ...[
+                        const SizedBox(width: 6),
                         Container(
                           width: 4,
                           height: 4,
@@ -129,6 +139,7 @@ class SidebarTile extends StatelessWidget {
                             shape: BoxShape.circle,
                           ),
                         ),
+                      ],
                     ],
                   ),
                 ),

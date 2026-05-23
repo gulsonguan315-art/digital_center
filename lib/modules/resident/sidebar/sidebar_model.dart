@@ -70,12 +70,13 @@ class SidebarModel {
         SidebarItemModel(id: '人文', label: 'Humanities', icon: Icons.account_balance_rounded),
       ],
     ),
-    SidebarItemModel(
-      id: settingId,
-      label: 'setting',
-      icon: Icons.settings_rounded,
-    ),
   ];
+
+  static const SidebarItemModel settingItem = SidebarItemModel(
+    id: settingId,
+    label: 'setting',
+    icon: Icons.settings_rounded,
+  );
 
   static const SidebarItemModel exitItem = SidebarItemModel(
     id: exitId,

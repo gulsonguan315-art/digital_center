@@ -50,7 +50,7 @@ class DashboardModel {
       id: poetryCardId,
       title: '每日诗词',
       icon: Icons.auto_stories_rounded,
-      defaultConfig: const DashboardItemConfig(id: poetryCardId, x: 0, y: 1, spanX: 4, spanY: 1),
+      defaultConfig: const DashboardItemConfig(id: poetryCardId, x: 0, y: 1, spanX: 3, spanY: 2),
       widget: const PoetryView(),
     ),
     DashboardCardMeta(

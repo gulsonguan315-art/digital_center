@@ -58,11 +58,19 @@ class PoetryData {
         other.title == title &&
         other.author == author &&
         other.date == date &&
+        listEquals(other.paragraphs, paragraphs) && // 🌟 对段落内容执行深比较
         listEquals(other.markedLines, markedLines); // 🌟 对列表行号执行深比较去重
   }
 
   @override
   int get hashCode {
-    return Object.hash(id, title, author, date, Object.hashAll(markedLines));
+    return Object.hash(
+      id,
+      title,
+      author,
+      date,
+      Object.hashAll(paragraphs),
+      Object.hashAll(markedLines),
+    );
   }
 }

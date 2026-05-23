@@ -59,4 +59,34 @@ class RemoteApiClient {
       rethrow;
     }
   }
+
+  /// Sends the customized poetry content to the remote server to persist.
+  /// Points natively to POST /api/poetry/custom/{poem_id}
+  Future<void> uploadPoemCustom(
+    String poemId,
+    List<String> paragraphs, {
+    String? title,
+    String? author,
+  }) async {
+    try {
+      final response = await http
+          .post(
+            Uri.parse('$apiBaseUrl/api/poetry/custom/$poemId'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({
+              'paragraphs': paragraphs,
+              'title': title,
+              'author': author,
+            }),
+          )
+          .timeout(const Duration(seconds: 5));
+      if (response.statusCode != 200) {
+        throw Exception(
+          'Server failed to persist custom content: ${response.statusCode}',
+        );
+      }
+    } catch (e) {
+      rethrow;
+    }
+  }
 }

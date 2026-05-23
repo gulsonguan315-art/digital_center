@@ -14,7 +14,7 @@ class PoetryView extends StatelessWidget {
   String _formatPoetryContent(List<String> paragraphs, List<int> markedLines) {
     if (paragraphs.isEmpty) return '';
 
-    // 🌟 核心设计：如果有用户标记高亮过的诗句，则 Dashboard 上仅收拢展示这些“专属划线格言”
+    // 🌟 核心设计：如果有用户标记高亮过的诗句，则仅展示专属划线
     if (markedLines.isNotEmpty) {
       final List<String> curated = [];
       for (final idx in markedLines) {
@@ -25,16 +25,32 @@ class PoetryView extends StatelessWidget {
       return curated.join('\n');
     }
 
-    // 🌟 兜底逻辑：若尚未打标，则默认按两两合并的对联模式展示全文，维持视觉张力
-    if (paragraphs.length <= 2) return paragraphs.join(' ');
-    final List<String> lines = [];
-    for (int i = 0; i < paragraphs.length; i += 2) {
-      if (i + 1 < paragraphs.length) {
-        lines.add('${paragraphs[i]}${paragraphs[i + 1]}');
-      } else {
-        lines.add(paragraphs[i]);
-      }
+    // 🌟 兜底与排版逻辑：按照句号（。/？/！）进行物理换行展示，抛弃强行两两合并的粗暴排版
+    final String fullText = paragraphs.join('').trim();
+    String formatted;
+    if (fullText.contains('。') || fullText.contains('？') || fullText.contains('！')) {
+      formatted = fullText
+          .replaceAll('。', '。\n')
+          .replaceAll('？', '？\n')
+          .replaceAll('！', '！\n')
+          .replaceAll('\n\n', '\n') // 防御处理，避免产生双重换行
+          .trim();
+    } else {
+      formatted = paragraphs.join('\n');
     }
+
+    // 🌟 限高要求：无高亮显示全文时，默认最多显示 6 行，未显完则第 7 行显示省略号
+    final List<String> lines = formatted
+        .split('\n')
+        .map((l) => l.trim())
+        .where((l) => l.isNotEmpty)
+        .toList();
+    if (lines.length > 6) {
+      final List<String> truncated = lines.take(6).toList();
+      truncated.add('...');
+      return truncated.join('\n');
+    }
+
     return lines.join('\n');
   }
 
