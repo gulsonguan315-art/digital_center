@@ -4,11 +4,17 @@ class ApiEndpoints {
   final String poetryBaseUrl;
   final String weatherBaseUrl; // 预留天气 API
   final String mediaBaseUrl;   // 预留多媒体 API
+  final String gonicBaseUrl;
+  final String gonicUsername;
+  final String gonicPassword;
 
   const ApiEndpoints({
     required this.poetryBaseUrl,
     this.weatherBaseUrl = '',
     this.mediaBaseUrl = '',
+    this.gonicBaseUrl = 'http://192.168.0.2:4747',
+    this.gonicUsername = 'gulson',
+    this.gonicPassword = 'a130s339',
   });
 
   factory ApiEndpoints.fromJson(Map<String, dynamic> json) {
@@ -18,6 +24,11 @@ class ApiEndpoints {
       ),
       weatherBaseUrl: _sanitizeUrl(json['weather_api_base'] as String? ?? ''),
       mediaBaseUrl: _sanitizeUrl(json['media_api_base'] as String? ?? ''),
+      gonicBaseUrl: _sanitizeUrl(
+        json['gonic_api_base'] as String? ?? 'http://192.168.0.2:4747',
+      ),
+      gonicUsername: json['gonic_username'] as String? ?? 'gulson',
+      gonicPassword: json['gonic_password'] as String? ?? 'a130s339',
     );
   }
 
@@ -25,11 +36,17 @@ class ApiEndpoints {
     'poetry_api_base': poetryBaseUrl,
     'weather_api_base': weatherBaseUrl,
     'media_api_base': mediaBaseUrl,
+    'gonic_api_base': gonicBaseUrl,
+    'gonic_username': gonicUsername,
+    'gonic_password': gonicPassword,
   };
 
   /// 默认内置公网域名配置 (Out-of-the-box Defaults)
   static const ApiEndpoints defaultEndpoints = ApiEndpoints(
     poetryBaseUrl: 'https://poetry.gulson.cc',
+    gonicBaseUrl: 'http://192.168.0.2:4747',
+    gonicUsername: 'gulson',
+    gonicPassword: 'a130s339',
   );
 
   /// 🛡️ URL 自愈清洗器 (Automatic Url Sanitization Filter)

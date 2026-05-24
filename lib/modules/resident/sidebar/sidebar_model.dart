@@ -50,15 +50,7 @@ class SidebarModel {
     SidebarItemModel(
       id: musicId,
       label: 'music',
-      icon: Icons.auto_stories_rounded,
-      isZone: true,
-      children: [
-        SidebarItemModel(id: '宫', label: '宫', icon: Icons.bookmark_rounded),
-        SidebarItemModel(id: '商', label: '商', icon: Icons.bookmark_rounded),
-        SidebarItemModel(id: '角', label: '角', icon: Icons.bookmark_rounded),
-        SidebarItemModel(id: '徵', label: '徵', icon: Icons.bookmark_rounded),
-        SidebarItemModel(id: '羽', label: '羽', icon: Icons.bookmark_rounded),
-      ],
+      icon: Icons.library_music_rounded,
     ),
     SidebarItemModel(
       id: bookId,

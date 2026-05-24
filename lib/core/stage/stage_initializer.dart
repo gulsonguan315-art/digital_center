@@ -1,4 +1,5 @@
 import '../../modules/resident/dashboard/dashboard_page.dart';
+import '../../modules/resident/music/music_page.dart'; // 🌟 引入音乐中心房间
 import '../../modules/resident/settings/setting_page.dart';
 import '../../modules/resident/test/test_page.dart';
 import '../../modules/widgets/poetry/poetry_overlay_room.dart'; // 🌟 引入诗词沉浸Overlay
@@ -15,6 +16,15 @@ class StageInitializer {
         zone: StageZone.main,
         keepAlive: true,
         builder: (context) => const DashboardRoom(),
+      ),
+    );
+
+    StageRegistry.register(
+      StageContract(
+        roomId: MusicRoom.roomId,
+        zone: StageZone.main,
+        keepAlive: true,
+        builder: (context) => const MusicRoom(),
       ),
     );
 

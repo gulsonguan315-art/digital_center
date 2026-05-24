@@ -30,15 +30,16 @@ class BuildingMap {
     'sidebar': [
       '*dashboard=>dashboardPage',
       '+media',
-      '+music',
+      '*music=>musicPage',
       '+book',
       '*setting=>settingPage',
       '*exit',
     ],
 
     'media': ['*mov', '*tv', '*ani', '*doc', '*adt'],
-    'music': ['*宫', '*商', '*角', '*徵', '*羽'],
     'book': ['*科幻', '*人文=>testPage'],
+
+    'musicPage': ['*'],
 
     'dashboardPage': [
       '*dash_weather',
