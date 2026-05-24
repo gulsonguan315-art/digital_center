@@ -12,6 +12,8 @@ import 'repositories/dashboard_repository.dart';
 import 'repositories/poetry_repository.dart';
 import 'repositories/settings_repository.dart';
 import 'repositories/music_repository.dart';
+import 'repositories/weather_repository.dart';
+import 'models/weather_data.dart';
 
 /// 【数据的总管理员】(Centralized Data Manager - Lightweight Facade)
 /// 业务层所有的数据请求、更新、修改均向此管理员发起。
@@ -26,6 +28,7 @@ class DataManager {
     SettingsRepository.instance = SettingsRepository(_localStore);
     DashboardRepository.instance = DashboardRepository(_localStore, _remoteClient);
     MusicRepository.instance = MusicRepository(_localStore);
+    WeatherRepository.instance = WeatherRepository(_localStore);
   }
 
   /// 全局唯一单例入口，业务层通过 DataManager.instance 统一访问
@@ -37,6 +40,7 @@ class DataManager {
   // 🌟 向下兼容高保真缓存属性
   PoetryData get latestPoetry => PoetryRepository.instance.latestPoetry;
   List<DashboardItemConfig> get latestLayout => DashboardRepository.instance.latestLayout;
+  WeatherData? get latestWeather => WeatherRepository.instance.cachedData;
 
   /// 暴露异步初始化入口，供 main() 显式阻塞等待偏好配置加载（避免冷启动主题闪烁）
   Future<void> init() async {
@@ -62,6 +66,7 @@ class DataManager {
     // 3. 异步引导加载子仓内存缓存
     await PoetryRepository.instance.init();
     await DashboardRepository.instance.init();
+    await WeatherRepository.instance.init();
   }
 
   // ===========================================================================
@@ -109,6 +114,16 @@ class DataManager {
 
   Future<void> saveMusicConfig(MusicConfig config) =>
       MusicRepository.instance.saveMusicConfig(config);
+
+  // ===========================================================================
+  // 天气预报代理 API (Weather Proxy API)
+  // ===========================================================================
+
+  Stream<WeatherData?> watchWeather() =>
+      WeatherRepository.instance.watchWeather();
+
+  Future<WeatherData?> fetchWeather({bool force = false}) =>
+      WeatherRepository.instance.fetchWeather(force: force);
 
   /// 释放大管家持有的底层存储并落锁执行临终同步刷盘
   void dispose() {

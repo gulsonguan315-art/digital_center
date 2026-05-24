@@ -6,6 +6,7 @@ import 'stores/local_endpoints_store.dart';
 import 'stores/local_music_store.dart';
 import 'stores/local_poetry_store.dart';
 import 'stores/local_settings_store.dart';
+import 'stores/local_weather_store.dart';
 
 /// 👑 本地持久化主调度大管家 (Local Config Storage Coordinator)
 /// 负责全局数字中心持久化文件夹的初始化，并统一挂载注册所有具体的业务子存储仓。
@@ -20,6 +21,7 @@ class LocalConfigStore {
     poetry = LocalPoetryStore(configDirPath: _configDirPath); // 📂 注册诗词子仓
     endpoints = LocalEndpointsStore(configDirPath: _configDirPath); // 📂 注册全局 API 终端子仓
     music = LocalMusicStore(configDirPath: _configDirPath); // 🎵 注册音乐子仓
+    weather = LocalWeatherStore(configDirPath: _configDirPath); // 🌤️ 注册天气缓存子仓
   }
 
   /// 📂 看板卡片排版专属子仓
@@ -36,6 +38,9 @@ class LocalConfigStore {
 
   /// 🎵 音乐模块播放状态和选中目录专属子仓
   late final LocalMusicStore music;
+
+  /// 🌤️ 气象数据专属子仓
+  late final LocalWeatherStore weather;
 
   /// 获取系统 AppData 存储路径
   String get _configDirPath {

@@ -1,7 +1,6 @@
 import 'package:flutter/foundation.dart';
 import '../../../../core/data/repositories/music_repository.dart';
 import '../../../../core/data/models/music_data.dart';
-import '../../../../core/data/data_manager.dart';
 
 /// 📂 独立的播放列表控制器 (Isolated Playlist Controller)
 ///
@@ -20,10 +19,10 @@ class MusicPlaylistController {
   final Set<String> activeFolderIds = {};
 
   final VoidCallback onUpdate;
-  
+
   /// 当需要停止当前播放并选定新歌时回调
   final void Function(MusicTrack track) onTrackSelected;
-  
+
   /// 当播放列表清空时回调
   final VoidCallback onPlaylistEmptied;
 
@@ -56,8 +55,10 @@ class MusicPlaylistController {
         onUpdate();
         for (final id in activeFolderIds) {
           if (!_folderTracksMap.containsKey(id)) {
-            final contents = await MusicRepository.instance.fetchDirectoryContents(id);
-            _folderTracksMap[id] = contents['tracks'] as List<MusicTrack>? ?? [];
+            final contents = await MusicRepository.instance
+                .fetchDirectoryContents(id);
+            _folderTracksMap[id] =
+                contents['tracks'] as List<MusicTrack>? ?? [];
           }
         }
         isLoadingTracks = false;
@@ -72,7 +73,10 @@ class MusicPlaylistController {
     }
   }
 
-  Future<void> toggleFolder(String folderId, {VoidCallback? onConfigChange}) async {
+  Future<void> toggleFolder(
+    String folderId, {
+    VoidCallback? onConfigChange,
+  }) async {
     if (folderId.isEmpty) return;
 
     if (activeFolderIds.contains(folderId)) {
@@ -80,7 +84,7 @@ class MusicPlaylistController {
     } else {
       activeFolderIds.add(folderId);
     }
-    
+
     // 通知外部保存持久化
     onConfigChange?.call();
 
@@ -89,8 +93,11 @@ class MusicPlaylistController {
 
     try {
       if (!_folderTracksMap.containsKey(folderId)) {
-        final contents = await MusicRepository.instance.fetchDirectoryContents(folderId);
-        _folderTracksMap[folderId] = contents['tracks'] as List<MusicTrack>? ?? [];
+        final contents = await MusicRepository.instance.fetchDirectoryContents(
+          folderId,
+        );
+        _folderTracksMap[folderId] =
+            contents['tracks'] as List<MusicTrack>? ?? [];
       }
       isLoadingTracks = false;
       _rebuildPlaylist(autoSelectFirst: true);
@@ -117,7 +124,7 @@ class MusicPlaylistController {
       // 如果重建列表后发现需要选歌，则选第一首。
       // 这里简略处理，外部（PlaybackController）可以自己决定是否重新选歌。
     }
-    
+
     onUpdate();
   }
 }

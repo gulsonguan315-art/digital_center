@@ -26,7 +26,7 @@ const nightColorLayer = ThemeColorLayer(
     border: Color(0xFFFFFFFF),
     accent: Color(0xFFFF9800),
     textPrimary: Color(0xFFFFFFFF),
-    textSecondary: Color(0xFFFFFFFF),
+    textSecondary: Color(0x99FFFFFF),
     textActive: Color(0xFFFF9800),    // 新增
     textFocused: Color(0xFFFF9800),   // 新增
   ),

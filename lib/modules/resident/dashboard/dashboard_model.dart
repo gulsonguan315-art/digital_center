@@ -4,6 +4,7 @@ import '../../widgets/clock/clock_view.dart';
 import '../../widgets/poetry/poetry_view.dart';
 import '../../widgets/system_monitor/system_monitor_view.dart';
 import '../../widgets/widget_manager/widget_manager_view.dart';
+import '../../widgets/weather/weather_view.dart';
 
 /// 📂 看板卡片元数据 (Dashboard Card Metadata)
 class DashboardCardMeta {
@@ -36,6 +37,7 @@ class DashboardModel {
   static const String poetryCardId = 'dash_poetry';
   static const String systemMonitorCardId = 'dash_system_monitor';
   static const String widgetManagerCardId = 'dash_widget_manager';
+  static const String weatherCardId = 'dash_weather';
 
   // --- Unified Registry (The ONLY place to change when adding/modifying cards) ---
   static final List<DashboardCardMeta> registry = [
@@ -67,6 +69,13 @@ class DashboardModel {
       defaultConfig: const DashboardItemConfig(id: widgetManagerCardId, x: 0, y: 3, spanX: 4, spanY: 1),
       widget: const WidgetManagerView(),
       showInManager: false, // The manager card doesn't need to show a switch inside itself
+    ),
+    DashboardCardMeta(
+      id: weatherCardId,
+      title: '天气看板',
+      icon: Icons.cloud_rounded,
+      defaultConfig: const DashboardItemConfig(id: weatherCardId, x: 0, y: 4, spanX: 4, spanY: 2),
+      widget: const WeatherView(),
     ),
   ];
 

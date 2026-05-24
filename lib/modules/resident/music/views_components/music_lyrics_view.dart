@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../../../core/data/models/music_data.dart';
 import 'lrc_parser.dart';
 
 /// 📜 Zone：music_lyrics (无焦点)
@@ -53,61 +52,70 @@ class MusicLyricsView extends StatelessWidget {
                     ),
                   )
                 : parsedLyrics.isEmpty
-                    ? Center(
-                        child: Text(
-                          '暂无播放歌曲',
-                          style: TextStyle(color: colors.textSecondary, fontSize: 13),
-                        ),
-                      )
-                    : ShaderMask(
-                        shaderCallback: (rect) => const LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            Colors.transparent,
-                            Colors.black,
-                            Colors.black,
-                            Colors.transparent,
-                          ],
-                          stops: [0.0, 0.15, 0.85, 1.0],
-                        ).createShader(rect),
-                        blendMode: BlendMode.dstIn,
-                        child: LayoutBuilder(
-                          builder: (context, constraints) {
-                            return ListView.builder(
-                              controller: scrollController,
-                              padding: EdgeInsets.symmetric(
-                                vertical: constraints.maxHeight / 2 - 18.0 > 0 ? constraints.maxHeight / 2 - 18.0 : 0,
-                              ),
-                              itemCount: parsedLyrics.length,
-                              itemBuilder: (context, index) {
-                                final isActive = index == activeLyricIndex;
-                                return Container(
-                                  height: 36,
-                                  alignment: Alignment.center,
-                                  child: AnimatedScale(
-                                    duration: const Duration(milliseconds: 250),
-                                    scale: isActive ? 1.12 : 1.0,
-                                    child: Text(
-                                      parsedLyrics[index].text,
-                                      textAlign: TextAlign.center,
-                                      style: TextStyle(
-                                        color: isActive
-                                            ? colors.accent
-                                            : colors.textSecondary.withValues(alpha: 0.8),
-                                        fontSize: isActive ? 15 : 13,
-                                        fontWeight: isActive ? FontWeight.w900 : FontWeight.w500,
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
+                ? Center(
+                    child: Text(
+                      '暂无播放歌曲',
+                      style: TextStyle(
+                        color: colors.textSecondary,
+                        fontSize: 13,
+                      ),
+                    ),
+                  )
+                : ShaderMask(
+                    shaderCallback: (rect) => const LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.transparent,
+                        Colors.black,
+                        Colors.black,
+                        Colors.transparent,
+                      ],
+                      stops: [0.0, 0.15, 0.85, 1.0],
+                    ).createShader(rect),
+                    blendMode: BlendMode.dstIn,
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        return ListView.builder(
+                          controller: scrollController,
+                          padding: EdgeInsets.symmetric(
+                            vertical: constraints.maxHeight / 2 - 18.0 > 0
+                                ? constraints.maxHeight / 2 - 18.0
+                                : 0,
+                          ),
+                          itemCount: parsedLyrics.length,
+                          itemBuilder: (context, index) {
+                            final isActive = index == activeLyricIndex;
+                            return Container(
+                              height: 36,
+                              alignment: Alignment.center,
+                              child: AnimatedScale(
+                                duration: const Duration(milliseconds: 250),
+                                scale: isActive ? 1.12 : 1.0,
+                                child: Text(
+                                  parsedLyrics[index].text,
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    color: isActive
+                                        ? colors.accent
+                                        : colors.textSecondary.withValues(
+                                            alpha: 0.8,
+                                          ),
+                                    fontSize: isActive ? 15 : 13,
+                                    fontWeight: isActive
+                                        ? FontWeight.w900
+                                        : FontWeight.w500,
                                   ),
-                                );
-                              },
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
                             );
                           },
-                        ),
-                      ),
+                        );
+                      },
+                    ),
+                  ),
           ),
         ],
       ),
