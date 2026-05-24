@@ -39,7 +39,17 @@ class BuildingMap {
     'media': ['*mov', '*tv', '*ani', '*doc', '*adt'],
     'book': ['*科幻', '*人文=>testPage'],
 
-    'musicPage': ['*'],
+    'musicPage': ['/music_folder', '/music_list', '/music_control'],
+    'music_folder': ['*'],
+    'music_list': ['*'],
+    'music_control': [
+      '*music_play_mode',
+      '*music_fast_rewind',
+      '*music_prev',
+      '*music_play',
+      '*music_next',
+      '*music_fast_forward',
+    ],
 
     'dashboardPage': [
       '*dash_weather',

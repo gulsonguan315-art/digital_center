@@ -45,11 +45,11 @@ class Scoped2dScanner extends FocusTraversalPolicy {
     }).toList();
 
     if (candidates.isEmpty) return null;
-    return _chooseBestCandidate(currentNode.rect.center, candidates, direction);
+    return _chooseBestCandidate(currentNode.rect, candidates, direction);
   }
 
   FocusNode? _chooseBestCandidate(
-    Offset source,
+    Rect source,
     List<FocusNode> candidates,
     TraversalDirection direction,
   ) {
@@ -57,21 +57,43 @@ class Scoped2dScanner extends FocusTraversalPolicy {
     double minScore = double.infinity;
 
     for (final node in candidates) {
-      final target = node.rect.center;
-      final dx = (target.dx - source.dx).abs();
-      final dy = (target.dy - source.dy).abs();
+      final target = node.rect;
+      
+      final dxEdge = _intervalDistance(source.left, source.right, target.left, target.right);
+      final dyEdge = _intervalDistance(source.top, source.bottom, target.top, target.bottom);
 
-      final score = switch (direction) {
-        TraversalDirection.up || TraversalDirection.down => dy + (dx * 2.0),
-        TraversalDirection.left || TraversalDirection.right => dx + (dy * 2.0),
+      final double majorAxis = switch (direction) {
+        TraversalDirection.up || TraversalDirection.down => dyEdge,
+        TraversalDirection.left || TraversalDirection.right => dxEdge,
+      };
+      final double minorAxis = switch (direction) {
+        TraversalDirection.up || TraversalDirection.down => dxEdge,
+        TraversalDirection.left || TraversalDirection.right => dyEdge,
       };
 
-      if (score < minScore) {
+      // 采用 Android 系统的 FocusFinder 经典算法：13 * major^2 + minor^2
+      // 完美平衡 "正方向稍远" 与 "偏离轴线但更近" 之间的竞争
+      double score = 13.0 * majorAxis * majorAxis + minorAxis * minorAxis;
+
+      // 引入中心点距离作为打破平局（同在一条线上）的次要条件
+      if (score == minScore) {
+        final dCenter = (target.center - source.center).distanceSquared;
+        final bestCenter = (best!.rect.center - source.center).distanceSquared;
+        if (dCenter < bestCenter) {
+          best = node;
+        }
+      } else if (score < minScore) {
         minScore = score;
         best = node;
       }
     }
     return best;
+  }
+
+  double _intervalDistance(double min1, double max1, double min2, double max2) {
+    if (max1 < min2) return min2 - max1;
+    if (max2 < min1) return min1 - max2;
+    return 0.0;
   }
 
   @override

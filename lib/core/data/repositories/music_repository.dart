@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 import '../local/local_config_store.dart';
 import '../models/api_endpoints.dart';
 import '../models/music_data.dart';
+import '../models/music_config.dart';
 import '../../log/log.dart';
 
 /// 📂 Gonic Subsonic 音乐服务专属数据仓 (Gonic Music Domain Repository)
@@ -39,6 +40,10 @@ class MusicRepository {
     final token = _makeMd5(p + salt);
     return 'u=$u&t=$token&s=$salt&v=1.15.0&c=superfocus_app&f=json';
   }
+
+  /// 🎵 本地持久化代理接口 (Local Persistence Proxy)
+  Future<MusicConfig> getMusicConfig() => _localStore.music.readConfig();
+  Future<void> saveMusicConfig(MusicConfig config) => _localStore.music.writeConfig(config);
 
   /// 📡 1. 验证 Gonic 服务器的连通性与账号密码正确性 (Ping Connection)
   Future<bool> pingServer() async {
@@ -218,5 +223,33 @@ class MusicRepository {
       Log.d(LogGroup.network, 'Failed to fetch lyrics for: $artist - $title: $e');
     }
     return null;
+  }
+
+  /// 📡 7. 触发 Gonic 开始全库增量扫描 (Trigger Subsonic Catalog Rescan)
+  Future<bool> triggerScan() async {
+    try {
+      final endpoints = await _localStore.endpoints.readData();
+      final baseUrl = endpoints.gonicBaseUrl;
+      if (baseUrl.isEmpty) return false;
+
+      final authParams = await _buildAuthParams(endpoints);
+      final url = '$baseUrl/rest/startScan.view?$authParams';
+
+      Log.d(LogGroup.network, 'Requesting Gonic scan via startScan.view');
+      final response = await http.get(Uri.parse(url)).timeout(const Duration(seconds: 5));
+
+      if (response.statusCode == 200) {
+        final content = utf8.decode(response.bodyBytes);
+        final data = jsonDecode(content) as Map<String, dynamic>;
+        final subsonicResponse = data['subsonic-response'] as Map<String, dynamic>? ?? {};
+        final status = subsonicResponse['status'] as String? ?? 'failed';
+        Log.d(LogGroup.network, 'Gonic startScan trigger result: $status');
+        return status == 'ok';
+      }
+      return false;
+    } catch (e) {
+      Log.d(LogGroup.network, 'Failed to trigger Gonic scan: $e');
+      return false;
+    }
   }
 }

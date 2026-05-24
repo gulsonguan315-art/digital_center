@@ -6,6 +6,7 @@ import 'local/local_config_store.dart';
 import 'models/dashboard_item_config.dart';
 import 'models/poetry_data.dart';
 import 'models/system_settings.dart';
+import 'models/music_config.dart';
 import 'remote/remote_api_client.dart';
 import 'repositories/dashboard_repository.dart';
 import 'repositories/poetry_repository.dart';
@@ -51,11 +52,11 @@ class DataManager {
       
       final String rawPath = '${_localStore.endpoints.configDirPath}/api_endpoints.json';
       final String formattedPath = Platform.isWindows ? rawPath.replaceAll('/', '\\') : rawPath.replaceAll('\\', '/');
-      print('🚀 [System] Loaded API endpoints from: $formattedPath | Poetry Base URL: ${endpoints.poetryBaseUrl}');
-      Log.d(LogGroup.network, 'Loaded API endpoints from persistent storage. Path: $formattedPath, Poetry URL: ${endpoints.poetryBaseUrl}');
+      print('🚀 [System] Loaded API endpoints from: $formattedPath | Poetry: ${endpoints.poetryBaseUrl} | Gonic: ${endpoints.gonicBaseUrl}');
+      Log.d(LogGroup.network, 'Loaded API endpoints from persistent storage. Path: $formattedPath, Poetry: ${endpoints.poetryBaseUrl}, Gonic: ${endpoints.gonicBaseUrl}');
     } catch (e) {
-      print('🚀 [System] Failed to load custom API endpoints. Using default: https://poetry.gulson.cc');
-      Log.d(LogGroup.network, 'Failed to load custom API endpoints. Using default: https://poetry.gulson.cc');
+      print('🚀 [System] Failed to load custom API endpoints. Using defaults.');
+      Log.d(LogGroup.network, 'Failed to load custom API endpoints. Using defaults.');
     }
 
     // 3. 异步引导加载子仓内存缓存
@@ -98,6 +99,16 @@ class DataManager {
 
   Future<void> saveSettings(SystemSettings settings) =>
       SettingsRepository.instance.saveSettings(settings);
+
+  // ===========================================================================
+  // 音乐配置偏好代理 API (Music Config Proxy API)
+  // ===========================================================================
+
+  Future<MusicConfig> getMusicConfig() =>
+      MusicRepository.instance.getMusicConfig();
+
+  Future<void> saveMusicConfig(MusicConfig config) =>
+      MusicRepository.instance.saveMusicConfig(config);
 
   /// 释放大管家持有的底层存储并落锁执行临终同步刷盘
   void dispose() {

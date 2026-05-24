@@ -31,6 +31,12 @@ abstract final class KeyboardTranslate {
       LogicalKeyboardKey.escape => InputSignal.back,
       LogicalKeyboardKey.backspace => InputSignal.back,
 
+      // ── 全局音量控制 ───────────────────────────────────────────────────
+      LogicalKeyboardKey.numpadAdd => InputSignal.volumeUp,
+      LogicalKeyboardKey.equal => InputSignal.volumeUp, // 主键盘加号/+
+      LogicalKeyboardKey.numpadSubtract => InputSignal.volumeDown,
+      LogicalKeyboardKey.minus => InputSignal.volumeDown, // 主键盘减号/-
+
       // ── 未映射 ──────────────────────────────────────────────────────────
       _ => null,
     };

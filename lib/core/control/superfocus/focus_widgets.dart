@@ -143,6 +143,8 @@ class SuperFocusItem extends StatefulWidget {
   final bool autofocus;
   final FocusNode? focusNode;
   final FocusGeometry? focusGeometry;
+  final GlobalKey? visualBoundsKey;
+  final bool ensureVisibleCentered;
 
   const SuperFocusItem({
     super.key,
@@ -152,6 +154,8 @@ class SuperFocusItem extends StatefulWidget {
     this.autofocus = false,
     this.focusNode,
     this.focusGeometry,
+    this.visualBoundsKey,
+    this.ensureVisibleCentered = false,
   });
 
   @override
@@ -192,9 +196,20 @@ class _SuperFocusItemState extends State<SuperFocusItem> {
   void didUpdateWidget(SuperFocusItem oldWidget) {
     super.didUpdateWidget(oldWidget);
 
-    // 【修复：Stale Closure】父组件 setState 可能传入全新的 onPressed 闭包，
-    // 必须同步给管理中心，否则确认键永远触发旧状态。
-    if (oldWidget.onPressed != widget.onPressed && _registeredRoomId != null) {
+    // 【修复：ListView 复用元素导致旧 ID 残留】
+    // 列表元素被复用时，id 会发生变化，必须注销旧 ID
+    if (oldWidget.id != widget.id) {
+      SuperFocusManager.instance.unregisterNode(oldWidget.id);
+      if (_registeredRoomId != null) {
+        SuperFocusManager.instance.registerNode(
+          widget.id,
+          _focusNode,
+          _registeredRoomId!,
+          onPressed: widget.onPressed,
+        );
+      }
+    } else if (oldWidget.onPressed != widget.onPressed && _registeredRoomId != null) {
+      // 【修复：Stale Closure】父组件 setState 可能传入全新的 onPressed 闭包
       SuperFocusManager.instance.registerNode(
         widget.id,
         _focusNode,
@@ -215,14 +230,14 @@ class _SuperFocusItemState extends State<SuperFocusItem> {
     super.dispose();
   }
 
-  // 修改后
   void _reportFocus() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       // 【核心修复】：将 !_hasFocus 替换为 !_focusNode.hasPrimaryFocus
       // 绝对禁止父级“大门”因为焦点冒泡而抢夺子节点的游标！
       if (!mounted || !_focusNode.hasPrimaryFocus) return;
 
-      final renderBox = context.findRenderObject() as RenderBox?;
+      final targetContext = widget.visualBoundsKey?.currentContext ?? context;
+      final renderBox = targetContext.findRenderObject() as RenderBox?;
       if (renderBox == null || !renderBox.hasSize) return;
 
       final offset = renderBox.localToGlobal(Offset.zero);
@@ -250,7 +265,17 @@ class _SuperFocusItemState extends State<SuperFocusItem> {
       autofocus: widget.autofocus,
       onFocusChange: (focus) {
         setState(() => _hasFocus = focus);
-        if (focus) _reportFocus();
+        if (focus) {
+          if (widget.ensureVisibleCentered) {
+            Scrollable.ensureVisible(
+              context,
+              alignment: 0.5,
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.easeInOut,
+            );
+          }
+          _reportFocus();
+        }
       },
       child: widget.builder(context, _hasFocus),
     );

@@ -1,6 +1,7 @@
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import '../superfocus/focus_api.dart';
+import '../../engine/audio/app_audio_service.dart';
 import '../../log/log_api.dart';
 import 'components/keyboard/keyboard_source.dart';
 
@@ -33,6 +34,12 @@ enum InputSignal {
 
   /// 返回/取消
   back,
+
+  /// 音量加
+  volumeUp,
+
+  /// 音量减
+  volumeDown,
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -103,11 +110,17 @@ class SuperInputManager {
     Log.d(LogGroup.system, '已断开设备：${source.name}', subGroup: 'DeviceManager');
   }
 
-  /// 接收来自任意输入源的 [InputSignal]，下发给焦点系统
   void _handleSignal(InputSignal signal) {
     Log.d(LogGroup.system, '信号接收：$signal', subGroup: 'DeviceManager');
 
     switch (signal) {
+      // 全局独占信号
+      case InputSignal.volumeUp:
+        AppAudioService.instance.volumeUp();
+      case InputSignal.volumeDown:
+        AppAudioService.instance.volumeDown();
+
+      // 焦点系统信号
       case InputSignal.up:
         FocusAPI.dispatchMove(TraversalDirection.up);
       case InputSignal.down:

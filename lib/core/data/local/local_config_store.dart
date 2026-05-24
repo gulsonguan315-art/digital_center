@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 
 import 'stores/local_dashboard_store.dart';
 import 'stores/local_endpoints_store.dart';
+import 'stores/local_music_store.dart';
 import 'stores/local_poetry_store.dart';
 import 'stores/local_settings_store.dart';
 
@@ -18,6 +19,7 @@ class LocalConfigStore {
     settings = LocalSettingsStore(configDirPath: _configDirPath);
     poetry = LocalPoetryStore(configDirPath: _configDirPath); // 📂 注册诗词子仓
     endpoints = LocalEndpointsStore(configDirPath: _configDirPath); // 📂 注册全局 API 终端子仓
+    music = LocalMusicStore(configDirPath: _configDirPath); // 🎵 注册音乐子仓
   }
 
   /// 📂 看板卡片排版专属子仓
@@ -31,6 +33,9 @@ class LocalConfigStore {
 
   /// 📂 全局 API 接口终端配置专属子仓
   late final LocalEndpointsStore endpoints;
+
+  /// 🎵 音乐模块播放状态和选中目录专属子仓
+  late final LocalMusicStore music;
 
   /// 获取系统 AppData 存储路径
   String get _configDirPath {
@@ -56,5 +61,6 @@ class LocalConfigStore {
   void dispose() {
     dashboard.dispose();
     poetry.dispose();
+    music.dispose();
   }
 }

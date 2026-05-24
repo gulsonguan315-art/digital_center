@@ -22,7 +22,10 @@ mixin FocusTraceLogger {
   }
 
   void logLanding(String? source, String roomId, String nodeId, String tag) {
-    Log.d(LogGroup.focus, '\n4，目标回应：[$roomId] 准备就绪 (Atomic)\n5，准备跳转：${source ?? "系统"} ——> [$roomId:$nodeId] $tag\n6，成功落地：[$roomId:$nodeId]\n---');
+    Log.d(
+      LogGroup.focus,
+      '\n4，目标回应：[$roomId] 准备就绪 (Atomic)\n5，准备跳转：${source ?? "系统"} ——> [$roomId:$nodeId] $tag\n6，成功落地：[$roomId:$nodeId]\n---',
+    );
   }
 
   void logBackStart(String currentPos) {
@@ -34,7 +37,10 @@ mixin FocusTraceLogger {
   }
 
   void logPortalReturn(String targetId, String currentPos) {
-    Log.d(LogGroup.focus, '\n4，目标回应：[$targetId] 准备就绪 (Portal Return)\n5，准备跳转：$currentPos ——> [$targetId] (传送门节点)\n6，成功落地：[$targetId]\n---');
+    Log.d(
+      LogGroup.focus,
+      '\n4，目标回应：[$targetId] 准备就绪 (Portal Return)\n5，准备跳转：$currentPos ——> [$targetId] (传送门节点)\n6，成功落地：[$targetId]\n---',
+    );
   }
 
   void logBackFail(String reason) {
@@ -42,11 +48,17 @@ mixin FocusTraceLogger {
   }
 
   void logPortalAction(String currentRoom, String id, String portalTarget) {
-    Log.d(LogGroup.focus, '---\n1，当前位置：[$currentRoom:$id]\n2，意图房间：[Portal:$portalTarget]\n3，传送门压栈：[$currentRoom] → [$portalTarget]，Esc 可取消');
+    Log.d(
+      LogGroup.focus,
+      '---\n1，当前位置：[$currentRoom:$id]\n2，意图房间：[Portal:$portalTarget]\n3，传送门压栈：[$currentRoom] → [$portalTarget]，Esc 可取消',
+    );
   }
 
   void logRoomAction(String currentRoom, String id, String roomTarget) {
-    Log.d(LogGroup.focus, '---\n1，当前位置：[$currentRoom:$id]\n2，意图房间：[Room:$roomTarget]\n3，推门进入：[$currentRoom] → [$roomTarget]');
+    Log.d(
+      LogGroup.focus,
+      '---\n1，当前位置：[$currentRoom:$id]\n2，意图房间：[Room:$roomTarget]\n3，推门进入：[$currentRoom] → [$roomTarget]',
+    );
   }
 
   void logUnauthorizedAction(String currentRoom, String id) {
@@ -63,7 +75,8 @@ class SuperFocusManager with FocusTraceLogger {
 
   // --- 兼容性代理 (指向 RAM 中的寄存器) ---
   ValueNotifier<FocusTopology> get topologyNotifier => state.topologyNotifier;
-  ValueNotifier<FocusReport?> get cursorReportNotifier => state.cursorReportNotifier;
+  ValueNotifier<FocusReport?> get cursorReportNotifier =>
+      state.cursorReportNotifier;
   ValueNotifier<bool> get cursorHiddenNotifier => state.cursorHiddenNotifier;
   String? get currentRoomId => state.currentRoomId;
 
@@ -86,7 +99,12 @@ class SuperFocusManager with FocusTraceLogger {
   void showCursor() => state.cursorHiddenNotifier.value = false;
   void clearCursor() => state.cursorReportNotifier.value = null;
 
-  void registerNode(String id, FocusNode node, String roomId, {VoidCallback? onPressed}) {
+  void registerNode(
+    String id,
+    FocusNode node,
+    String roomId, {
+    VoidCallback? onPressed,
+  }) {
     state.nodeRegistry[id] = FocusNodeInfo(node, roomId, onPressed: onPressed);
     _tryFulfillIntention();
   }
@@ -150,8 +168,9 @@ class SuperFocusManager with FocusTraceLogger {
     if (_actionDispatched) return;
 
     // 触发默认的焦点导航动作
-    final String sourceRoom =
-        info.roomId.isNotEmpty ? info.roomId : (currentRoomId ?? '未知');
+    final String sourceRoom = info.roomId.isNotEmpty
+        ? info.roomId
+        : (currentRoomId ?? '未知');
     if (sourceRoom != '未知') {
       onAction(sourceRoom, id);
     }
@@ -169,8 +188,9 @@ class SuperFocusManager with FocusTraceLogger {
         .firstOrNull
         ?.key;
 
-    final String? room =
-        focusedId != null ? state.nodeRegistry[focusedId]?.roomId : currentRoomId;
+    final String? room = focusedId != null
+        ? state.nodeRegistry[focusedId]?.roomId
+        : currentRoomId;
     final String currentPos = switch ((focusedId, room)) {
       (String f, String r) => '[$r：$f]',
       (null, String r) => '[$r]',
@@ -181,7 +201,8 @@ class SuperFocusManager with FocusTraceLogger {
     String? targetId;
     String reason;
 
-    if (state.portalStack.isNotEmpty && state.portalStack.last.landedIn == room) {
+    if (state.portalStack.isNotEmpty &&
+        state.portalStack.last.landedIn == room) {
       final entry = state.portalStack.removeLast();
       targetId = entry.returnTo;
       reason = '传送门弹栈：飞回 [$targetId]';
@@ -214,10 +235,12 @@ class SuperFocusManager with FocusTraceLogger {
       logBackIntent(targetId, reason);
       intentionRoomId.value = targetId;
 
-      final entryNodeId =
-          room != null ? BuildingMap.getEntryNodeForRoom(targetId, room) : null;
-      final entryNodeInfo =
-          entryNodeId != null ? state.nodeRegistry[entryNodeId] : null;
+      final entryNodeId = room != null
+          ? BuildingMap.getEntryNodeForRoom(targetId, room)
+          : null;
+      final entryNodeInfo = entryNodeId != null
+          ? state.nodeRegistry[entryNodeId]
+          : null;
       if (entryNodeId != null &&
           entryNodeInfo != null &&
           entryNodeInfo.roomId == targetId &&
@@ -283,10 +306,18 @@ class SuperFocusManager with FocusTraceLogger {
       for (final member in members) {
         if (member == '*') {
           final dynamicNodeInfo = state.nodeRegistry.entries
-              .where((e) => e.value.roomId == targetId && e.value.node.canRequestFocus)
+              .where(
+                (e) =>
+                    e.value.roomId == targetId && e.value.node.canRequestFocus,
+              )
               .firstOrNull;
           if (dynamicNodeInfo != null) {
-            _applyLanding(dynamicNodeInfo.key, dynamicNodeInfo.value, targetId, '(via *)');
+            _applyLanding(
+              dynamicNodeInfo.key,
+              dynamicNodeInfo.value,
+              targetId,
+              '(via *)',
+            );
             return;
           }
         } else {
@@ -307,7 +338,12 @@ class SuperFocusManager with FocusTraceLogger {
     }
   }
 
-  void _applyLanding(String nodeId, FocusNodeInfo info, String targetId, String tag) {
+  void _applyLanding(
+    String nodeId,
+    FocusNodeInfo info,
+    String targetId,
+    String tag,
+  ) {
     logLanding(_lastActionSource, info.roomId, nodeId, tag);
     onRoomEnter(info.roomId, printLog: false);
     assert(() {
@@ -324,14 +360,19 @@ class SuperFocusManager with FocusTraceLogger {
   void onAction(String sourceRoom, String id, {bool asTerminalRoom = false}) {
     _actionDispatched = true;
     _lastActionSource = '[$sourceRoom:$id]';
-    final String? portalTarget = BuildingMap.resolvePortalDestination(sourceRoom, id);
+    final String? portalTarget = BuildingMap.resolvePortalDestination(
+      sourceRoom,
+      id,
+    );
     if (portalTarget != null) {
       logPortalAction(sourceRoom, id, portalTarget);
-      state.portalStack.add(PortalEntry(
-        landedIn: portalTarget,
-        returnTo: sourceRoom,
-        returnToFocusNode: FocusManager.instance.primaryFocus,
-      ));
+      state.portalStack.add(
+        PortalEntry(
+          landedIn: portalTarget,
+          returnTo: sourceRoom,
+          returnToFocusNode: FocusManager.instance.primaryFocus,
+        ),
+      );
       intentionRoomId.value = portalTarget;
       _executeSearch(portalTarget);
       return;
@@ -340,14 +381,18 @@ class SuperFocusManager with FocusTraceLogger {
     final String? roomTarget = BuildingMap.resolveRoomEntry(sourceRoom, id);
     if (roomTarget != null) {
       logRoomAction(sourceRoom, id, roomTarget);
-      
+
       // ✅ 关键：动态报备父子关系，确保 Back 逻辑能通过 _parentCache 飞回来
       // 传入 asTerminalRoom 标识，防止死胡同房间无限继承动态通配符
-      BuildingMap.registerDynamicParent(roomTarget, sourceRoom, asTerminalRoom: asTerminalRoom);
-      
+      BuildingMap.registerDynamicParent(
+        roomTarget,
+        sourceRoom,
+        asTerminalRoom: asTerminalRoom,
+      );
+
       // ✅ 关键：立即更新拓扑状态，让 UI 渲染出子房间内容
       onRoomEnter(roomTarget, printLog: false);
-      
+
       intentionRoomId.value = roomTarget;
       _executeSearch(roomTarget);
       return;
