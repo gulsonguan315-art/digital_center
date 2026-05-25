@@ -41,8 +41,8 @@ class MusicCallback extends ChangeNotifier {
   // 🔌 对外代理 API (Facade APIs for UI)
   // ===========================================================================
 
-  void toggleFolder(String folderId) {
-    service.playlist.toggleFolder(folderId, onConfigChange: _saveConfig);
+  Future<void> toggleFolder(String folderId) async {
+    await service.playlist.toggleFolder(folderId, onConfigChange: _saveConfig);
     service.playback.handlePlaylistRebuilt();
   }
 

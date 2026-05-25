@@ -42,15 +42,17 @@ class MusicPlaybackController {
     _bindGlobalAudio();
   }
 
+  void _syncVolume() {
+    _engine.setVolume(AppAudioService.instance.volume);
+    onUpdate();
+  }
+
   void _bindGlobalAudio() {
     // 初始同步音量
     _engine.setVolume(AppAudioService.instance.volume);
     
     // 监听全局音量变化并同步到引擎
-    AppAudioService.instance.addListener(() {
-      _engine.setVolume(AppAudioService.instance.volume);
-      onUpdate();
-    });
+    AppAudioService.instance.addListener(_syncVolume);
   }
 
   void _initEngine() {
@@ -171,6 +173,7 @@ class MusicPlaybackController {
   void seekTo(Duration position) => _engine.seek(position);
 
   void dispose() {
+    AppAudioService.instance.removeListener(_syncVolume);
     _posSub?.cancel();
     _durSub?.cancel();
     _stateSub?.cancel();

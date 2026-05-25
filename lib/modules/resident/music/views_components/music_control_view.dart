@@ -101,10 +101,11 @@ class MusicControlBar extends StatelessWidget {
                       overlayColor: colors.accent.withValues(alpha: 0.1),
                       thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6.0),
                     ),
-                    child: Slider(
-                      value: progress,
-                      focusNode: FocusNode(canRequestFocus: false, skipTraversal: true),
-                      onChanged: onSeek,
+                    child: ExcludeFocus(
+                      child: Slider(
+                        value: progress,
+                        onChanged: onSeek,
+                      ),
                     ),
                   ),
                 ),
@@ -160,18 +161,19 @@ class MusicControlBar extends StatelessWidget {
                       id: MusicModel.btnPlayModeId,
                       onPressed: onTogglePlayMode,
                       focusGeometry: const RoundedRectFocusGeometry(borderRadius: BorderRadius.all(Radius.circular(24))),
-                      builder: (ctx, hasFocus) => IconButton(
-                        focusNode: FocusNode(skipTraversal: true, canRequestFocus: false),
-                        icon: Icon(
-                          playMode == PlaybackMode.singleLoop
-                              ? Icons.repeat_one_rounded
-                              : playMode == PlaybackMode.shuffle
-                                  ? Icons.shuffle_rounded
-                                  : Icons.repeat_rounded,
+                      builder: (ctx, hasFocus) => ExcludeFocus(
+                        child: IconButton(
+                          icon: Icon(
+                            playMode == PlaybackMode.singleLoop
+                                ? Icons.repeat_one_rounded
+                                : playMode == PlaybackMode.shuffle
+                                    ? Icons.shuffle_rounded
+                                    : Icons.repeat_rounded,
+                          ),
+                          color: hasFocus ? colors.accent : colors.textPrimary,
+                          iconSize: 24,
+                          onPressed: onTogglePlayMode,
                         ),
-                        color: hasFocus ? colors.accent : colors.textPrimary,
-                        iconSize: 24,
-                        onPressed: onTogglePlayMode,
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -179,12 +181,13 @@ class MusicControlBar extends StatelessWidget {
                       id: MusicModel.btnFastRewindId,
                       onPressed: onFastRewind,
                       focusGeometry: const RoundedRectFocusGeometry(borderRadius: BorderRadius.all(Radius.circular(24))),
-                      builder: (ctx, hasFocus) => IconButton(
-                        focusNode: FocusNode(skipTraversal: true, canRequestFocus: false),
-                        icon: const Icon(Icons.fast_rewind_rounded),
-                        color: hasFocus ? colors.accent : colors.textPrimary,
-                        iconSize: 24,
-                        onPressed: onFastRewind,
+                      builder: (ctx, hasFocus) => ExcludeFocus(
+                        child: IconButton(
+                          icon: const Icon(Icons.fast_rewind_rounded),
+                          color: hasFocus ? colors.accent : colors.textPrimary,
+                          iconSize: 24,
+                          onPressed: onFastRewind,
+                        ),
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -192,12 +195,13 @@ class MusicControlBar extends StatelessWidget {
                       id: MusicModel.btnPrevId,
                       onPressed: onPrev,
                       focusGeometry: const RoundedRectFocusGeometry(borderRadius: BorderRadius.all(Radius.circular(24))),
-                      builder: (ctx, hasFocus) => IconButton(
-                        focusNode: FocusNode(skipTraversal: true, canRequestFocus: false),
-                        icon: const Icon(Icons.skip_previous_rounded),
-                        color: hasFocus ? colors.accent : colors.textPrimary,
-                        iconSize: 26,
-                        onPressed: onPrev,
+                      builder: (ctx, hasFocus) => ExcludeFocus(
+                        child: IconButton(
+                          icon: const Icon(Icons.skip_previous_rounded),
+                          color: hasFocus ? colors.accent : colors.textPrimary,
+                          iconSize: 26,
+                          onPressed: onPrev,
+                        ),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -214,11 +218,12 @@ class MusicControlBar extends StatelessWidget {
                           color: colors.surface,
                           border: Border.all(color: colors.accent, width: 2),
                         ),
-                        child: IconButton(
-                          focusNode: FocusNode(skipTraversal: true, canRequestFocus: false),
-                          icon: Icon(isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded),
-                          color: colors.accent,
-                          onPressed: onPlayPause,
+                        child: ExcludeFocus(
+                          child: IconButton(
+                            icon: Icon(isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded),
+                            color: colors.accent,
+                            onPressed: onPlayPause,
+                          ),
                         ),
                       ),
                     ),
@@ -227,12 +232,13 @@ class MusicControlBar extends StatelessWidget {
                       id: MusicModel.btnNextId,
                       onPressed: onNext,
                       focusGeometry: const RoundedRectFocusGeometry(borderRadius: BorderRadius.all(Radius.circular(24))),
-                      builder: (ctx, hasFocus) => IconButton(
-                        focusNode: FocusNode(skipTraversal: true, canRequestFocus: false),
-                        icon: const Icon(Icons.skip_next_rounded),
-                        color: hasFocus ? colors.accent : colors.textPrimary,
-                        iconSize: 26,
-                        onPressed: onNext,
+                      builder: (ctx, hasFocus) => ExcludeFocus(
+                        child: IconButton(
+                          icon: const Icon(Icons.skip_next_rounded),
+                          color: hasFocus ? colors.accent : colors.textPrimary,
+                          iconSize: 26,
+                          onPressed: onNext,
+                        ),
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -240,12 +246,13 @@ class MusicControlBar extends StatelessWidget {
                       id: MusicModel.btnFastForwardId,
                       onPressed: onFastForward,
                       focusGeometry: const RoundedRectFocusGeometry(borderRadius: BorderRadius.all(Radius.circular(24))),
-                      builder: (ctx, hasFocus) => IconButton(
-                        focusNode: FocusNode(skipTraversal: true, canRequestFocus: false),
-                        icon: const Icon(Icons.fast_forward_rounded),
-                        color: hasFocus ? colors.accent : colors.textPrimary,
-                        iconSize: 24,
-                        onPressed: onFastForward,
+                      builder: (ctx, hasFocus) => ExcludeFocus(
+                        child: IconButton(
+                          icon: const Icon(Icons.fast_forward_rounded),
+                          color: hasFocus ? colors.accent : colors.textPrimary,
+                          iconSize: 24,
+                          onPressed: onFastForward,
+                        ),
                       ),
                     ),
                   ],
@@ -294,10 +301,11 @@ class MusicControlBar extends StatelessWidget {
                           thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 4.0),
                         ),
                         child: IgnorePointer(
-                          child: Slider(
-                            value: volume,
-                            focusNode: FocusNode(canRequestFocus: false, skipTraversal: true),
-                            onChanged: (v) {},
+                          child: ExcludeFocus(
+                            child: Slider(
+                              value: volume,
+                              onChanged: (v) {},
+                            ),
                           ),
                         ),
                       ),

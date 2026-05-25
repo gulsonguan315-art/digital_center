@@ -64,7 +64,7 @@ class MusicPlaylistController {
         isLoadingTracks = false;
         _rebuildPlaylist(autoSelectFirst: true);
       } else if (folders.isNotEmpty) {
-        toggleFolder(folders.first.id);
+        await toggleFolder(folders.first.id);
       }
     } catch (e) {
       errorMessage = e.toString().replaceAll('Exception: ', '');

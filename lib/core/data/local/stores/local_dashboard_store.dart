@@ -4,7 +4,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 
 import '../../models/dashboard_item_config.dart';
-import '../../../../modules/resident/dashboard/dashboard_model.dart';
+import '../../../../core/data/models/dashboard_card_definition.dart';
 import '../../../../modules/resident/dashboard/engine/dashboard_grid_engine.dart';
 
 /// Top-level layout serialization helper for background Isolate execution.
@@ -24,7 +24,7 @@ class LocalDashboardStore {
 
   LocalDashboardStore({required this.configDirPath});
 
-  static List<DashboardItemConfig> get _defaultItems => DashboardModel.defaultItems;
+  static List<DashboardItemConfig> get _defaultItems => DashboardRegistry.defaultItems;
 
   final _dashboardController =
       StreamController<List<DashboardItemConfig>>.broadcast();
@@ -63,7 +63,7 @@ class LocalDashboardStore {
           .toList();
 
       // 🛡️ Clean up and Failsafe Migration: Dynamically keep only registered cards
-      final List<String> activeIds = DashboardModel.activeCardIds;
+      final List<String> activeIds = DashboardRegistry.activeCardIds;
       final List<DashboardItemConfig> filteredItems = items
           .where((e) => activeIds.contains(e.id))
           .toList();
@@ -71,7 +71,7 @@ class LocalDashboardStore {
       bool migrated = filteredItems.length != items.length;
 
       // Ensure all active registered cards exist. If not, append them with their default configs
-      for (final card in DashboardModel.registry) {
+      for (final card in DashboardRegistry.definitions) {
         if (!filteredItems.any((e) => e.id == card.id)) {
           filteredItems.add(card.defaultConfig);
           migrated = true;

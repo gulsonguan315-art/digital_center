@@ -19,7 +19,7 @@ class DashboardRoom extends StatelessWidget {
       child: child ??
           DashboardView(
             slots: {
-              for (final card in DashboardModel.registry) card.id: card.widget,
+              for (final entry in DashboardModel.presentations.entries) entry.key: entry.value.widget,
             },
           ),
     );

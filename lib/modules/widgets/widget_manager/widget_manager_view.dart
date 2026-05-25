@@ -6,6 +6,7 @@ import '../../../core/engine/theme/theme_api.dart';
 import '../../../ui/base/text/surface_text.dart';
 import '../../../ui/base/surface/dashboard_card.dart';
 import '../../resident/dashboard/dashboard_model.dart';
+import '../../../core/data/models/dashboard_card_definition.dart';
 import '../../resident/dashboard/engine/dashboard_grid_engine.dart';
 
 /// 📂 挂件中控枢纽磁贴 (Widget Control Center Card Room)
@@ -27,8 +28,8 @@ class _WidgetManagerPanel extends StatelessWidget {
   const _WidgetManagerPanel();
 
   /// 可定制挂件静态元数据清单
-  static List<DashboardCardMeta> get _cards =>
-      DashboardModel.registry.where((c) => c.showInManager).toList();
+  static List<DashboardCardDefinition> get _cards =>
+      DashboardRegistry.definitions.where((c) => c.showInManager).toList();
 
   /// 切换挂件启用/禁用状态，并触发响应式写库与 SWR 同步
   void _toggleWidget(String id, List<DashboardItemConfig> currentConfigs) {
@@ -175,6 +176,8 @@ class _WidgetManagerPanel extends StatelessWidget {
                               .enabled;
 
                           // 🌟 将每一个开关芯片包装在 FocusIdentity 中，支持空间左右导航！
+                          final presentation = DashboardModel.presentations[card.id]!;
+                          
                           return Padding(
                             padding: const EdgeInsets.only(right: 10.0),
                             child: FocusIdentity(
@@ -220,7 +223,7 @@ class _WidgetManagerPanel extends StatelessWidget {
                                     children: [
                                       // 挂件微缩图标
                                       Icon(
-                                        card.icon,
+                                        presentation.icon,
                                         size: 16,
                                         color: isEnabled
                                             ? colors.accent
@@ -233,7 +236,7 @@ class _WidgetManagerPanel extends StatelessWidget {
                                           crossAxisAlignment: CrossAxisAlignment.start,
                                           children: [
                                             SurfaceText(
-                                              card.title,
+                                              presentation.title,
                                               style: TextStyle(
                                                 fontSize: 11,
                                                 fontWeight: FontWeight.bold,
