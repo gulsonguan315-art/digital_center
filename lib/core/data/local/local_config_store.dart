@@ -16,12 +16,12 @@ class LocalConfigStore {
     if (!kIsWeb) {
       _initDirectory();
     }
-    dashboard = LocalDashboardStore(configDirPath: _configDirPath);
-    settings = LocalSettingsStore(configDirPath: _configDirPath);
-    poetry = LocalPoetryStore(configDirPath: _configDirPath); // 📂 注册诗词子仓
-    endpoints = LocalEndpointsStore(configDirPath: _configDirPath); // 📂 注册全局 API 终端子仓
-    music = LocalMusicStore(configDirPath: _configDirPath); // 🎵 注册音乐子仓
-    weather = LocalWeatherStore(configDirPath: _configDirPath); // 🌤️ 注册天气缓存子仓
+    dashboard = LocalDashboardStore(configDirPath: configDirPath);
+    settings = LocalSettingsStore(configDirPath: configDirPath);
+    poetry = LocalPoetryStore(configDirPath: configDirPath); // 📂 注册诗词子仓
+    endpoints = LocalEndpointsStore(configDirPath: configDirPath); // 📂 注册全局 API 终端子仓
+    music = LocalMusicStore(configDirPath: configDirPath); // 🎵 注册音乐子仓
+    weather = LocalWeatherStore(configDirPath: configDirPath); // 🌤️ 注册天气缓存子仓
   }
 
   /// 📂 看板卡片排版专属子仓
@@ -43,7 +43,7 @@ class LocalConfigStore {
   late final LocalWeatherStore weather;
 
   /// 获取系统 AppData 存储路径
-  String get _configDirPath {
+  String get configDirPath {
     if (kIsWeb) return '';
     final String appData = Platform.environment['APPDATA'] ?? Directory.systemTemp.path;
     return '$appData/digital_center';
@@ -53,9 +53,13 @@ class LocalConfigStore {
   void _initDirectory() {
     if (kIsWeb) return;
     try {
-      final dir = Directory(_configDirPath);
+      final dir = Directory(configDirPath);
       if (!dir.existsSync()) {
         dir.createSync(recursive: true);
+      }
+      final musicCacheDir = Directory('$configDirPath/music_cache');
+      if (!musicCacheDir.existsSync()) {
+        musicCacheDir.createSync(recursive: true);
       }
     } catch (e) {
       // 容错防御：静默拦截系统级 I/O 权限异常

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 import 'package:crypto/crypto.dart';
+import 'dart:io';
 import 'package:http/http.dart' as http;
 
 import '../local/local_config_store.dart';
@@ -76,8 +77,23 @@ class MusicRepository {
 
   /// 📁 2. 获取 6 个物理词牌名根文件夹列表 (Fetch Physical Root Folders)
   /// 在 Gonic 优异的映射逻辑中，`getIndexes.view` 会将第一级子目录作为 Index/Artist 实体完美返回。
-  Future<List<MusicFolder>> fetchRootFolders() async {
+  Future<List<MusicFolder>> fetchRootFolders({bool forceRefresh = false}) async {
     final List<MusicFolder> folders = [];
+    final cacheFile = File('${_localStore.configDirPath}/music_cache/root_folders.json');
+
+    if (!forceRefresh && cacheFile.existsSync()) {
+      try {
+        final content = await cacheFile.readAsString();
+        final data = jsonDecode(content) as List<dynamic>;
+        for (var item in data) {
+          folders.add(MusicFolder.fromJson(item as Map<String, dynamic>));
+        }
+        Log.d(LogGroup.network, 'Loaded ${folders.length} root folders from cache');
+        return folders;
+      } catch (e) {
+        Log.d(LogGroup.network, 'Failed to load root folders from cache: $e');
+      }
+    }
     try {
       final endpoints = await _localStore.endpoints.readData();
       final baseUrl = endpoints.gonicBaseUrl;
@@ -107,7 +123,15 @@ class MusicRepository {
           }
         }
         
+        
         Log.d(LogGroup.network, 'Successfully parsed ${folders.length} root poetry folders from Gonic');
+        
+        try {
+          final cacheData = folders.map((f) => f.toJson()).toList();
+          await cacheFile.writeAsString(jsonEncode(cacheData));
+        } catch (e) {
+          Log.d(LogGroup.network, 'Failed to write root folders cache: $e');
+        }
       }
     } catch (e) {
       Log.d(LogGroup.network, 'Failed to fetch root folders from Gonic: $e');
@@ -117,9 +141,27 @@ class MusicRepository {
 
   /// 🗂️ 3. 物理遍历指定目录内的歌曲与子文件夹 (Fetch Directory Contents)
   /// 根据物理目录的 ID 展开子目录与音频歌曲列表。
-  Future<Map<String, dynamic>> fetchDirectoryContents(String folderId) async {
+  Future<Map<String, dynamic>> fetchDirectoryContents(String folderId, {bool forceRefresh = false}) async {
     final List<MusicFolder> subFolders = [];
     final List<MusicTrack> tracks = [];
+    final cacheFile = File('${_localStore.configDirPath}/music_cache/dir_$folderId.json');
+
+    if (!forceRefresh && cacheFile.existsSync()) {
+      try {
+        final content = await cacheFile.readAsString();
+        final data = jsonDecode(content) as Map<String, dynamic>;
+        final cachedFolders = data['folders'] as List<dynamic>? ?? [];
+        final cachedTracks = data['tracks'] as List<dynamic>? ?? [];
+        
+        subFolders.addAll(cachedFolders.map((e) => MusicFolder.fromJson(e as Map<String, dynamic>)));
+        tracks.addAll(cachedTracks.map((e) => MusicTrack.fromJson(e as Map<String, dynamic>)));
+        
+        Log.d(LogGroup.network, 'Loaded directory contents for ID: $folderId from cache');
+        return {'folders': subFolders, 'tracks': tracks};
+      } catch (e) {
+        Log.d(LogGroup.network, 'Failed to load directory cache for ID: $folderId: $e');
+      }
+    }
 
     try {
       final endpoints = await _localStore.endpoints.readData();
@@ -151,6 +193,16 @@ class MusicRepository {
           }
         }
         Log.d(LogGroup.network, 'Directory contents parsed: ${subFolders.length} subfolders, ${tracks.length} tracks');
+
+        try {
+          final cacheData = {
+            'folders': subFolders.map((f) => f.toJson()).toList(),
+            'tracks': tracks.map((t) => t.toJson()).toList(),
+          };
+          await cacheFile.writeAsString(jsonEncode(cacheData));
+        } catch (e) {
+          Log.d(LogGroup.network, 'Failed to write directory cache for ID: $folderId: $e');
+        }
       }
     } catch (e) {
       Log.d(LogGroup.network, 'Failed to fetch directory contents for ID: $folderId: $e');
@@ -159,20 +211,49 @@ class MusicRepository {
     return {'folders': subFolders, 'tracks': tracks};
   }
 
-  /// 🔗 4. 构建带鉴权的高保真流媒体播放直链 (Get Dynamic Audio Stream URL)
-  /// 返回直接可供给播放器解码流式播放的 URL。
-  Future<String> getAudioStreamUrl(String trackId) async {
+  Future<String> getAudioPathOrUrl(MusicTrack track) async {
     try {
+      final cacheKey = _makeMd5('${track.path}_${track.size}');
+      final cacheFile = File('${_localStore.configDirPath}/music_cache/audio_$cacheKey.dat');
+      if (cacheFile.existsSync()) {
+        return cacheFile.path;
+      }
+
       final endpoints = await _localStore.endpoints.readData();
       final baseUrl = endpoints.gonicBaseUrl;
       if (baseUrl.isEmpty) return '';
 
       final authParams = await _buildAuthParams(endpoints);
-      // Gonic 支持标准的 stream.view，支持传输原始 FLAC 格式无损音频
-      return '$baseUrl/rest/stream.view?$authParams&id=$trackId';
+      final url = '$baseUrl/rest/stream.view?$authParams&id=${track.id}';
+
+      // 异步触发下载，直接返回 URL 以供即时播放
+      _downloadAndCacheAudio(url, cacheFile);
+
+      return url;
     } catch (e) {
-      Log.d(LogGroup.network, 'Failed to build audio stream URL: $e');
+      Log.d(LogGroup.network, 'Failed to get audio path or URL: $e');
       return '';
+    }
+  }
+
+  Future<void> _downloadAndCacheAudio(String url, File cacheFile) async {
+    try {
+      Log.d(LogGroup.network, 'Starting background download for audio cache: ${cacheFile.path}');
+      final request = http.Request('GET', Uri.parse(url));
+      final response = await request.send();
+      
+      if (response.statusCode == 200) {
+        final tmpFile = File('${cacheFile.path}.tmp');
+        final sink = tmpFile.openWrite();
+        await response.stream.pipe(sink);
+        await sink.close();
+        
+        // 只有下载完整且没有中断，才重命名为正式缓存文件
+        await tmpFile.rename(cacheFile.path);
+        Log.d(LogGroup.network, 'Successfully cached audio to: ${cacheFile.path}');
+      }
+    } catch (e) {
+      Log.d(LogGroup.network, 'Background audio caching failed: $e');
     }
   }
 
@@ -193,7 +274,21 @@ class MusicRepository {
 
   /// 📝 6. 获取同步 LRC 歌词数据 (Fetch LRC Lyrics Data)
   /// Gonic 在后台会自动索引同目录下同名的 `.lrc` 歌词文件，并直接通过 `getLyrics.view` 返回。
-  Future<String?> fetchLyrics(String artist, String title) async {
+  Future<String?> fetchLyrics(MusicTrack track) async {
+    final cacheKey = _makeMd5('${track.path}_${track.size}');
+    final cacheFile = File('${_localStore.configDirPath}/music_cache/lyrics_$cacheKey.json');
+
+    if (cacheFile.existsSync()) {
+      try {
+        final content = await cacheFile.readAsString();
+        final data = jsonDecode(content) as Map<String, dynamic>;
+        Log.d(LogGroup.network, 'Loaded lyrics from cache for: ${track.title}');
+        return data['lyrics'] as String?;
+      } catch (e) {
+        Log.d(LogGroup.network, 'Failed to load lyrics from cache: $e');
+      }
+    }
+
     try {
       final endpoints = await _localStore.endpoints.readData();
       final baseUrl = endpoints.gonicBaseUrl;
@@ -201,10 +296,10 @@ class MusicRepository {
 
       final authParams = await _buildAuthParams(endpoints);
       // 支持按歌手和歌名模糊检索歌词文本
-      final queryParams = 'artist=${Uri.encodeComponent(artist)}&title=${Uri.encodeComponent(title)}';
+      final queryParams = 'artist=${Uri.encodeComponent(track.artist)}&title=${Uri.encodeComponent(track.title)}';
       final url = '$baseUrl/rest/getLyrics.view?$authParams&$queryParams';
 
-      Log.d(LogGroup.network, 'Fetching lyrics for: $artist - $title');
+      Log.d(LogGroup.network, 'Fetching lyrics for: ${track.artist} - ${track.title}');
       final response = await http.get(Uri.parse(url)).timeout(const Duration(seconds: 4));
 
       if (response.statusCode == 200) {
@@ -215,12 +310,19 @@ class MusicRepository {
         
         final String? lrcContent = lyrics['value'] as String?;
         if (lrcContent != null && lrcContent.trim().isNotEmpty) {
-          Log.d(LogGroup.network, 'Successfully retrieved synced LRC lyrics for: $title');
+          Log.d(LogGroup.network, 'Successfully retrieved synced LRC lyrics for: ${track.title}');
+          
+          try {
+            await cacheFile.writeAsString(jsonEncode({'lyrics': lrcContent}));
+          } catch (e) {
+            Log.d(LogGroup.network, 'Failed to write lyrics cache: $e');
+          }
+
           return lrcContent;
         }
       }
     } catch (e) {
-      Log.d(LogGroup.network, 'Failed to fetch lyrics for: $artist - $title: $e');
+      Log.d(LogGroup.network, 'Failed to fetch lyrics for: ${track.artist} - ${track.title}: $e');
     }
     return null;
   }

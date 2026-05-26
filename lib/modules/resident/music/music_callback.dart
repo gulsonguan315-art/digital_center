@@ -46,6 +46,12 @@ class MusicCallback extends ChangeNotifier {
     service.playback.handlePlaylistRebuilt();
   }
 
+  Future<void> forceRefreshFolders() async {
+    await service.playlist.forceRefreshFolders();
+    _saveConfig();
+    service.playback.handlePlaylistRebuilt();
+  }
+
   void selectTrack(MusicTrack track) => service.playback.selectTrack(track);
 
   void togglePlayPause() => service.playback.togglePlayPause();

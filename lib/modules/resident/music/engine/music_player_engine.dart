@@ -35,14 +35,16 @@ class MusicPlayerEngine {
   // 🎛️ 基础控制指令 (Base Player Controls)
   // ===========================================================================
 
-  /// 播放网络直链音频
+  /// 播放网络直链音频或本地文件
   Future<void> playUrl(String url) async {
-    await _audioPlayer.play(UrlSource(url));
+    final source = url.startsWith('http') ? UrlSource(url) : DeviceFileSource(url);
+    await _audioPlayer.play(source);
   }
 
   /// 预加载音频链接但不自动播放
   Future<void> setUrl(String url) async {
-    await _audioPlayer.setSource(UrlSource(url));
+    final source = url.startsWith('http') ? UrlSource(url) : DeviceFileSource(url);
+    await _audioPlayer.setSource(source);
   }
 
   /// 暂停播放

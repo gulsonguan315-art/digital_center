@@ -25,19 +25,39 @@ class MusicLyricsController {
     onUpdate();
 
     try {
-      String? lrc = await MusicRepository.instance.fetchLyrics(track.artist, track.title);
+      String? lrc = await MusicRepository.instance.fetchLyrics(track);
 
       if (lrc == null) {
         final clean = track.title
             .replaceAll(RegExp(r'\(.*?\)|（.*?）|\[.*?\]|【.*?】'), '')
             .trim();
         if (clean.isNotEmpty && clean != track.title) {
-          lrc = await MusicRepository.instance.fetchLyrics(track.artist, clean);
+          final cleanTrack = MusicTrack(
+            id: track.id,
+            title: clean,
+            artist: track.artist,
+            album: track.album,
+            duration: track.duration,
+            size: track.size,
+            path: track.path,
+            coverArtId: track.coverArtId,
+          );
+          lrc = await MusicRepository.instance.fetchLyrics(cleanTrack);
         }
       }
 
       if (lrc == null && (track.artist == 'Unknown Artist' || track.artist.trim().isEmpty)) {
-        lrc = await MusicRepository.instance.fetchLyrics('', track.title);
+        final unknownTrack = MusicTrack(
+          id: track.id,
+          title: track.title,
+          artist: '',
+          album: track.album,
+          duration: track.duration,
+          size: track.size,
+          path: track.path,
+          coverArtId: track.coverArtId,
+        );
+        lrc = await MusicRepository.instance.fetchLyrics(unknownTrack);
       }
 
       if (lrc != null && lrc.isNotEmpty) {

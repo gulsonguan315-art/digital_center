@@ -91,7 +91,7 @@ class MusicPlaybackController {
     lyrics.loadLyrics(track);
 
     try {
-      final url = await MusicRepository.instance.getAudioStreamUrl(track.id);
+      final url = await MusicRepository.instance.getAudioPathOrUrl(track);
       if (autoplay) {
         await _engine.playUrl(url);
         await _engine.setVolume(AppAudioService.instance.volume);
@@ -133,7 +133,7 @@ class MusicPlaybackController {
         await _engine.pause();
       } else {
         if (!_engine.hasSource) {
-          final url = await MusicRepository.instance.getAudioStreamUrl(currentTrack!.id);
+          final url = await MusicRepository.instance.getAudioPathOrUrl(currentTrack!);
           await _engine.playUrl(url);
         } else {
           await _engine.resume();

@@ -32,7 +32,7 @@ class MusicPlaylistController {
     required this.onPlaylistEmptied,
   });
 
-  Future<void> loadFolders(List<String> initialFolderIds) async {
+  Future<void> loadFolders(List<String> initialFolderIds, {bool forceRefresh = false}) async {
     isLoadingFolders = true;
     errorMessage = null;
     onUpdate();
@@ -41,7 +41,7 @@ class MusicPlaylistController {
       final alive = await MusicRepository.instance.pingServer();
       if (!alive) throw Exception('无法连通 Gonic 音乐服务，请检查服务器运行状态。');
 
-      final result = await MusicRepository.instance.fetchRootFolders();
+      final result = await MusicRepository.instance.fetchRootFolders(forceRefresh: forceRefresh);
       folders = result;
       isLoadingFolders = false;
 
@@ -56,7 +56,7 @@ class MusicPlaylistController {
         for (final id in activeFolderIds) {
           if (!_folderTracksMap.containsKey(id)) {
             final contents = await MusicRepository.instance
-                .fetchDirectoryContents(id);
+                .fetchDirectoryContents(id, forceRefresh: forceRefresh);
             _folderTracksMap[id] =
                 contents['tracks'] as List<MusicTrack>? ?? [];
           }
@@ -64,7 +64,7 @@ class MusicPlaylistController {
         isLoadingTracks = false;
         _rebuildPlaylist(autoSelectFirst: true);
       } else if (folders.isNotEmpty) {
-        await toggleFolder(folders.first.id);
+        await toggleFolder(folders.first.id, forceRefresh: forceRefresh);
       }
     } catch (e) {
       errorMessage = e.toString().replaceAll('Exception: ', '');
@@ -76,6 +76,7 @@ class MusicPlaylistController {
   Future<void> toggleFolder(
     String folderId, {
     VoidCallback? onConfigChange,
+    bool forceRefresh = false,
   }) async {
     if (folderId.isEmpty) return;
 
@@ -95,6 +96,7 @@ class MusicPlaylistController {
       if (!_folderTracksMap.containsKey(folderId)) {
         final contents = await MusicRepository.instance.fetchDirectoryContents(
           folderId,
+          forceRefresh: forceRefresh,
         );
         _folderTracksMap[folderId] =
             contents['tracks'] as List<MusicTrack>? ?? [];
@@ -126,5 +128,10 @@ class MusicPlaylistController {
     }
 
     onUpdate();
+  }
+
+  Future<void> forceRefreshFolders() async {
+    _folderTracksMap.clear();
+    await loadFolders(activeFolderIds.toList(), forceRefresh: true);
   }
 }

@@ -188,6 +188,7 @@ class MusicFolderRoom extends StatelessWidget {
                       folders: cb.service.playlist.folders,
                       activeFolderIds: cb.service.playlist.activeFolderIds,
                       onToggle: cb.toggleFolder,
+                      onRefresh: cb.forceRefreshFolders,
                       material: material,
                     ),
                   },
