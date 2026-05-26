@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/data/models/music_data.dart';
+import '../../../../core/data/repositories/music_repository.dart';
 import '../../../../core/control/superfocus/focus_api.dart';
 
 /// 🎶 Zone：music_list
@@ -109,15 +110,32 @@ class MusicListView extends StatelessWidget {
                                 const SizedBox(width: 8),
                                 Expanded(
                                   flex: 3,
-                                  child: Text(
-                                    track.title,
-                                    style: TextStyle(
-                                      color: isCurrent ? colors.accent : colors.textPrimary,
-                                      fontSize: 13,
-                                      fontWeight: isCurrent ? FontWeight.bold : FontWeight.w500,
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Flexible(
+                                        child: Text(
+                                          track.title,
+                                          style: TextStyle(
+                                            color: isCurrent ? colors.accent : colors.textPrimary,
+                                            fontSize: 13,
+                                            fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                      if (MusicRepository.instance.isTrackCached(track)) ...[
+                                        const SizedBox(width: 6),
+                                        Icon(
+                                          Icons.offline_pin_rounded,
+                                          size: 14,
+                                          color: isCurrent
+                                              ? colors.accent.withValues(alpha: 0.8)
+                                              : colors.textSecondary.withValues(alpha: 0.8),
+                                        ),
+                                      ],
+                                    ],
                                   ),
                                 ),
                                 Expanded(

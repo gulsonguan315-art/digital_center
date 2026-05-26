@@ -33,6 +33,38 @@ class MusicPlaylistController {
   });
 
   Future<void> loadFolders(List<String> initialFolderIds, {bool forceRefresh = false}) async {
+    // 1. 如果不是强制刷新，且本地存在根文件夹缓存，则优先从缓存瞬间加载，实现“秒开”而不转圈圈
+    final hasCache = MusicRepository.instance.hasCachedRootFolders();
+    if (!forceRefresh && hasCache) {
+      try {
+        final result = await MusicRepository.instance.fetchRootFolders(forceRefresh: false);
+        folders = result;
+        isLoadingFolders = false;
+
+        activeFolderIds.clear();
+        activeFolderIds.addAll(initialFolderIds);
+
+        if (activeFolderIds.isNotEmpty) {
+          for (final id in activeFolderIds) {
+            if (!_folderTracksMap.containsKey(id)) {
+              final contents = await MusicRepository.instance
+                  .fetchDirectoryContents(id, forceRefresh: false);
+              _folderTracksMap[id] =
+                  contents['tracks'] as List<MusicTrack>? ?? [];
+            }
+          }
+          _rebuildPlaylist(autoSelectFirst: true);
+        } else if (folders.isNotEmpty) {
+          await toggleFolder(folders.first.id, forceRefresh: false);
+        }
+        onUpdate();
+        return; // 从缓存成功加载，直接返回！
+      } catch (_) {
+        // 加载缓存失败时，透明地降级走下方的网络同步逻辑
+      }
+    }
+
+    // 2. 无缓存或强制刷新时，走完整的网络连接和同步逻辑（展示转圈圈）
     isLoadingFolders = true;
     errorMessage = null;
     onUpdate();

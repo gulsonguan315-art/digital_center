@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/data/models/music_data.dart';
-import '../../../../core/control/superfocus/focus_widgets.dart';
+import '../../../../core/control/superfocus/focus_api.dart';
 
 /// 📂 Zone：music_folder
 /// 物理文件夹横向选择器 (纯排版 View，无状态)
@@ -54,6 +54,9 @@ class MusicFolderList extends StatelessWidget {
                 FocusIdentity(
                   id: 'folder_refresh_btn',
                   onPressed: onRefresh,
+                  focusGeometry: const RoundedRectFocusGeometry(
+                    borderRadius: BorderRadius.all(Radius.circular(100)),
+                  ),
                   builder: (context, hasFocus) {
                     return Container(
                       margin: const EdgeInsets.only(right: 12),

@@ -399,7 +399,7 @@ class _PoetryOverlayContentState extends State<PoetryOverlayContent>
                                         '[ ${data.author} ]',
                                         style: TextStyle(
                                           fontSize: 14,
-                                          fontWeight: FontWeight.w500,
+                                          fontWeight: FontWeight.normal,
                                           color: colors.textSecondary.withValues(
                                             alpha: 0.6,
                                           ),
@@ -581,7 +581,7 @@ class _PoetryOverlayContentState extends State<PoetryOverlayContent>
                 text,
                 style: TextStyle(
                   fontSize: 16,
-                  fontWeight: isMarked ? FontWeight.w800 : FontWeight.w500,
+                  fontWeight: isMarked ? FontWeight.w800 : FontWeight.normal,
                   color: isMarked
                       ? inkGold
                       : (hasFocus

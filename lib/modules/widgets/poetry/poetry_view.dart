@@ -140,7 +140,7 @@ class PoetryView extends StatelessWidget {
                         '${data.author} · 《${data.title}》',
                         style: TextStyle(
                           fontSize: 12,
-                          fontWeight: FontWeight.w500,
+                          fontWeight: FontWeight.normal,
                           color: colors.textSecondary.withValues(alpha: 0.7),
                           letterSpacing: 1.5,
                         ),

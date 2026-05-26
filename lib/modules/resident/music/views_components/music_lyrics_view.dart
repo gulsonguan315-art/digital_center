@@ -104,7 +104,7 @@ class MusicLyricsView extends StatelessWidget {
                                     fontSize: isActive ? 15 : 13,
                                     fontWeight: isActive
                                         ? FontWeight.w900
-                                        : FontWeight.w500,
+                                        : FontWeight.normal,
                                   ),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
