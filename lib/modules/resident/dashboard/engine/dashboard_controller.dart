@@ -62,10 +62,8 @@ class DashboardController extends ChangeNotifier {
     if (index == -1) return;
 
     final item = _items[index];
-    if (newX < 0) newX = 0;
-    if (newY < 0) newY = 0;
-
-    _items[index] = item.copyWith(x: newX, y: newY);
+    final updated = item.copyWith(x: newX, y: newY);
+    _items[index] = DashboardLayoutPolicy.normalize(updated);
     
     // 实时触发碰撞下推排版物理
     _items = DashboardGridEngine.adjustLayout(_items, id);
@@ -77,10 +75,9 @@ class DashboardController extends ChangeNotifier {
     final index = _items.indexWhere((item) => item.id == id);
     if (index == -1) return;
 
-    if (spanX < 1) spanX = 1;
-    if (spanY < 1) spanY = 1;
-
-    _items[index] = _items[index].copyWith(spanX: spanX, spanY: spanY);
+    final item = _items[index];
+    final updated = item.copyWith(spanX: spanX, spanY: spanY);
+    _items[index] = DashboardLayoutPolicy.normalize(updated);
 
     // 实时触发碰撞下推排版物理
     _items = DashboardGridEngine.adjustLayout(_items, id);

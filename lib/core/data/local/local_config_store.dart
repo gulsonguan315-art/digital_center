@@ -66,6 +66,11 @@ class LocalConfigStore {
     }
   }
 
+  /// 仅执行后台挂起前的同步数据刷盘，但不关闭底层事件流
+  void flush() {
+    dashboard.flush();
+  }
+
   /// 安全释放全局防抖计时器并落锁执行各子仓的关机同步刷盘
   void dispose() {
     dashboard.dispose();

@@ -29,7 +29,11 @@ class LocalMusicStore extends LocalJsonStoreBase<MusicConfig> {
   @override
   MusicConfig get fallbackValue => MusicConfig.defaultConfig;
 
+  bool _isDisposed = false;
+
   void dispose() {
+    if (_isDisposed) return;
+    _isDisposed = true;
     _musicController.close();
   }
 }

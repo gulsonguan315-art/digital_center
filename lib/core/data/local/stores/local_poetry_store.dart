@@ -31,8 +31,12 @@ class LocalPoetryStore extends LocalJsonStoreBase<PoetryData> {
   @override
   PoetryData get fallbackValue => PoetryData.defaultPoetry;
 
+  bool _isDisposed = false;
+
   /// Safe dispose.
   void dispose() {
+    if (_isDisposed) return;
+    _isDisposed = true;
     _poetryController.close();
   }
 }

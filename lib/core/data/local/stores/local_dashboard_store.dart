@@ -118,12 +118,11 @@ class LocalDashboardStore {
     });
   }
 
-  /// Transaction-safe teardown: synchronous flush of any pending writes during application shutdown.
-  void dispose() {
-    if (kIsWeb) {
-      _dashboardController.close();
-      return;
-    }
+  bool _isDisposed = false;
+
+  /// 仅同步刷盘挂起的防抖写请求，但不关闭 Stream，以便应用在进入后台时保存数据且能够继续使用
+  void flush() {
+    if (kIsWeb) return;
     if (_writeTimer != null && _writeTimer!.isActive) {
       _writeTimer?.cancel();
       final itemsToSave = _pendingItems;
@@ -139,6 +138,13 @@ class LocalDashboardStore {
         }
       }
     }
+  }
+
+  /// Transaction-safe teardown: synchronous flush of any pending writes during application shutdown.
+  void dispose() {
+    if (_isDisposed) return;
+    _isDisposed = true;
+    flush();
     _dashboardController.close();
   }
 }

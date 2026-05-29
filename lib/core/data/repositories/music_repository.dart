@@ -18,6 +18,20 @@ class MusicRepository {
 
   MusicRepository(this._localStore);
 
+  bool _isDisposed = false;
+
+  /// 释放资源
+  void dispose() {
+    if (_isDisposed) return;
+    _isDisposed = true;
+    _cacheNotifier.close();
+    _downloadingCacheKeys.clear();
+  }
+
+  /// 跟踪正在后台下载的音频缓存 Key
+  final Set<String> _downloadingCacheKeys = {};
+
+
   /// 广播缓存完成事件通知，String 为 track.id
   final _cacheNotifier = StreamController<String>.broadcast();
   Stream<String> get onTrackCached => _cacheNotifier.stream;
@@ -288,13 +302,16 @@ class MusicRepository {
     }
   }
 
-  Future<String> getAudioPathOrUrl(MusicTrack track) async {
+  Future<String> getAudioPathOrUrl(
+    MusicTrack track, {
+    bool forceOnline = false,
+  }) async {
     try {
       final cacheKey = _makeMd5('${track.path}_${track.size}');
       final cacheFile = File(
         '${_localStore.configDirPath}/music_cache/audio_$cacheKey.dat',
       );
-      if (cacheFile.existsSync()) {
+      if (!forceOnline && cacheFile.existsSync()) {
         return cacheFile.path;
       }
 
@@ -305,8 +322,11 @@ class MusicRepository {
       final authParams = await _buildAuthParams(endpoints);
       final url = '$baseUrl/rest/stream.view?$authParams&id=${track.id}';
 
-      // 异步触发下载，直接返回 URL 以供即时播放
-      _downloadAndCacheAudio(url, cacheFile, track.id);
+      // 异步触发下载，如果当前没有处于下载队列中，则启动后台下载线程
+      if (!_downloadingCacheKeys.contains(cacheKey)) {
+        _downloadingCacheKeys.add(cacheKey);
+        _downloadAndCacheAudio(url, cacheFile, track.id, cacheKey);
+      }
 
       return url;
     } catch (e) {
@@ -319,17 +339,22 @@ class MusicRepository {
     String url,
     File cacheFile,
     String trackId,
+    String cacheKey,
   ) async {
     try {
       Log.d(
         LogGroup.network,
         'Starting background download for audio cache: ${cacheFile.path}',
       );
+      final tmpFile = File('${cacheFile.path}.tmp');
+      if (tmpFile.existsSync()) {
+        await tmpFile.delete();
+      }
+
       final request = http.Request('GET', Uri.parse(url));
       final response = await request.send();
 
       if (response.statusCode == 200) {
-        final tmpFile = File('${cacheFile.path}.tmp');
         final sink = tmpFile.openWrite();
         await response.stream.pipe(sink);
         await sink.close();
@@ -340,10 +365,36 @@ class MusicRepository {
           LogGroup.network,
           'Successfully cached audio to: ${cacheFile.path}',
         );
-        _cacheNotifier.add(trackId); // 通知 UI 缓存完成
+        if (!_isDisposed && !_cacheNotifier.isClosed) {
+          _cacheNotifier.add(trackId); // 通知 UI 缓存完成
+        }
       }
     } catch (e) {
       Log.d(LogGroup.network, 'Background audio caching failed: $e');
+    } finally {
+      _downloadingCacheKeys.remove(cacheKey);
+    }
+  }
+
+  /// 🗑️ 清理指定歌曲的本地文件缓存与临时文件（多用于损坏缓存自愈）
+  Future<void> clearTrackCache(MusicTrack track) async {
+    try {
+      final cacheKey = _makeMd5('${track.path}_${track.size}');
+      _downloadingCacheKeys.remove(cacheKey);
+
+      final cacheFile = File(
+        '${_localStore.configDirPath}/music_cache/audio_$cacheKey.dat',
+      );
+      if (cacheFile.existsSync()) {
+        await cacheFile.delete();
+        Log.d(LogGroup.network, 'Cleaned corrupted track cache: ${cacheFile.path}');
+      }
+      final tmpFile = File('${cacheFile.path}.tmp');
+      if (tmpFile.existsSync()) {
+        await tmpFile.delete();
+      }
+    } catch (e) {
+      Log.d(LogGroup.network, 'Failed to clear track cache: $e');
     }
   }
 

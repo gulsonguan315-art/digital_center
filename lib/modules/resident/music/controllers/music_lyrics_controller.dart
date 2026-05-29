@@ -14,6 +14,9 @@ class MusicLyricsController {
   bool isLoadingLyrics = false;
   List<LrcLine> parsedLyrics = [];
   final ScrollController scrollController = ScrollController();
+  
+  /// 当前正在加载的音轨 ID，用于竞态检查以防切歌导致旧歌词覆盖新歌词
+  String? _loadingTrackId;
 
   /// 通知外层（MusicCallback）更新 UI
   final VoidCallback onUpdate;
@@ -21,11 +24,13 @@ class MusicLyricsController {
   MusicLyricsController({required this.onUpdate});
 
   Future<void> loadLyrics(MusicTrack track) async {
+    _loadingTrackId = track.id;
     isLoadingLyrics = true;
     onUpdate();
 
     try {
       String? lrc = await MusicRepository.instance.fetchLyrics(track);
+      if (_loadingTrackId != track.id) return;
 
       if (lrc == null) {
         final clean = track.title
@@ -43,6 +48,7 @@ class MusicLyricsController {
             coverArtId: track.coverArtId,
           );
           lrc = await MusicRepository.instance.fetchLyrics(cleanTrack);
+          if (_loadingTrackId != track.id) return;
         }
       }
 
@@ -58,7 +64,10 @@ class MusicLyricsController {
           coverArtId: track.coverArtId,
         );
         lrc = await MusicRepository.instance.fetchLyrics(unknownTrack);
+        if (_loadingTrackId != track.id) return;
       }
+
+      if (_loadingTrackId != track.id) return;
 
       if (lrc != null && lrc.isNotEmpty) {
         parsedLyrics = LrcParser.parse(lrc);
@@ -70,6 +79,7 @@ class MusicLyricsController {
         ];
       }
     } catch (_) {
+      if (_loadingTrackId != track.id) return;
       parsedLyrics = [LrcLine(Duration.zero, '歌词加载失败')];
     }
 
@@ -78,6 +88,7 @@ class MusicLyricsController {
   }
 
   void clearLyrics() {
+    _loadingTrackId = null;
     parsedLyrics = [];
     isLoadingLyrics = false;
     onUpdate();

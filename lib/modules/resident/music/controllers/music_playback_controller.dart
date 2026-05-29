@@ -90,16 +90,37 @@ class MusicPlaybackController {
 
     lyrics.loadLyrics(track);
 
+    await _playWithCacheHealing(track, autoplay: autoplay);
+  }
+
+  Future<void> _playWithCacheHealing(MusicTrack track, {required bool autoplay}) async {
+    String? triedUrl;
     try {
-      final url = await MusicRepository.instance.getAudioPathOrUrl(track);
+      triedUrl = await MusicRepository.instance.getAudioPathOrUrl(track);
       if (autoplay) {
-        await _engine.playUrl(url);
+        await _engine.playUrl(triedUrl);
         await _engine.setVolume(AppAudioService.instance.volume);
       } else {
-        await _engine.setUrl(url);
+        await _engine.setUrl(triedUrl);
       }
     } catch (e) {
       debugPrint('AudioPlayer error: $e');
+      final wasLocalCache = triedUrl != null && !triedUrl.startsWith('http');
+      if (wasLocalCache) {
+        debugPrint('Local cache failed to play, clearing cache and retrying online...');
+        await MusicRepository.instance.clearTrackCache(track);
+        try {
+          final onlineUrl = await MusicRepository.instance.getAudioPathOrUrl(track, forceOnline: true);
+          if (autoplay) {
+            await _engine.playUrl(onlineUrl);
+            await _engine.setVolume(AppAudioService.instance.volume);
+          } else {
+            await _engine.setUrl(onlineUrl);
+          }
+        } catch (retryError) {
+          debugPrint('Online retry failed: $retryError');
+        }
+      }
     }
   }
 
@@ -133,8 +154,7 @@ class MusicPlaybackController {
         await _engine.pause();
       } else {
         if (!_engine.hasSource) {
-          final url = await MusicRepository.instance.getAudioPathOrUrl(currentTrack!);
-          await _engine.playUrl(url);
+          await _playWithCacheHealing(currentTrack!, autoplay: true);
         } else {
           await _engine.resume();
         }

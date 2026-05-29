@@ -35,8 +35,10 @@ void main() async {
 class _AppLifecycleObserver extends WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.paused || state == AppLifecycleState.detached) {
-      DataManager.instance.dispose();
+    if (state == AppLifecycleState.paused) {
+      DataManager.instance.flush(); // 切后台时同步落锁刷盘，不关闭 Stream
+    } else if (state == AppLifecycleState.detached) {
+      DataManager.instance.dispose(); // 真正关闭退出时释放所有资源
     }
   }
 }

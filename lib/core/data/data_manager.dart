@@ -125,8 +125,18 @@ class DataManager {
   Future<WeatherData?> fetchWeather({bool force = false}) =>
       WeatherRepository.instance.fetchWeather(force: force);
 
+  bool _isDisposed = false;
+
+  /// 进入后台时，同步刷盘挂起的数据，防止进程被杀导致数据丢失，但不关闭 Stream。
+  void flush() {
+    _localStore.flush();
+  }
+
   /// 释放大管家持有的底层存储并落锁执行临终同步刷盘
   void dispose() {
+    if (_isDisposed) return;
+    _isDisposed = true;
+    MusicRepository.instance.dispose();
     _localStore.dispose();
   }
 }

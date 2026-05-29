@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../../../../core/control/superfocus/focus_manager.dart';
 import '../engine/dashboard_controller.dart';
+import '../engine/dashboard_models.dart';
 
 class ToggleEditModeIntent extends Intent {
   const ToggleEditModeIntent();
@@ -80,18 +81,22 @@ class DashboardEditListener extends StatelessWidget {
                 int newSpanY = item.spanY;
 
                 if (logicalKey == LogicalKeyboardKey.arrowLeft) {
-                  newSpanX = (item.spanX - 1).clamp(1, 12);
+                  newSpanX = item.spanX - 1;
                 } else if (logicalKey == LogicalKeyboardKey.arrowRight) {
-                  newSpanX = (item.spanX + 1).clamp(1, 12);
+                  newSpanX = item.spanX + 1;
                 } else if (logicalKey == LogicalKeyboardKey.arrowUp) {
-                  newSpanY = (item.spanY - 1).clamp(1, 12);
+                  newSpanY = item.spanY - 1;
                 } else if (logicalKey == LogicalKeyboardKey.arrowDown) {
-                  newSpanY = (item.spanY + 1).clamp(1, 12);
+                  newSpanY = item.spanY + 1;
                 } else {
                   return KeyEventResult.ignored;
                 }
 
-                controller.updateItemSpan(focusedId, newSpanX, newSpanY);
+                final normalized = DashboardLayoutPolicy.normalize(
+                  item.copyWith(spanX: newSpanX, spanY: newSpanY),
+                );
+
+                controller.updateItemSpan(focusedId, normalized.spanX, normalized.spanY);
                 return KeyEventResult.handled;
               } else {
                 // 普通方向键 -> 平移位置 (x, y)
@@ -99,18 +104,22 @@ class DashboardEditListener extends StatelessWidget {
                 int newY = item.y;
 
                 if (logicalKey == LogicalKeyboardKey.arrowLeft) {
-                  newX = (item.x - 1).clamp(0, 11);
+                  newX = item.x - 1;
                 } else if (logicalKey == LogicalKeyboardKey.arrowRight) {
-                  newX = (item.x + 1).clamp(0, 11);
+                  newX = item.x + 1;
                 } else if (logicalKey == LogicalKeyboardKey.arrowUp) {
-                  newY = (item.y - 1).clamp(0, 100);
+                  newY = item.y - 1;
                 } else if (logicalKey == LogicalKeyboardKey.arrowDown) {
-                  newY = (item.y + 1).clamp(0, 100);
+                  newY = item.y + 1;
                 } else {
                   return KeyEventResult.ignored;
                 }
 
-                controller.updateItemPosition(focusedId, newX, newY);
+                final normalized = DashboardLayoutPolicy.normalize(
+                  item.copyWith(x: newX, y: newY),
+                );
+
+                controller.updateItemPosition(focusedId, normalized.x, normalized.y);
                 return KeyEventResult.handled;
               }
             }
