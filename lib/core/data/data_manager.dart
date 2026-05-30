@@ -37,6 +37,8 @@ class DataManager {
   late final LocalConfigStore _localStore;
   late final RemoteApiClient _remoteClient;
 
+  LocalConfigStore get localStore => _localStore;
+
   // 🌟 向下兼容高保真缓存属性
   PoetryData get latestPoetry => PoetryRepository.instance.latestPoetry;
   List<DashboardItemConfig> get latestLayout => DashboardRepository.instance.latestLayout;
