@@ -39,9 +39,16 @@ class BuildingMap {
     'media': ['*mov', '*tv', '*ani', '*doc', '*adt'],
     'book': ['*科幻', '*人文=>testPage'],
 
-    'musicPage': ['/music_folder', '/music_list', '/music_control'],
+    'musicPage': ['/music_folder', '/music_list', '/music_lyrics', '/music_control'],
     'music_folder': ['*'],
     'music_list': ['*'],
+    'music_lyrics': [
+      '*music_lyrics_offset_minus',
+      '*music_lyrics_offset_minus_small',
+      '*music_lyrics_offset_plus_small',
+      '*music_lyrics_offset_plus',
+      '*music_lyrics_export',
+    ],
     'music_control': [
       '*music_play_mode',
       '*music_fast_rewind',
@@ -49,6 +56,7 @@ class BuildingMap {
       '*music_play',
       '*music_next',
       '*music_fast_forward',
+      '*music_fullscreen',
     ],
 
     'dashboardPage': [
