@@ -192,7 +192,7 @@ class MusicLyricsView extends StatelessWidget {
                                 duration: const Duration(milliseconds: 250),
                                 scale: isActive ? 1.12 : 1.0,
                                 child: Text(
-                                  parsedLyrics[index].text,
+                                  parsedLyrics[index].text.replaceAll('|', ' '),
                                   textAlign: TextAlign.center,
                                   style: TextStyle(
                                     color: isActive

@@ -299,7 +299,6 @@ class MusicControlRoom extends StatelessWidget {
                       currentPosition: cb.service.playback.currentPosition,
                       trackDuration: cb.service.playback.trackDuration,
                       volume: AppAudioService.instance.volume,
-                      visualizerHeights: cb.service.visualizer.heightsNotifier,
                       material: material,
                       onSeek: (ratio) {
                         final ms =
@@ -370,11 +369,22 @@ class MusicControlRoom extends StatelessWidget {
                         void action() {
                           Navigator.of(context).push(
                             PageRouteBuilder(
-                              opaque: false,
+                              opaque: true, // 设置为 true 阻止底层页面渲染和刷新
+                              transitionDuration: const Duration(milliseconds: 400),
+                              reverseTransitionDuration: const Duration(milliseconds: 300),
                               pageBuilder: (ctx, anim1, anim2) =>
                                   FadeTransition(
                                     opacity: anim1,
-                                    child: const MusicImmersiveOverlay(),
+                                    child: ScaleTransition(
+                                      scale: Tween<double>(begin: 0.9, end: 1.0).animate(
+                                        CurvedAnimation(
+                                          parent: anim1,
+                                          curve: Curves.easeOutCubic,
+                                          reverseCurve: Curves.easeInCubic,
+                                        ),
+                                      ),
+                                      child: const MusicImmersiveOverlay(),
+                                    ),
                                   ),
                             ),
                           );

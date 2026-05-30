@@ -37,7 +37,6 @@ class MusicControlBar extends StatelessWidget {
   final Duration currentPosition;
   final Duration trackDuration;
   final double volume;
-  final ValueListenable<List<double>> visualizerHeights;
   final dynamic material;
   final ValueChanged<double> onSeek;
 
@@ -59,7 +58,6 @@ class MusicControlBar extends StatelessWidget {
     required this.currentPosition,
     required this.trackDuration,
     required this.volume,
-    required this.visualizerHeights,
     required this.material,
     required this.onSeek,
     required this.isPlaying,
@@ -188,6 +186,20 @@ class MusicControlBar extends StatelessWidget {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
+                    recacheSlot(
+                      focusGeometry: const RoundedRectFocusGeometry(
+                        borderRadius: BorderRadius.all(Radius.circular(24)),
+                      ),
+                      (ctx, hasFocus, onPressed) => ExcludeFocus(
+                        child: MusicControlButton(
+                          icon: Icons.replay_rounded,
+                          hasFocus: hasFocus,
+                          onPressed: onPressed ?? () {},
+                          colors: colors,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
                     playModeSlot(
                       focusGeometry: const RoundedRectFocusGeometry(
                         borderRadius: BorderRadius.all(Radius.circular(24)),
@@ -287,27 +299,6 @@ class MusicControlBar extends StatelessWidget {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    // 波形条
-                    ValueListenableBuilder<List<double>>(
-                      valueListenable: visualizerHeights,
-                      builder: (context, heights, _) {
-                        return Row(
-                          children: List.generate(heights.length, (idx) {
-                            return AnimatedContainer(
-                              duration: const Duration(milliseconds: 100),
-                              width: 2.5,
-                              height: heights[idx],
-                              margin: const EdgeInsets.only(right: 2.5),
-                              decoration: BoxDecoration(
-                                color: colors.accent.withValues(alpha: 0.6),
-                                borderRadius: BorderRadius.circular(1),
-                              ),
-                            );
-                          }),
-                        );
-                      },
-                    ),
-                    const SizedBox(width: 16),
                     Icon(
                       volume == 0
                           ? Icons.volume_off_rounded
@@ -333,20 +324,6 @@ class MusicControlBar extends StatelessWidget {
                           child: ExcludeFocus(
                             child: Slider(value: volume, onChanged: (v) {}),
                           ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    recacheSlot(
-                      focusGeometry: const RoundedRectFocusGeometry(
-                        borderRadius: BorderRadius.all(Radius.circular(24)),
-                      ),
-                      (ctx, hasFocus, onPressed) => ExcludeFocus(
-                        child: MusicControlButton(
-                          icon: Icons.replay_rounded,
-                          hasFocus: hasFocus,
-                          onPressed: onPressed ?? () {},
-                          colors: colors,
                         ),
                       ),
                     ),

@@ -56,7 +56,13 @@ class BuildingMap {
       '*music_prev',
       '*music_next',
       '*music_fast_forward',
-      '*music_fullscreen',
+      '*music_fullscreen=>music_overlay',
+    ],
+
+    'music_overlay': [
+      '*style_scrolling',
+      '*style_single_line',
+      '*style_mood',
     ],
 
     'dashboardPage': [
