@@ -3,23 +3,27 @@ import '../../../../core/data/models/music_data.dart';
 import '../../../../core/data/repositories/music_repository.dart';
 import '../../../../core/control/superfocus/focus_api.dart';
 
+typedef TrackSlotBuilder = Widget Function(
+  BuildContext context,
+  int index,
+  Widget Function(BuildContext context, bool hasFocus, VoidCallback? onPressed, {required MusicTrack track, required bool isCurrent, required bool isPlaying}) builder, {
+  FocusGeometry? focusGeometry,
+});
+
+
 /// 🎶 Zone：music_list
 /// 歌曲播放列表 (纯排版 View，无状态)
 class MusicListView extends StatelessWidget {
-  final List<MusicTrack> tracks;
-  final MusicTrack? currentTrack;
-  final bool isPlaying;
+  final int trackCount;
+  final TrackSlotBuilder trackSlot;
   final bool isLoadingTracks;
-  final ValueChanged<MusicTrack> onSelectTrack;
   final dynamic material;
 
   const MusicListView({
     super.key,
-    required this.tracks,
-    required this.currentTrack,
-    required this.isPlaying,
+    required this.trackCount,
+    required this.trackSlot,
     required this.isLoadingTracks,
-    required this.onSelectTrack,
     required this.material,
   });
 
@@ -41,7 +45,7 @@ class MusicListView extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                '播放列表 (${tracks.length} 首)',
+                '播放列表 ($trackCount 首)',
                 style: TextStyle(
                   color: colors.textPrimary,
                   fontSize: 14,
@@ -62,7 +66,7 @@ class MusicListView extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Expanded(
-            child: tracks.isEmpty
+            child: trackCount == 0
                 ? Center(
                     child: Text(
                       isLoadingTracks ? '正在扫描音轨...' : '此物理文件夹内暂无歌曲',
@@ -70,103 +74,24 @@ class MusicListView extends StatelessWidget {
                     ),
                   )
                 : ListView.builder(
-                    itemCount: tracks.length,
-                    itemBuilder: (context, index) {
-                      final track = tracks[index];
-                      final isCurrent = currentTrack?.id == track.id;
-                      return FocusIdentity(
-                        id: 'track_row_${track.id}',
-                        focusGeometry: const RoundedRectFocusGeometry(borderRadius: BorderRadius.all(Radius.circular(8))),
-                        ensureVisibleCentered: true, // 确保长列表焦点自动居中
-                        onPressed: () => onSelectTrack(track),
-                        builder: (context, hasFocus) {
-                          return AnimatedContainer(
-                            duration: const Duration(milliseconds: 150),
-                            margin: const EdgeInsets.only(bottom: 4),
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                            decoration: BoxDecoration(
-                              color: isCurrent ? colors.accent.withValues(alpha: 0.05) : Colors.transparent,
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(
-                                color: Colors.transparent,
-                                width: 1.5,
-                              ),
-                            ),
-                            child: Row(
-                              children: [
-                                SizedBox(
-                                  width: 24,
-                                  child: isCurrent && isPlaying
-                                      ? Icon(Icons.volume_up_rounded, color: colors.accent, size: 14)
-                                      : Text(
-                                          '${index + 1}',
-                                          style: TextStyle(
-                                            color: isCurrent ? colors.accent : colors.textSecondary,
-                                            fontSize: 11,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                ),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  flex: 3,
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Flexible(
-                                        child: Text(
-                                          track.title,
-                                          style: TextStyle(
-                                            color: isCurrent ? colors.accent : colors.textPrimary,
-                                            fontSize: 13,
-                                            fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal,
-                                          ),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ),
-                                      if (MusicRepository.instance.isTrackCached(track)) ...[
-                                        const SizedBox(width: 6),
-                                        Icon(
-                                          Icons.offline_pin_rounded,
-                                          size: 14,
-                                          color: isCurrent
-                                              ? colors.accent.withValues(alpha: 0.8)
-                                              : colors.textSecondary.withValues(alpha: 0.8),
-                                        ),
-                                      ],
-                                    ],
-                                  ),
-                                ),
-                                Expanded(
-                                  flex: 2,
-                                  child: Text(
-                                    track.artist,
-                                    style: TextStyle(
-                                      color: isCurrent
-                                          ? colors.accent.withValues(alpha: 0.8)
-                                          : colors.textPrimary,
-                                      fontSize: 12,
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                                const SizedBox(width: 16),
-                                Text(
-                                  track.formattedDuration,
-                                  style: TextStyle(
-                                    color: isCurrent ? colors.accent : colors.textPrimary,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          );
-                        },
-                      );
-                    },
+                    itemCount: trackCount,
+                    itemBuilder: (ctx, index) => trackSlot(
+                      ctx,
+                      index,
+                      focusGeometry: const RoundedRectFocusGeometry(
+                        borderRadius: BorderRadius.all(Radius.circular(8)),
+                      ),
+                      (ctx, hasFocus, onPressed, {required track, required isCurrent, required isPlaying}) {
+                        return MusicTrackRow(
+                          track: track,
+                          index: index,
+                          isCurrent: isCurrent,
+                          isPlaying: isPlaying,
+                          hasFocus: hasFocus,
+                          material: material,
+                        );
+                      }
+                    ),
                   ),
           ),
         ],
@@ -175,3 +100,110 @@ class MusicListView extends StatelessWidget {
   }
 }
 
+class MusicTrackRow extends StatelessWidget {
+  final MusicTrack track;
+  final int index;
+  final bool isCurrent;
+  final bool isPlaying;
+  final bool hasFocus;
+  final dynamic material;
+
+  const MusicTrackRow({
+    super.key,
+    required this.track,
+    required this.index,
+    required this.isCurrent,
+    required this.isPlaying,
+    required this.hasFocus,
+    required this.material,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = material.colors;
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 150),
+      margin: const EdgeInsets.only(bottom: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: isCurrent ? colors.accent.withValues(alpha: 0.05) : Colors.transparent,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: Colors.transparent,
+          width: 1.5,
+        ),
+      ),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 24,
+            child: isCurrent && isPlaying
+                ? Icon(Icons.volume_up_rounded, color: colors.accent, size: 14)
+                : Text(
+                    '${index + 1}',
+                    style: TextStyle(
+                      color: isCurrent ? colors.accent : colors.textSecondary,
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            flex: 3,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Flexible(
+                  child: Text(
+                    track.title,
+                    style: TextStyle(
+                      color: isCurrent ? colors.accent : colors.textPrimary,
+                      fontSize: 13,
+                      fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                if (MusicRepository.instance.isTrackCached(track)) ...[
+                  const SizedBox(width: 6),
+                  Icon(
+                    Icons.offline_pin_rounded,
+                    size: 14,
+                    color: isCurrent
+                        ? colors.accent.withValues(alpha: 0.8)
+                        : colors.textSecondary.withValues(alpha: 0.8),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          Expanded(
+            flex: 2,
+            child: Text(
+              track.artist,
+              style: TextStyle(
+                color: isCurrent
+                    ? colors.accent.withValues(alpha: 0.8)
+                    : colors.textPrimary,
+                fontSize: 12,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          const SizedBox(width: 16),
+          Text(
+            track.formattedDuration,
+            style: TextStyle(
+              color: isCurrent ? colors.accent : colors.textPrimary,
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

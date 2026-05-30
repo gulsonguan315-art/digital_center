@@ -1,9 +1,19 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:superfocus/core/data/models/music_config.dart';
 import '../../../../core/data/models/music_data.dart';
-import '../../../../core/data/models/music_config.dart';
 import '../../../../core/control/superfocus/focus_api.dart';
-import '../music_model.dart';
+
+typedef FocusSlotBuilder =
+    Widget Function(
+      Widget Function(
+        BuildContext context,
+        bool hasFocus,
+        VoidCallback? onPressed,
+      )
+      builder, {
+      FocusGeometry? focusGeometry,
+    });
 
 /// 🎚️ Zone：music_control
 /// 底部播放控制栏 (纯排版 View，无状态)
@@ -26,38 +36,42 @@ class MusicControlBar extends StatelessWidget {
   final MusicTrack? currentTrack;
   final Duration currentPosition;
   final Duration trackDuration;
-  final bool isPlaying;
   final double volume;
-  final List<double> visualizerHeights;
-  final PlaybackMode playMode;
+  final ValueListenable<List<double>> visualizerHeights;
   final dynamic material;
-
-  // callbacks
-  final VoidCallback onTogglePlayMode;
-  final VoidCallback onFastRewind;
-  final VoidCallback onPrev;
-  final VoidCallback onPlayPause;
-  final VoidCallback onNext;
-  final VoidCallback onFastForward;
   final ValueChanged<double> onSeek;
+
+  // slots
+  final bool isPlaying;
+  final PlaybackMode playMode;
+  final FocusSlotBuilder playModeSlot;
+  final FocusSlotBuilder fastRewindSlot;
+  final FocusSlotBuilder prevSlot;
+  final FocusSlotBuilder playPauseSlot;
+  final FocusSlotBuilder nextSlot;
+  final FocusSlotBuilder fastForwardSlot;
+  final FocusSlotBuilder recacheSlot;
+  final FocusSlotBuilder fullscreenSlot;
 
   const MusicControlBar({
     super.key,
     required this.currentTrack,
     required this.currentPosition,
     required this.trackDuration,
-    required this.isPlaying,
     required this.volume,
     required this.visualizerHeights,
-    required this.playMode,
     required this.material,
-    required this.onTogglePlayMode,
-    required this.onFastRewind,
-    required this.onPrev,
-    required this.onPlayPause,
-    required this.onNext,
-    required this.onFastForward,
     required this.onSeek,
+    required this.isPlaying,
+    required this.playMode,
+    required this.playModeSlot,
+    required this.fastRewindSlot,
+    required this.prevSlot,
+    required this.playPauseSlot,
+    required this.nextSlot,
+    required this.fastForwardSlot,
+    required this.recacheSlot,
+    required this.fullscreenSlot,
   });
 
   String _fmt(Duration d) {
@@ -70,7 +84,10 @@ class MusicControlBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = material.colors;
     final progress = trackDuration.inMilliseconds > 0
-        ? (currentPosition.inMilliseconds / trackDuration.inMilliseconds).clamp(0.0, 1.0)
+        ? (currentPosition.inMilliseconds / trackDuration.inMilliseconds).clamp(
+            0.0,
+            1.0,
+          )
         : 0.0;
 
     return Container(
@@ -86,9 +103,14 @@ class MusicControlBar extends StatelessWidget {
           // ── 进度条 ──────────────────────────────────────────────────────────
           Row(
             children: [
-              Text(_fmt(currentPosition),
-                  style: TextStyle(
-                      color: colors.textSecondary, fontSize: 11, fontWeight: FontWeight.bold)),
+              Text(
+                _fmt(currentPosition),
+                style: TextStyle(
+                  color: colors.textSecondary,
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
               Expanded(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -99,20 +121,24 @@ class MusicControlBar extends StatelessWidget {
                       inactiveTrackColor: colors.border,
                       thumbColor: colors.accent,
                       overlayColor: colors.accent.withValues(alpha: 0.1),
-                      thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6.0),
+                      thumbShape: const RoundSliderThumbShape(
+                        enabledThumbRadius: 6.0,
+                      ),
                     ),
                     child: ExcludeFocus(
-                      child: Slider(
-                        value: progress,
-                        onChanged: onSeek,
-                      ),
+                      child: Slider(value: progress, onChanged: onSeek),
                     ),
                   ),
                 ),
               ),
-              Text(_fmt(trackDuration),
-                  style: TextStyle(
-                      color: colors.textSecondary, fontSize: 11, fontWeight: FontWeight.bold)),
+              Text(
+                _fmt(trackDuration),
+                style: TextStyle(
+                  color: colors.textSecondary,
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 8),
@@ -132,17 +158,22 @@ class MusicControlBar extends StatelessWidget {
                           ? '${currentTrack!.title} - ${currentTrack!.artist}'
                           : '暂无播放歌曲',
                       style: TextStyle(
-                          color: colors.textPrimary,
-                          fontSize: 13,
-                          fontWeight: FontWeight.bold),
+                        color: colors.textPrimary,
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                      ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    if (currentTrack != null && currentTrack!.album.isNotEmpty) ...[
+                    if (currentTrack != null &&
+                        currentTrack!.album.isNotEmpty) ...[
                       const SizedBox(height: 4),
                       Text(
                         currentTrack!.album,
-                        style: TextStyle(color: colors.textSecondary, fontSize: 11),
+                        style: TextStyle(
+                          color: colors.textSecondary,
+                          fontSize: 11,
+                        ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -157,101 +188,92 @@ class MusicControlBar extends StatelessWidget {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    FocusIdentity(
-                      id: MusicModel.btnPlayModeId,
-                      onPressed: onTogglePlayMode,
-                      focusGeometry: const RoundedRectFocusGeometry(borderRadius: BorderRadius.all(Radius.circular(24))),
-                      builder: (ctx, hasFocus) => ExcludeFocus(
-                        child: IconButton(
-                          icon: Icon(
-                            playMode == PlaybackMode.singleLoop
-                                ? Icons.repeat_one_rounded
-                                : playMode == PlaybackMode.shuffle
-                                    ? Icons.shuffle_rounded
-                                    : Icons.repeat_rounded,
-                          ),
-                          color: hasFocus ? colors.accent : colors.textPrimary,
-                          iconSize: 24,
-                          onPressed: onTogglePlayMode,
+                    playModeSlot(
+                      focusGeometry: const RoundedRectFocusGeometry(
+                        borderRadius: BorderRadius.all(Radius.circular(24)),
+                      ),
+                      (ctx, hasFocus, onPressed) => ExcludeFocus(
+                        child: MusicControlButton(
+                          icon: playMode == PlaybackMode.singleLoop
+                              ? Icons.repeat_one_rounded
+                              : playMode == PlaybackMode.shuffle
+                              ? Icons.shuffle_rounded
+                              : Icons.repeat_rounded,
+                          hasFocus: hasFocus,
+                          onPressed: onPressed ?? () {},
+                          colors: colors,
                         ),
                       ),
                     ),
                     const SizedBox(width: 12),
-                    FocusIdentity(
-                      id: MusicModel.btnFastRewindId,
-                      onPressed: onFastRewind,
-                      focusGeometry: const RoundedRectFocusGeometry(borderRadius: BorderRadius.all(Radius.circular(24))),
-                      builder: (ctx, hasFocus) => ExcludeFocus(
-                        child: IconButton(
-                          icon: const Icon(Icons.fast_rewind_rounded),
-                          color: hasFocus ? colors.accent : colors.textPrimary,
-                          iconSize: 24,
-                          onPressed: onFastRewind,
+                    fastRewindSlot(
+                      focusGeometry: const RoundedRectFocusGeometry(
+                        borderRadius: BorderRadius.all(Radius.circular(24)),
+                      ),
+                      (ctx, hasFocus, onPressed) => ExcludeFocus(
+                        child: MusicControlButton(
+                          icon: Icons.fast_rewind_rounded,
+                          hasFocus: hasFocus,
+                          onPressed: onPressed ?? () {},
+                          colors: colors,
                         ),
                       ),
                     ),
                     const SizedBox(width: 8),
-                    FocusIdentity(
-                      id: MusicModel.btnPrevId,
-                      onPressed: onPrev,
-                      focusGeometry: const RoundedRectFocusGeometry(borderRadius: BorderRadius.all(Radius.circular(24))),
-                      builder: (ctx, hasFocus) => ExcludeFocus(
-                        child: IconButton(
-                          icon: const Icon(Icons.skip_previous_rounded),
-                          color: hasFocus ? colors.accent : colors.textPrimary,
+                    prevSlot(
+                      focusGeometry: const RoundedRectFocusGeometry(
+                        borderRadius: BorderRadius.all(Radius.circular(24)),
+                      ),
+                      (ctx, hasFocus, onPressed) => ExcludeFocus(
+                        child: MusicControlButton(
+                          icon: Icons.skip_previous_rounded,
                           iconSize: 26,
-                          onPressed: onPrev,
+                          hasFocus: hasFocus,
+                          onPressed: onPressed ?? () {},
+                          colors: colors,
                         ),
                       ),
                     ),
                     const SizedBox(width: 12),
-                    FocusIdentity(
-                      id: MusicModel.btnPlayId,
-                      onPressed: onPlayPause,
-                      focusGeometry: const RoundedRectFocusGeometry(borderRadius: BorderRadius.all(Radius.circular(22))),
-                      builder: (ctx, hasFocus) => AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        width: 44,
-                        height: 44,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: colors.surface,
-                          border: Border.all(color: colors.accent, width: 2),
-                        ),
-                        child: ExcludeFocus(
-                          child: IconButton(
-                            icon: Icon(isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded),
-                            color: colors.accent,
-                            onPressed: onPlayPause,
-                          ),
+                    playPauseSlot(
+                      focusGeometry: const RoundedRectFocusGeometry(
+                        borderRadius: BorderRadius.all(Radius.circular(22)),
+                      ),
+                      (ctx, hasFocus, onPressed) => ExcludeFocus(
+                        child: MusicPlayButton(
+                          isPlaying: isPlaying,
+                          hasFocus: hasFocus,
+                          onPressed: onPressed ?? () {},
+                          colors: colors,
                         ),
                       ),
                     ),
                     const SizedBox(width: 12),
-                    FocusIdentity(
-                      id: MusicModel.btnNextId,
-                      onPressed: onNext,
-                      focusGeometry: const RoundedRectFocusGeometry(borderRadius: BorderRadius.all(Radius.circular(24))),
-                      builder: (ctx, hasFocus) => ExcludeFocus(
-                        child: IconButton(
-                          icon: const Icon(Icons.skip_next_rounded),
-                          color: hasFocus ? colors.accent : colors.textPrimary,
+                    nextSlot(
+                      focusGeometry: const RoundedRectFocusGeometry(
+                        borderRadius: BorderRadius.all(Radius.circular(24)),
+                      ),
+                      (ctx, hasFocus, onPressed) => ExcludeFocus(
+                        child: MusicControlButton(
+                          icon: Icons.skip_next_rounded,
                           iconSize: 26,
-                          onPressed: onNext,
+                          hasFocus: hasFocus,
+                          onPressed: onPressed ?? () {},
+                          colors: colors,
                         ),
                       ),
                     ),
                     const SizedBox(width: 8),
-                    FocusIdentity(
-                      id: MusicModel.btnFastForwardId,
-                      onPressed: onFastForward,
-                      focusGeometry: const RoundedRectFocusGeometry(borderRadius: BorderRadius.all(Radius.circular(24))),
-                      builder: (ctx, hasFocus) => ExcludeFocus(
-                        child: IconButton(
-                          icon: const Icon(Icons.fast_forward_rounded),
-                          color: hasFocus ? colors.accent : colors.textPrimary,
-                          iconSize: 24,
-                          onPressed: onFastForward,
+                    fastForwardSlot(
+                      focusGeometry: const RoundedRectFocusGeometry(
+                        borderRadius: BorderRadius.all(Radius.circular(24)),
+                      ),
+                      (ctx, hasFocus, onPressed) => ExcludeFocus(
+                        child: MusicControlButton(
+                          icon: Icons.fast_forward_rounded,
+                          hasFocus: hasFocus,
+                          onPressed: onPressed ?? () {},
+                          colors: colors,
                         ),
                       ),
                     ),
@@ -266,27 +288,32 @@ class MusicControlBar extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     // 波形条
-                    Row(
-                      children: List.generate(visualizerHeights.length, (idx) {
-                        return AnimatedContainer(
-                          duration: const Duration(milliseconds: 100),
-                          width: 2.5,
-                          height: visualizerHeights[idx],
-                          margin: const EdgeInsets.only(right: 2.5),
-                          decoration: BoxDecoration(
-                            color: colors.accent.withValues(alpha: 0.6),
-                            borderRadius: BorderRadius.circular(1),
-                          ),
+                    ValueListenableBuilder<List<double>>(
+                      valueListenable: visualizerHeights,
+                      builder: (context, heights, _) {
+                        return Row(
+                          children: List.generate(heights.length, (idx) {
+                            return AnimatedContainer(
+                              duration: const Duration(milliseconds: 100),
+                              width: 2.5,
+                              height: heights[idx],
+                              margin: const EdgeInsets.only(right: 2.5),
+                              decoration: BoxDecoration(
+                                color: colors.accent.withValues(alpha: 0.6),
+                                borderRadius: BorderRadius.circular(1),
+                              ),
+                            );
+                          }),
                         );
-                      }),
+                      },
                     ),
                     const SizedBox(width: 16),
                     Icon(
                       volume == 0
                           ? Icons.volume_off_rounded
                           : (volume < 0.4
-                              ? Icons.volume_down_rounded
-                              : Icons.volume_up_rounded),
+                                ? Icons.volume_down_rounded
+                                : Icons.volume_up_rounded),
                       color: colors.textSecondary,
                       size: 16,
                     ),
@@ -298,15 +325,42 @@ class MusicControlBar extends StatelessWidget {
                           activeTrackColor: colors.accent,
                           inactiveTrackColor: colors.border,
                           thumbColor: colors.accent,
-                          thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 4.0),
+                          thumbShape: const RoundSliderThumbShape(
+                            enabledThumbRadius: 4.0,
+                          ),
                         ),
                         child: IgnorePointer(
                           child: ExcludeFocus(
-                            child: Slider(
-                              value: volume,
-                              onChanged: (v) {},
-                            ),
+                            child: Slider(value: volume, onChanged: (v) {}),
                           ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    recacheSlot(
+                      focusGeometry: const RoundedRectFocusGeometry(
+                        borderRadius: BorderRadius.all(Radius.circular(24)),
+                      ),
+                      (ctx, hasFocus, onPressed) => ExcludeFocus(
+                        child: MusicControlButton(
+                          icon: Icons.replay_rounded,
+                          hasFocus: hasFocus,
+                          onPressed: onPressed ?? () {},
+                          colors: colors,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    fullscreenSlot(
+                      focusGeometry: const RoundedRectFocusGeometry(
+                        borderRadius: BorderRadius.all(Radius.circular(24)),
+                      ),
+                      (ctx, hasFocus, onPressed) => ExcludeFocus(
+                        child: MusicControlButton(
+                          icon: Icons.fullscreen_rounded,
+                          hasFocus: hasFocus,
+                          onPressed: onPressed ?? () {},
+                          colors: colors,
                         ),
                       ),
                     ),
@@ -316,6 +370,67 @@ class MusicControlBar extends StatelessWidget {
             ],
           ),
         ],
+      ),
+    );
+  }
+}
+
+class MusicControlButton extends StatelessWidget {
+  final IconData icon;
+  final double iconSize;
+  final bool hasFocus;
+  final VoidCallback onPressed;
+  final dynamic colors;
+
+  const MusicControlButton({
+    super.key,
+    required this.icon,
+    this.iconSize = 24,
+    required this.hasFocus,
+    required this.onPressed,
+    required this.colors,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      icon: Icon(icon),
+      color: hasFocus ? colors.accent : colors.textPrimary,
+      iconSize: iconSize,
+      onPressed: onPressed,
+    );
+  }
+}
+
+class MusicPlayButton extends StatelessWidget {
+  final bool isPlaying;
+  final bool hasFocus;
+  final VoidCallback onPressed;
+  final dynamic colors;
+
+  const MusicPlayButton({
+    super.key,
+    required this.isPlaying,
+    required this.hasFocus,
+    required this.onPressed,
+    required this.colors,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      width: 44,
+      height: 44,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: colors.surface,
+        border: Border.all(color: colors.accent, width: 2),
+      ),
+      child: IconButton(
+        icon: Icon(isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded),
+        color: colors.accent,
+        onPressed: onPressed,
       ),
     );
   }

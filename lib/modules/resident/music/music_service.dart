@@ -19,7 +19,7 @@ class MusicService extends ChangeNotifier {
 
   MusicService._() {
     lyrics = MusicLyricsController(onUpdate: notifyListeners);
-    visualizer = MusicVisualizerController(onUpdate: notifyListeners);
+    visualizer = MusicVisualizerController();
 
     playlist = MusicPlaylistController(
       onUpdate: notifyListeners,

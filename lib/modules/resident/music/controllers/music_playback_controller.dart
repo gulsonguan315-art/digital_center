@@ -28,6 +28,9 @@ class MusicPlaybackController {
   Duration currentPosition = Duration.zero;
   Duration trackDuration = Duration.zero;
 
+  int _lastNotifiedSecond = -1;
+  int _lastActiveLyricIndex = -1;
+
   StreamSubscription? _posSub;
   StreamSubscription? _durSub;
   StreamSubscription? _stateSub;
@@ -58,8 +61,19 @@ class MusicPlaybackController {
   void _initEngine() {
     _posSub = _engine.onPositionChanged.listen((p) {
       currentPosition = p;
-      lyrics.scrollToActiveLyric(p);
-      onUpdate();
+      final activeLyricIndex = lyrics.getActiveLyricIndex(p);
+      if (activeLyricIndex != _lastActiveLyricIndex) {
+        _lastActiveLyricIndex = activeLyricIndex;
+        lyrics.scrollToActiveLyric(p);
+        onUpdate();
+        return;
+      }
+
+      final currentSecond = p.inSeconds;
+      if (currentSecond != _lastNotifiedSecond) {
+        _lastNotifiedSecond = currentSecond;
+        onUpdate();
+      }
     });
 
     _durSub = _engine.onDurationChanged.listen((d) {
@@ -86,6 +100,8 @@ class MusicPlaybackController {
     currentTrack = track;
     trackDuration = Duration(seconds: track.duration);
     currentPosition = Duration.zero;
+    _lastNotifiedSecond = -1;
+    _lastActiveLyricIndex = -1;
     onUpdate();
 
     lyrics.loadLyrics(track);
@@ -143,6 +159,8 @@ class MusicPlaybackController {
     currentTrack = null;
     currentPosition = Duration.zero;
     trackDuration = Duration.zero;
+    _lastNotifiedSecond = -1;
+    _lastActiveLyricIndex = -1;
     lyrics.clearLyrics();
     onUpdate();
   }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/control/superfocus/focus_api.dart';
+import '../../../core/control/superfocus/focus_manager.dart';
 import '../../../core/engine/theme/theme_api.dart';
 import '../../../core/engine/audio/app_audio_service.dart';
 import 'music_model.dart';
@@ -10,13 +11,10 @@ import 'views_components/music_folder_view.dart';
 import 'views_components/music_list_view.dart';
 import 'views_components/music_lyrics_view.dart';
 import 'views_components/music_control_view.dart';
+import '../../overlay/music/music_immersive_overlay.dart';
 
 /// 📂 音乐页面主房间 (Music Room - Composition Root)
-///
-/// 职责：
-///   1. 创建并持有 [MusicCallback]（状态 + 业务逻辑）
-///   2. 监听 callback 变化，将最新数据注入三个 Zone Room
-///   3. 按 building_map 中的 +zone 结构把三个 Zone Room 组装进 [MusicPageView]
+
 class MusicRoom extends StatefulWidget {
   final Widget? child;
   const MusicRoom({super.key, this.child});
@@ -46,125 +44,61 @@ class _MusicRoomState extends State<MusicRoom> {
   Widget build(BuildContext context) {
     return SuperFocusRoom(
       id: MusicModel.musicPageId,
-      child: widget.child ??
-          ListenableBuilder(
-            listenable: _cb,
-            builder: (context, _) {
-              // 异常兜底
-              if (_cb.service.playlist.errorMessage != null) return _buildErrorView(context);
-              // 首屏 Loading
-              if (_cb.service.playlist.isLoadingFolders) return _buildLoadingView(context);
+      child:
+          widget.child ??
+          ValueListenableBuilder(
+            valueListenable: SuperFocusManager.instance.topologyNotifier,
+            builder: (context, topology, _) {
+              final isActive = topology.activePath.contains(
+                MusicModel.musicPageId,
+              );
+              final isEntering =
+                  SuperFocusManager.instance.intentionRoomId.value ==
+                  MusicModel.musicPageId;
 
-              return MusicPageView(
-                slots: {
-                  'music_folder': MusicFolderRoom(cb: _cb),
-                  'music_list': MusicListRoom(cb: _cb),
-                  'music_lyrics': MusicLyricsRoom(cb: _cb),
-                  'music_control': MusicControlRoom(cb: _cb),
+              if (!isActive && !isEntering) {
+                return const SizedBox.shrink();
+              }
+
+              return ListenableBuilder(
+                listenable: _cb,
+                builder: (context, _) {
+                  // 异常兜底
+                  if (_cb.service.playlist.errorMessage != null) {
+                    return MusicErrorView(
+                      errorMessage: _cb.service.playlist.errorMessage,
+                      retrySlot: (builder) => FocusIdentity(
+                        id: MusicModel.retryBtnId,
+                        onPressed: _cb.retryLoadFolders,
+                        builder: builder,
+                      ),
+                    );
+                  }
+                  // 首屏 Loading
+                  if (_cb.service.playlist.isLoadingFolders) {
+                    return const MusicLoadingView();
+                  }
+
+                  return MusicPageView(
+                    slots: {
+                      'music_folder': MusicFolderRoom(cb: _cb),
+                      'music_list': MusicListRoom(cb: _cb),
+                      'music_lyrics': MusicLyricsRoom(cb: _cb),
+                      'music_control': MusicControlRoom(cb: _cb),
+                    },
+                  );
                 },
               );
             },
           ),
     );
   }
-
-  Widget _buildLoadingView(BuildContext context) {
-    return ThemeIdentity(
-      role: ThemeRole.card,
-      child: Builder(
-        builder: (ctx) {
-          final colors = ctx.useTheme().colors;
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(colors.accent),
-                  strokeWidth: 3.5,
-                ),
-                const SizedBox(height: 24),
-                Text('正在同步 Gonic 视听库...',
-                    style: TextStyle(color: colors.textSecondary, fontSize: 13)),
-              ],
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildErrorView(BuildContext context) {
-    return ThemeIdentity(
-      role: ThemeRole.card,
-      child: Builder(
-        builder: (ctx) {
-          final material = ctx.useTheme();
-          final colors = material.colors;
-          return Center(
-            child: Container(
-              constraints: const BoxConstraints(maxWidth: 480),
-              padding: const EdgeInsets.all(32),
-              decoration: BoxDecoration(
-                color: colors.surface,
-                borderRadius: material.shape.radius,
-                border: Border.all(color: colors.border, width: 1.5),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.wifi_off_rounded, color: colors.accent, size: 48),
-                  const SizedBox(height: 24),
-                  Text('视听中枢连接失败',
-                      style: TextStyle(
-                          color: colors.textPrimary,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w900)),
-                  const SizedBox(height: 12),
-                  Text(
-                    _cb.service.playlist.errorMessage ??
-                        '无法访问 Gonic 视听库，请验证服务器连通状态或检查 api_endpoints.json 中的配置。',
-                    textAlign: TextAlign.center,
-                    style:
-                        TextStyle(color: colors.textSecondary, fontSize: 13, height: 1.5),
-                  ),
-                  const SizedBox(height: 32),
-                  FocusIdentity(
-                    id: MusicModel.retryBtnId,
-                    onPressed: _cb.retryLoadFolders,
-                    builder: (ctx2, hasFocus) => AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      padding:
-                          const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                      decoration: BoxDecoration(
-                        color: hasFocus ? colors.accent : colors.surface,
-                        borderRadius: material.shape.radius,
-                        border: Border.all(
-                            color: hasFocus ? colors.accent : colors.border,
-                            width: 1.5),
-                        boxShadow: hasFocus ? material.visual.outerShadows : null,
-                      ),
-                      child: Text('重新连接',
-                          style: TextStyle(
-                              color: colors.textPrimary,
-                              fontSize: 13,
-                              fontWeight: FontWeight.bold)),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
 }
 
 // =============================================================================
-// Zone Rooms (二级包工头)
+// (二级包工头)
 // =============================================================================
 
-/// Zone：music_folder — 文件夹选择器区域
 class MusicFolderRoom extends StatelessWidget {
   final MusicCallback cb;
   const MusicFolderRoom({super.key, required this.cb});
@@ -178,17 +112,39 @@ class MusicFolderRoom extends StatelessWidget {
           final material = ctx.useTheme();
           return FocusIdentity(
             id: MusicModel.folderZoneId,
-            focusGeometry: RoundedRectFocusGeometry(borderRadius: material.shape.radius),
+            focusGeometry: RoundedRectFocusGeometry(
+              borderRadius: material.shape.radius,
+            ),
             builder: (context, hasFocus) {
               return SuperFocusRoom(
                 id: MusicModel.folderZoneId,
                 child: MusicFolderView(
                   slots: {
                     'folder_list': MusicFolderList(
-                      folders: cb.service.playlist.folders,
-                      activeFolderIds: cb.service.playlist.activeFolderIds,
-                      onToggle: cb.toggleFolder,
-                      onRefresh: cb.forceRefreshFolders,
+                      refreshSlot: (builder, {focusGeometry}) {
+                        void action() => cb.forceRefreshFolders();
+                        return FocusIdentity(
+                          id: 'folder_refresh_btn',
+                          onPressed: action,
+                          focusGeometry: focusGeometry,
+                          builder: (ctx, hasFocus) => builder(ctx, hasFocus, action),
+                        );
+                      },
+                      folderCount: cb.service.playlist.folders.length,
+                      folderSlot: (ctx, index, innerBuilder, {focusGeometry}) {
+                        final folder = cb.service.playlist.folders[index];
+                        final isActive = cb.service.playlist.activeFolderIds.contains(folder.id);
+                        void action() => cb.toggleFolder(folder.id);
+                        return FocusIdentity(
+                          id: 'folder_card_${folder.id}',
+                          onPressed: action,
+                          focusGeometry: focusGeometry,
+                          builder: (ctx, hasFocus) => innerBuilder(
+                            ctx, hasFocus, action,
+                            folder: folder, isActive: isActive,
+                          ),
+                        );
+                      },
                       material: material,
                     ),
                   },
@@ -202,7 +158,6 @@ class MusicFolderRoom extends StatelessWidget {
   }
 }
 
-/// Zone：music_list — 歌曲列表 + 歌词面板区域
 class MusicListRoom extends StatelessWidget {
   final MusicCallback cb;
   const MusicListRoom({super.key, required this.cb});
@@ -216,16 +171,30 @@ class MusicListRoom extends StatelessWidget {
           final material = ctx.useTheme();
           return FocusIdentity(
             id: MusicModel.listZoneId,
-            focusGeometry: RoundedRectFocusGeometry(borderRadius: material.shape.radius),
+            focusGeometry: RoundedRectFocusGeometry(
+              borderRadius: material.shape.radius,
+            ),
             builder: (context, hasFocus) {
               return SuperFocusRoom(
                 id: MusicModel.listZoneId,
                 child: MusicListView(
-                  tracks: cb.service.playlist.tracks,
-                  currentTrack: cb.service.playback.currentTrack,
-                  isPlaying: cb.service.playback.isPlaying,
+                  trackCount: cb.service.playlist.tracks.length,
+                  trackSlot: (ctx, index, innerBuilder, {focusGeometry}) {
+                    final track = cb.service.playlist.tracks[index];
+                    final isCurrent = cb.service.playback.currentTrack?.id == track.id;
+                    void action() => cb.selectTrack(track);
+                    return FocusIdentity(
+                      id: 'track_row_${track.id}',
+                      focusGeometry: focusGeometry,
+                      ensureVisibleCentered: true,
+                      onPressed: action,
+                      builder: (ctx, hasFocus) => innerBuilder(
+                        ctx, hasFocus, action,
+                        track: track, isCurrent: isCurrent, isPlaying: cb.service.playback.isPlaying,
+                      ),
+                    );
+                  },
                   isLoadingTracks: cb.service.playlist.isLoadingTracks,
-                  onSelectTrack: cb.selectTrack,
                   material: material,
                 ),
               );
@@ -237,7 +206,6 @@ class MusicListRoom extends StatelessWidget {
   }
 }
 
-/// 📜 Zone：music_lyrics (无焦点)
 class MusicLyricsRoom extends StatelessWidget {
   final MusicCallback cb;
   const MusicLyricsRoom({super.key, required this.cb});
@@ -249,13 +217,55 @@ class MusicLyricsRoom extends StatelessWidget {
       child: Builder(
         builder: (ctx) {
           final material = ctx.useTheme();
-          // 注意：歌词面板不参与焦点系统，所以没有 FocusIdentity 和 SuperFocusRoom
-          return MusicLyricsView(
-            parsedLyrics: cb.service.lyrics.parsedLyrics,
-            activeLyricIndex: cb.service.lyrics.getActiveLyricIndex(cb.service.playback.currentPosition),
-            isLoadingLyrics: cb.service.lyrics.isLoadingLyrics,
-            scrollController: cb.service.lyrics.scrollController,
-            material: material,
+          return FocusIdentity(
+            id: MusicModel.lyricsZoneId,
+            focusGeometry: RoundedRectFocusGeometry(
+              borderRadius: material.shape.radius,
+            ),
+            builder: (context, hasFocus) {
+              return SuperFocusRoom(
+                id: MusicModel.lyricsZoneId,
+                child: MusicLyricsView(
+                  parsedLyrics: cb.service.lyrics.parsedLyrics,
+                  activeLyricIndex: cb.service.lyrics.getActiveLyricIndex(
+                    cb.service.playback.currentPosition,
+                  ),
+                  isLoadingLyrics: cb.service.lyrics.isLoadingLyrics,
+                  scrollController: cb.service.lyrics.scrollController,
+                  material: material,
+                  hasFocus: hasFocus,
+                  currentOffsetMs: cb.service.lyrics.cumulativeOffsetMs,
+                  minusLargeSlot: (builder) => FocusIdentity(
+                    id: MusicModel.btnLyricsOffsetMinusId,
+                    onPressed: cb.offsetLyricsMinusLarge,
+                    builder: builder,
+                  ),
+                  minusSmallSlot: (builder) => FocusIdentity(
+                    id: MusicModel.btnLyricsOffsetMinusSmallId,
+                    onPressed: cb.offsetLyricsMinusSmall,
+                    builder: builder,
+                  ),
+                  plusSmallSlot: (builder) => FocusIdentity(
+                    id: MusicModel.btnLyricsOffsetPlusSmallId,
+                    onPressed: cb.offsetLyricsPlusSmall,
+                    builder: builder,
+                  ),
+                  plusLargeSlot: (builder) => FocusIdentity(
+                    id: MusicModel.btnLyricsOffsetPlusId,
+                    onPressed: cb.offsetLyricsPlusLarge,
+                    builder: builder,
+                  ),
+                  exportSlot: (builder) => FocusIdentity(
+                    id: MusicModel.btnLyricsExportId,
+                    onPressed: () async {
+                      final success = await cb.exportLyricsToFile();
+                      if (success) {}
+                    },
+                    builder: builder,
+                  ),
+                ),
+              );
+            },
           );
         },
       ),
@@ -263,7 +273,6 @@ class MusicLyricsRoom extends StatelessWidget {
   }
 }
 
-/// Zone：music_control — 底部播放控制区域
 class MusicControlRoom extends StatelessWidget {
   final MusicCallback cb;
   const MusicControlRoom({super.key, required this.cb});
@@ -277,7 +286,9 @@ class MusicControlRoom extends StatelessWidget {
           final material = ctx.useTheme();
           return FocusIdentity(
             id: MusicModel.controlZoneId,
-            focusGeometry: RoundedRectFocusGeometry(borderRadius: material.shape.radius),
+            focusGeometry: RoundedRectFocusGeometry(
+              borderRadius: material.shape.radius,
+            ),
             builder: (context, hasFocus) {
               return SuperFocusRoom(
                 id: MusicModel.controlZoneId,
@@ -287,26 +298,94 @@ class MusicControlRoom extends StatelessWidget {
                       currentTrack: cb.service.playback.currentTrack,
                       currentPosition: cb.service.playback.currentPosition,
                       trackDuration: cb.service.playback.trackDuration,
-                      isPlaying: cb.service.playback.isPlaying,
                       volume: AppAudioService.instance.volume,
-                      visualizerHeights: cb.service.visualizer.heights,
-                      playMode: cb.service.playback.playMode,
+                      visualizerHeights: cb.service.visualizer.heightsNotifier,
                       material: material,
-                      onTogglePlayMode: cb.togglePlayMode,
-                      onFastRewind: () {
-                        final ms = cb.service.playback.currentPosition.inMilliseconds - 5000;
-                        cb.seekTo(Duration(milliseconds: ms.clamp(0, cb.service.playback.trackDuration.inMilliseconds)));
-                      },
-                      onPrev: cb.playPrevTrack,
-                      onPlayPause: cb.togglePlayPause,
-                      onNext: cb.playNextTrack,
-                      onFastForward: () {
-                        final ms = cb.service.playback.currentPosition.inMilliseconds + 5000;
-                        cb.seekTo(Duration(milliseconds: ms.clamp(0, cb.service.playback.trackDuration.inMilliseconds)));
-                      },
                       onSeek: (ratio) {
-                        final ms = (ratio * cb.service.playback.trackDuration.inMilliseconds).toInt();
+                        final ms =
+                            (ratio *
+                                    cb
+                                        .service
+                                        .playback
+                                        .trackDuration
+                                        .inMilliseconds)
+                                .toInt();
                         cb.seekTo(Duration(milliseconds: ms));
+                      },
+                      isPlaying: cb.service.playback.isPlaying,
+                      playMode: cb.service.playback.playMode,
+                      playModeSlot: (builder, {focusGeometry}) => FocusIdentity(
+                        id: MusicModel.btnPlayModeId,
+                        onPressed: cb.togglePlayMode,
+                        focusGeometry: focusGeometry,
+                        builder: (ctx, hasFocus) =>
+                            builder(ctx, hasFocus, cb.togglePlayMode),
+                      ),
+                      fastRewindSlot: (builder, {focusGeometry}) =>
+                          FocusIdentity(
+                            id: MusicModel.btnFastRewindId,
+                            onPressed: cb.fastRewind,
+                            focusGeometry: focusGeometry,
+                            builder: (ctx, hasFocus) =>
+                                builder(ctx, hasFocus, cb.fastRewind),
+                          ),
+                      prevSlot: (builder, {focusGeometry}) => FocusIdentity(
+                        id: MusicModel.btnPrevId,
+                        onPressed: cb.playPrevTrack,
+                        focusGeometry: focusGeometry,
+                        builder: (ctx, hasFocus) =>
+                            builder(ctx, hasFocus, cb.playPrevTrack),
+                      ),
+                      playPauseSlot: (builder, {focusGeometry}) =>
+                          FocusIdentity(
+                            id: MusicModel.btnPlayId,
+                            onPressed: cb.togglePlayPause,
+                            focusGeometry: focusGeometry,
+                            builder: (ctx, hasFocus) =>
+                                builder(ctx, hasFocus, cb.togglePlayPause),
+                          ),
+                      nextSlot: (builder, {focusGeometry}) => FocusIdentity(
+                        id: MusicModel.btnNextId,
+                        onPressed: cb.playNextTrack,
+                        focusGeometry: focusGeometry,
+                        builder: (ctx, hasFocus) =>
+                            builder(ctx, hasFocus, cb.playNextTrack),
+                      ),
+                      fastForwardSlot: (builder, {focusGeometry}) =>
+                          FocusIdentity(
+                            id: MusicModel.btnFastForwardId,
+                            onPressed: cb.fastForward,
+                            focusGeometry: focusGeometry,
+                            builder: (ctx, hasFocus) =>
+                                builder(ctx, hasFocus, cb.fastForward),
+                          ),
+                      recacheSlot: (builder, {focusGeometry}) => FocusIdentity(
+                        id: MusicModel.btnRecacheId,
+                        onPressed: cb.reCacheCurrentTrack,
+                        focusGeometry: focusGeometry,
+                        builder: (ctx, hasFocus) =>
+                            builder(ctx, hasFocus, cb.reCacheCurrentTrack),
+                      ),
+                      fullscreenSlot: (builder, {focusGeometry}) {
+                        void action() {
+                          Navigator.of(context).push(
+                            PageRouteBuilder(
+                              opaque: false,
+                              pageBuilder: (ctx, anim1, anim2) =>
+                                  FadeTransition(
+                                    opacity: anim1,
+                                    child: const MusicImmersiveOverlay(),
+                                  ),
+                            ),
+                          );
+                        }
+                        return FocusIdentity(
+                          id: MusicModel.btnFullscreenId,
+                          onPressed: action,
+                          focusGeometry: focusGeometry,
+                          builder: (ctx, hasFocus) =>
+                              builder(ctx, hasFocus, action),
+                        );
                       },
                     ),
                   },

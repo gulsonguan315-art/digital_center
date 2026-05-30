@@ -1,6 +1,7 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 
-import '../../../../core/data/repositories/music_repository.dart';
+import '../../../../core/data/data_manager.dart';import '../../../../core/data/repositories/music_repository.dart';
 import '../../../../core/data/models/music_data.dart';
 import '../views_components/lrc_parser.dart';
 
@@ -14,9 +15,12 @@ class MusicLyricsController {
   bool isLoadingLyrics = false;
   List<LrcLine> parsedLyrics = [];
   final ScrollController scrollController = ScrollController();
+  double? _lastScrollTarget;
   
   /// 当前正在加载的音轨 ID，用于竞态检查以防切歌导致旧歌词覆盖新歌词
   String? _loadingTrackId;
+
+  int cumulativeOffsetMs = 0;
 
   /// 通知外层（MusicCallback）更新 UI
   final VoidCallback onUpdate;
@@ -26,10 +30,12 @@ class MusicLyricsController {
   Future<void> loadLyrics(MusicTrack track) async {
     _loadingTrackId = track.id;
     isLoadingLyrics = true;
+    _lastScrollTarget = null;
+    cumulativeOffsetMs = 0;
     onUpdate();
 
     try {
-      String? lrc = await MusicRepository.instance.fetchLyrics(track);
+      var (lrc, offsetMs) = await MusicRepository.instance.fetchLyrics(track);
       if (_loadingTrackId != track.id) return;
 
       if (lrc == null) {
@@ -47,7 +53,9 @@ class MusicLyricsController {
             path: track.path,
             coverArtId: track.coverArtId,
           );
-          lrc = await MusicRepository.instance.fetchLyrics(cleanTrack);
+          final tuple = await MusicRepository.instance.fetchLyrics(cleanTrack);
+          lrc = tuple.$1;
+          offsetMs = tuple.$2;
           if (_loadingTrackId != track.id) return;
         }
       }
@@ -63,7 +71,9 @@ class MusicLyricsController {
           path: track.path,
           coverArtId: track.coverArtId,
         );
-        lrc = await MusicRepository.instance.fetchLyrics(unknownTrack);
+        final tuple = await MusicRepository.instance.fetchLyrics(unknownTrack);
+        lrc = tuple.$1;
+        offsetMs = tuple.$2;
         if (_loadingTrackId != track.id) return;
       }
 
@@ -71,6 +81,11 @@ class MusicLyricsController {
 
       if (lrc != null && lrc.isNotEmpty) {
         parsedLyrics = LrcParser.parse(lrc);
+        // 如果有缓存的偏移量，在内存中自动应用
+        if (offsetMs != 0) {
+          cumulativeOffsetMs = offsetMs;
+          _applyOffset(offsetMs);
+        }
       } else {
         parsedLyrics = [
           LrcLine(Duration.zero, '未找到同步歌词'),
@@ -91,6 +106,8 @@ class MusicLyricsController {
     _loadingTrackId = null;
     parsedLyrics = [];
     isLoadingLyrics = false;
+    _lastScrollTarget = null;
+    cumulativeOffsetMs = 0;
     onUpdate();
   }
 
@@ -107,11 +124,69 @@ class MusicLyricsController {
     if (idx == -1) return;
     
     final target = (idx * 36.0).clamp(0.0, scrollController.position.maxScrollExtent);
+    if (_lastScrollTarget == target) return;
+    _lastScrollTarget = target;
     scrollController.animateTo(
       target,
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeOutCubic,
     );
+  }
+
+  void adjustOffset(int deltaMs) {
+    if (parsedLyrics.isEmpty) return;
+    
+    cumulativeOffsetMs += deltaMs;
+    _applyOffset(deltaMs);
+    
+    onUpdate();
+  }
+
+  void _applyOffset(int deltaMs) {
+    for (int i = 0; i < parsedLyrics.length; i++) {
+      final oldTime = parsedLyrics[i].time;
+      final newTimeMs = (oldTime.inMilliseconds + deltaMs).clamp(0, 9999999);
+      parsedLyrics[i] = LrcLine(Duration(milliseconds: newTimeMs), parsedLyrics[i].text);
+    }
+  }
+
+  Future<bool> exportLrcToFile(MusicTrack track) async {
+    if (parsedLyrics.isEmpty) return false;
+
+    try {
+      final buffer = StringBuffer();
+      for (final line in parsedLyrics) {
+        final min = (line.time.inMinutes).toString().padLeft(2, '0');
+        final sec = (line.time.inSeconds % 60).toString().padLeft(2, '0');
+        // 强制 3 位毫秒，解决 Gonic 过滤 2 位毫秒的 Bug
+        final ms = (line.time.inMilliseconds % 1000).toString().padLeft(3, '0');
+        buffer.writeln('[$min:$sec.$ms] ${line.text}');
+      }
+
+      final configDir = DataManager.instance.localStore.configDirPath;
+      final exportDir = Directory('$configDir/music_cache/exported_lyrics');
+      if (!exportDir.existsSync()) {
+        exportDir.createSync(recursive: true);
+      }
+
+      // 提取相对路径目录结构，例如：周杰伦/七里香/七里香.lrc
+      final trackPath = track.path;
+      final lastDot = trackPath.lastIndexOf('.');
+      final lrcPath = (lastDot != -1 ? trackPath.substring(0, lastDot) : trackPath) + '.lrc';
+      
+      final file = File('${exportDir.path}/$lrcPath');
+      file.parent.createSync(recursive: true);
+      
+      await file.writeAsString(buffer.toString());
+      
+      // 写出外置标准文件的同时，更新本地播放缓存字典的 offset_ms 头，让它在运行 Python 脚本前就能生效
+      await MusicRepository.instance.updateLyricsCacheOffset(track, cumulativeOffsetMs, isExported: true);
+      
+      return true;
+    } catch (e) {
+      debugPrint('Export LRC Failed: $e');
+      return false;
+    }
   }
 
   void dispose() {

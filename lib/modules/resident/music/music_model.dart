@@ -8,6 +8,7 @@ class MusicModel {
   // --- Zone IDs (与 building_map.dart 中的 + 前缀一一对应) ---
   static const String folderZoneId = 'music_folder';
   static const String listZoneId = 'music_list';
+  static const String lyricsZoneId = 'music_lyrics';
   static const String controlZoneId = 'music_control';
 
   // --- Focus Node IDs ---
@@ -17,5 +18,12 @@ class MusicModel {
   static const String btnNextId = 'music_next';
   static const String btnFastForwardId = 'music_fast_forward';
   static const String btnPlayModeId = 'music_play_mode';
+  static const String btnFullscreenId = 'music_fullscreen';
+  static const String btnLyricsOffsetMinusId = 'music_lyrics_offset_minus';
+  static const String btnLyricsOffsetPlusId = 'music_lyrics_offset_plus';
+  static const String btnLyricsOffsetMinusSmallId = 'music_lyrics_offset_minus_small';
+  static const String btnLyricsOffsetPlusSmallId = 'music_lyrics_offset_plus_small';
+  static const String btnLyricsExportId = 'music_lyrics_export';
+  static const String btnRecacheId = 'music_recache';
   static const String retryBtnId = 'music_retry_btn';
 }

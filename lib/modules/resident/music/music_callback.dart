@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:superfocus/core/data/repositories/music_repository.dart';
 
 import '../../../core/data/models/music_data.dart';
 import '../../../core/data/models/music_config.dart';
@@ -32,7 +33,7 @@ class MusicCallback extends ChangeNotifier {
     } catch (_) {
       // 忽略
     }
-    
+
     await service.playlist.loadFolders(initialFolders);
     service.playback.handlePlaylistRebuilt();
   }
@@ -61,7 +62,8 @@ class MusicCallback extends ChangeNotifier {
   void playNextTrack() => service.playback.playNextTrack();
 
   void togglePlayMode() {
-    final nextIndex = (service.playback.playMode.index + 1) % PlaybackMode.values.length;
+    final nextIndex =
+        (service.playback.playMode.index + 1) % PlaybackMode.values.length;
     service.playback.playMode = PlaybackMode.values[nextIndex];
     _saveConfig();
     notifyListeners();
@@ -70,6 +72,40 @@ class MusicCallback extends ChangeNotifier {
   void seekTo(Duration position) => service.playback.seekTo(position);
 
   void retryLoadFolders() => _loadInitialData();
+
+  void adjustLyricsOffset(int deltaMs) => service.lyrics.adjustOffset(deltaMs);
+
+  void offsetLyricsMinusLarge() => adjustLyricsOffset(-500);
+  void offsetLyricsMinusSmall() => adjustLyricsOffset(-100);
+  void offsetLyricsPlusSmall() => adjustLyricsOffset(100);
+  void offsetLyricsPlusLarge() => adjustLyricsOffset(500);
+
+  void fastRewind() {
+    final ms = service.playback.currentPosition.inMilliseconds - 5000;
+    seekTo(Duration(milliseconds: ms.clamp(0, service.playback.trackDuration.inMilliseconds)));
+  }
+
+  void fastForward() {
+    final ms = service.playback.currentPosition.inMilliseconds + 5000;
+    seekTo(Duration(milliseconds: ms.clamp(0, service.playback.trackDuration.inMilliseconds)));
+  }
+
+  Future<bool> exportLyricsToFile() async {
+    final track = service.playback.currentTrack;
+    if (track == null) return false;
+    return await service.lyrics.exportLrcToFile(track);
+  }
+
+  Future<void> reCacheCurrentTrack() async {
+    final track = service.playback.currentTrack;
+    if (track == null) return;
+    await MusicRepository.instance.clearTrackCache(track);
+    // 强制使用网络重新拉取并播放
+    await service.playback.selectTrack(
+      track,
+      autoplay: service.playback.isPlaying,
+    );
+  }
 
   // ===========================================================================
   // 💾 状态持久化
@@ -87,6 +123,7 @@ class MusicCallback extends ChangeNotifier {
   @override
   void dispose() {
     // 仅仅解除绑定，不销毁全局 Service
+    debugPrint('[MusicDebug] MusicCallback dispose remove MusicService listener');
     service.removeListener(notifyListeners);
     super.dispose();
   }

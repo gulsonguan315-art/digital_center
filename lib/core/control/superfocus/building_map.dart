@@ -50,10 +50,10 @@ class BuildingMap {
       '*music_lyrics_export',
     ],
     'music_control': [
+      '*music_play', // 置于首位，进入房间时默认获取焦点
       '*music_play_mode',
       '*music_fast_rewind',
       '*music_prev',
-      '*music_play',
       '*music_next',
       '*music_fast_forward',
       '*music_fullscreen',

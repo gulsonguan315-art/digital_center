@@ -10,7 +10,7 @@ class MusicPlayerEngine {
 
   MusicPlayerEngine() {
     _audioPlayer.positionUpdater = TimerPositionUpdater(
-      interval: const Duration(milliseconds: 100),
+      interval: const Duration(milliseconds: 250),
       getPosition: _audioPlayer.getCurrentPosition,
     );
   }
