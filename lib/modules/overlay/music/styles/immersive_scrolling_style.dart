@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../resident/music/views_components/lrc_parser.dart';
+import '../../../resident/music/views_components/lyrics_animator.dart';
 
 class ImmersiveScrollingStyle extends StatefulWidget {
   final List<LrcLine> lyrics;
@@ -116,23 +117,9 @@ class _ImmersiveScrollingStyleState extends State<ImmersiveScrollingStyle> {
               return SizedBox(
                 height: 120,
                 child: Center(
-                  child: AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 400),
-                    transitionBuilder: (child, animation) {
-                      return FadeTransition(
-                        opacity: animation,
-                        child: SlideTransition(
-                          position: Tween<Offset>(
-                            begin: const Offset(0, 0.2),
-                            end: Offset.zero,
-                          ).animate(CurvedAnimation(
-                            parent: animation,
-                            curve: Curves.easeOutQuart,
-                          )),
-                          child: child,
-                        ),
-                      );
-                    },
+                  child: LyricsAnimator(
+                    type: LyricAnimationType.springSlideUp,
+                    duration: const Duration(milliseconds: 600),
                     child: AnimatedScale(
                       duration: const Duration(milliseconds: 600),
                       curve: Curves.easeOutQuint,

@@ -234,6 +234,8 @@ class MusicLyricsRoom extends StatelessWidget {
                   scrollController: cb.service.lyrics.scrollController,
                   material: material,
                   hasFocus: hasFocus,
+                  currentPosition: cb.service.playback.currentPosition,
+                  isPlaying: cb.service.playback.isPlaying,
                   currentOffsetMs: cb.service.lyrics.cumulativeOffsetMs,
                   minusLargeSlot: (builder) => FocusIdentity(
                     id: MusicModel.btnLyricsOffsetMinusId,

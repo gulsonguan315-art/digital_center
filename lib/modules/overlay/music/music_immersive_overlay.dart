@@ -131,6 +131,8 @@ class _MusicImmersiveOverlayState extends State<MusicImmersiveOverlay> {
                               ? ImmersiveSingleLineStyle(
                                   lyrics: lyrics,
                                   activeIndex: activeIndex,
+                                  currentPosition: position,
+                                  isPlaying: _service.playback.isPlaying,
                                 )
                               : ImmersiveMoodStyle(
                                   lyrics: lyrics,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'lrc_parser.dart';
 
 typedef FocusSlotBuilder = Widget Function(Widget Function(BuildContext context, bool hasFocus) builder);
@@ -17,6 +18,8 @@ class MusicLyricsView extends StatelessWidget {
   final FocusSlotBuilder plusLargeSlot;
   final FocusSlotBuilder exportSlot;
   final int currentOffsetMs;
+  final Duration currentPosition;
+  final bool isPlaying;
 
   const MusicLyricsView({
     super.key,
@@ -32,6 +35,8 @@ class MusicLyricsView extends StatelessWidget {
     required this.plusLargeSlot,
     required this.exportSlot,
     required this.currentOffsetMs,
+    required this.currentPosition,
+    required this.isPlaying,
   });
 
   @override
@@ -185,29 +190,43 @@ class MusicLyricsView extends StatelessWidget {
                           itemCount: parsedLyrics.length,
                           itemBuilder: (context, index) {
                             final isActive = index == activeLyricIndex;
+                            final line = parsedLyrics[index];
+                            
+                            Widget lineChild;
+                            if (isActive && line.words != null && line.words!.isNotEmpty) {
+                              lineChild = KaraokeLineWidget(
+                                line: line,
+                                colors: colors,
+                                currentPosition: currentPosition,
+                                isPlaying: isPlaying,
+                              );
+                            } else {
+                              lineChild = Text(
+                                line.text.replaceAll('|', ' '),
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  color: isActive
+                                      ? colors.accent
+                                      : colors.textSecondary.withValues(
+                                          alpha: 0.8,
+                                        ),
+                                  fontSize: isActive ? 15 : 13,
+                                  fontWeight: isActive
+                                      ? FontWeight.w900
+                                      : FontWeight.normal,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              );
+                            }
+
                             return Container(
                               height: 36,
                               alignment: Alignment.center,
                               child: AnimatedScale(
                                 duration: const Duration(milliseconds: 250),
                                 scale: isActive ? 1.12 : 1.0,
-                                child: Text(
-                                  parsedLyrics[index].text.replaceAll('|', ' '),
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    color: isActive
-                                        ? colors.accent
-                                        : colors.textSecondary.withValues(
-                                            alpha: 0.8,
-                                          ),
-                                    fontSize: isActive ? 15 : 13,
-                                    fontWeight: isActive
-                                        ? FontWeight.w900
-                                        : FontWeight.normal,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
+                                child: lineChild,
                               ),
                             );
                           },
@@ -218,6 +237,115 @@ class MusicLyricsView extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class KaraokeLineWidget extends StatefulWidget {
+  final LrcLine line;
+  final dynamic colors;
+  final Duration currentPosition;
+  final bool isPlaying;
+
+  const KaraokeLineWidget({
+    super.key,
+    required this.line,
+    required this.colors,
+    required this.currentPosition,
+    required this.isPlaying,
+  });
+
+  @override
+  State<KaraokeLineWidget> createState() => _KaraokeLineWidgetState();
+}
+
+class _KaraokeLineWidgetState extends State<KaraokeLineWidget> with SingleTickerProviderStateMixin {
+  late final Ticker _ticker;
+  late Duration _basePosition;
+  late DateTime _lastUpdateTime;
+  late Duration _interpolatedPosition;
+
+  @override
+  void initState() {
+    super.initState();
+    _basePosition = widget.currentPosition;
+    _interpolatedPosition = _basePosition;
+    _lastUpdateTime = DateTime.now();
+    _ticker = createTicker((elapsed) {
+      if (widget.isPlaying) {
+        setState(() {
+          final now = DateTime.now();
+          final diff = now.difference(_lastUpdateTime);
+          if (diff.inMilliseconds < 1500) {
+            _interpolatedPosition = _basePosition + diff;
+          } else {
+            _interpolatedPosition = _basePosition;
+          }
+        });
+      }
+    });
+    _ticker.start();
+  }
+
+  @override
+  void didUpdateWidget(KaraokeLineWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.currentPosition != widget.currentPosition || oldWidget.isPlaying != widget.isPlaying) {
+      _basePosition = widget.currentPosition;
+      _interpolatedPosition = _basePosition;
+      _lastUpdateTime = DateTime.now();
+    }
+  }
+
+  @override
+  void dispose() {
+    _ticker.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      alignment: WrapAlignment.center,
+      children: widget.line.words!.map((word) {
+        final wordStart = widget.line.time + word.relativeStartTime;
+        final wordEnd = wordStart + word.duration;
+        
+        double progress = 0.0;
+        if (_interpolatedPosition >= wordEnd) {
+          progress = 1.0;
+        } else if (_interpolatedPosition <= wordStart) {
+          progress = 0.0;
+        } else {
+          progress = (_interpolatedPosition.inMilliseconds - wordStart.inMilliseconds) / word.duration.inMilliseconds;
+        }
+        
+        final baseStyle = TextStyle(
+          color: widget.colors.textSecondary.withValues(alpha: 0.8),
+          fontSize: 15,
+          fontWeight: FontWeight.w900,
+        );
+
+        final highlightStyle = TextStyle(
+          color: widget.colors.accent,
+          fontSize: 15,
+          fontWeight: FontWeight.w900,
+        );
+
+        return Stack(
+          children: [
+            Text(word.text, style: baseStyle),
+            if (progress > 0.0)
+              ClipRect(
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  widthFactor: progress,
+                  child: Text(word.text, style: highlightStyle),
+                ),
+              ),
+          ],
+        );
+      }).toList(),
     );
   }
 }
