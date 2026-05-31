@@ -1,35 +1,30 @@
 import 'dart:async';
-import 'package:audioplayers/audioplayers.dart';
+import 'package:media_kit/media_kit.dart';
 
 /// ⚙️ 独立音频播放引擎 (Isolated Music Player Engine)
 /// 
-/// 负责封装第三方插件 `audioplayers` 的底层细节，向业务层提供统一、干净的接口。
-/// 所有与具体播放控制相关的逻辑均解耦于此。
+/// 负责封装第三方插件 `media_kit` (底层由 FFmpeg 驱动) 的细节，向业务层提供统一、干净的接口。
+/// 彻底告别 Windows Media Foundation 的 VBR 时长和时间戳漂移 Bug！
 class MusicPlayerEngine {
-  final AudioPlayer _audioPlayer = AudioPlayer();
+  final Player _audioPlayer = Player();
 
-  MusicPlayerEngine() {
-    _audioPlayer.positionUpdater = TimerPositionUpdater(
-      interval: const Duration(milliseconds: 250),
-      getPosition: _audioPlayer.getCurrentPosition,
-    );
-  }
+  MusicPlayerEngine();
 
   // ===========================================================================
   // 📡 状态流暴露 (Streams exposed to Business Logic)
   // ===========================================================================
 
-  Stream<Duration> get onPositionChanged => _audioPlayer.onPositionChanged;
-  Stream<Duration> get onDurationChanged => _audioPlayer.onDurationChanged;
-  Stream<bool> get onPlayingStateChanged => _audioPlayer.onPlayerStateChanged.map((s) => s == PlayerState.playing);
-  Stream<void> get onPlayerComplete => _audioPlayer.onPlayerComplete;
+  Stream<Duration> get onPositionChanged => _audioPlayer.stream.position;
+  Stream<Duration> get onDurationChanged => _audioPlayer.stream.duration;
+  Stream<bool> get onPlayingStateChanged => _audioPlayer.stream.playing;
+  Stream<void> get onPlayerComplete => _audioPlayer.stream.completed.where((c) => c).map((_) => null);
 
   // ===========================================================================
   // 🎮 同步状态提取 (Synchronous State)
   // ===========================================================================
 
-  bool get isPlaying => _audioPlayer.state == PlayerState.playing;
-  bool get hasSource => _audioPlayer.source != null;
+  bool get isPlaying => _audioPlayer.state.playing;
+  bool get hasSource => _audioPlayer.state.playlist.medias.isNotEmpty;
 
   // ===========================================================================
   // 🎛️ 基础控制指令 (Base Player Controls)
@@ -37,14 +32,12 @@ class MusicPlayerEngine {
 
   /// 播放网络直链音频或本地文件
   Future<void> playUrl(String url) async {
-    final source = url.startsWith('http') ? UrlSource(url) : DeviceFileSource(url);
-    await _audioPlayer.play(source);
+    await _audioPlayer.open(Media(url), play: true);
   }
 
   /// 预加载音频链接但不自动播放
   Future<void> setUrl(String url) async {
-    final source = url.startsWith('http') ? UrlSource(url) : DeviceFileSource(url);
-    await _audioPlayer.setSource(source);
+    await _audioPlayer.open(Media(url), play: false);
   }
 
   /// 暂停播放
@@ -54,7 +47,7 @@ class MusicPlayerEngine {
 
   /// 恢复播放
   Future<void> resume() async {
-    await _audioPlayer.resume();
+    await _audioPlayer.play();
   }
 
   /// 停止播放
@@ -69,7 +62,8 @@ class MusicPlayerEngine {
 
   /// 设置播放器音量 [0.0 - 1.0]
   Future<void> setVolume(double volume) async {
-    await _audioPlayer.setVolume(volume);
+    // media_kit 的音量范围是 0.0 - 100.0
+    await _audioPlayer.setVolume(volume * 100.0);
   }
 
   // ===========================================================================

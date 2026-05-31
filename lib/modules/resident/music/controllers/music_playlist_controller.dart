@@ -39,6 +39,11 @@ class MusicPlaylistController {
       try {
         final result = await MusicRepository.instance.fetchRootFolders(forceRefresh: false);
         folders = result;
+        folders.sort((a, b) {
+          int cmp = a.name.length.compareTo(b.name.length);
+          if (cmp != 0) return cmp;
+          return a.name.compareTo(b.name);
+        });
         isLoadingFolders = false;
 
         activeFolderIds.clear();
@@ -75,6 +80,11 @@ class MusicPlaylistController {
 
       final result = await MusicRepository.instance.fetchRootFolders(forceRefresh: forceRefresh);
       folders = result;
+      folders.sort((a, b) {
+        int cmp = a.name.length.compareTo(b.name.length);
+        if (cmp != 0) return cmp;
+        return a.name.compareTo(b.name);
+      });
       isLoadingFolders = false;
 
       activeFolderIds.clear();

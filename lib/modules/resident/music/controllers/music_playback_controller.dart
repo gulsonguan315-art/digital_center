@@ -102,11 +102,21 @@ class MusicPlaybackController {
     currentPosition = Duration.zero;
     _lastNotifiedSecond = -1;
     _lastActiveLyricIndex = -1;
+    _saveTrackToConfig(track.id);
     onUpdate();
 
     lyrics.loadLyrics(track);
 
     await _playWithCacheHealing(track, autoplay: autoplay);
+  }
+
+  void _saveTrackToConfig(String trackId) async {
+    try {
+      final config = await MusicRepository.instance.getMusicConfig();
+      if (config.lastPlayingTrackId != trackId) {
+        MusicRepository.instance.saveMusicConfig(config.copyWith(lastPlayingTrackId: trackId));
+      }
+    } catch (_) {}
   }
 
   Future<void> _playWithCacheHealing(MusicTrack track, {required bool autoplay}) async {

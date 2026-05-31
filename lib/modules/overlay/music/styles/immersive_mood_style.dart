@@ -234,6 +234,7 @@ class MoodLineWidget extends StatelessWidget {
                     // 避免传入绝对 0，防止部分引擎版本报错或意外优化
                     sigmaX: blurAmount == 0 ? 0.001 : blurAmount, 
                     sigmaY: blurAmount == 0 ? 0.001 : blurAmount,
+                    tileMode: TileMode.decal, // 必须使用 decal 模式，防止边缘像素延伸产生白线 (Edge Bleeding)
                   ),
                   child: innerChild!,
                 );

@@ -10,14 +10,29 @@ class LocalMusicStore extends LocalJsonStoreBase<MusicConfig> {
       : super(fileName: 'music_config.json');
 
   final _musicController = StreamController<MusicConfig>.broadcast();
+  Timer? _saveTimer;
+  MusicConfig? _pendingConfig;
 
   Stream<MusicConfig> watchConfig() => _musicController.stream;
   
-  Future<MusicConfig> readConfig() => readData();
+  Future<MusicConfig> readConfig() async {
+    if (_pendingConfig != null) {
+      return _pendingConfig!;
+    }
+    return readData();
+  }
   
   Future<void> writeConfig(MusicConfig config) async {
-    await super.writeData(config);
+    _pendingConfig = config;
     _musicController.add(config); // 广播触发前台 UI 响应式热更新
+    
+    _saveTimer?.cancel();
+    _saveTimer = Timer(const Duration(milliseconds: 5000), () async {
+      if (_pendingConfig != null) {
+        await super.writeData(_pendingConfig!);
+        _pendingConfig = null;
+      }
+    });
   }
 
   @override
@@ -31,9 +46,18 @@ class LocalMusicStore extends LocalJsonStoreBase<MusicConfig> {
 
   bool _isDisposed = false;
 
+  void flush() {
+    _saveTimer?.cancel();
+    if (_pendingConfig != null) {
+      super.writeData(_pendingConfig!);
+      _pendingConfig = null;
+    }
+  }
+
   void dispose() {
     if (_isDisposed) return;
     _isDisposed = true;
+    flush();
     _musicController.close();
   }
 }

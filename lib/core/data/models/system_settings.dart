@@ -5,6 +5,7 @@ class SystemSettings {
   final String shapeStyle; // 'rightAngle', 'round', 'soft'
   final String customMode; // 'a', 'b', 'c'
   final List<String> enabledLogGroups; // ['Focus', 'Network', 'UI', 'System']
+  final double systemVolume;
 
   const SystemSettings({
     required this.themeMode,
@@ -12,6 +13,7 @@ class SystemSettings {
     required this.shapeStyle,
     required this.customMode,
     required this.enabledLogGroups,
+    required this.systemVolume,
   });
 
   /// Default starting settings when no configuration file exists.
@@ -21,6 +23,7 @@ class SystemSettings {
     shapeStyle: 'soft',
     customMode: 'a',
     enabledLogGroups: ['Focus', 'Network', 'UI', 'System'],
+    systemVolume: 0.8,
   );
 
   /// Converts the settings object into a JSON-compatible map.
@@ -31,6 +34,7 @@ class SystemSettings {
       'shapeStyle': shapeStyle,
       'customMode': customMode,
       'enabledLogGroups': enabledLogGroups,
+      'systemVolume': systemVolume,
     };
   }
 
@@ -44,6 +48,7 @@ class SystemSettings {
       enabledLogGroups: List<String>.from(
         json['enabledLogGroups'] ?? ['Focus', 'Network', 'UI', 'System'],
       ),
+      systemVolume: (json['systemVolume'] as num?)?.toDouble() ?? 0.8,
     );
   }
 
@@ -54,6 +59,7 @@ class SystemSettings {
     String? shapeStyle,
     String? customMode,
     List<String>? enabledLogGroups,
+    double? systemVolume,
   }) {
     return SystemSettings(
       themeMode: themeMode ?? this.themeMode,
@@ -61,6 +67,7 @@ class SystemSettings {
       shapeStyle: shapeStyle ?? this.shapeStyle,
       customMode: customMode ?? this.customMode,
       enabledLogGroups: enabledLogGroups ?? this.enabledLogGroups,
+      systemVolume: systemVolume ?? this.systemVolume,
     );
   }
 }

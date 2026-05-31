@@ -14,6 +14,7 @@ import 'repositories/settings_repository.dart';
 import 'repositories/music_repository.dart';
 import 'repositories/weather_repository.dart';
 import 'models/weather_data.dart';
+import '../engine/audio/app_audio_service.dart';
 
 /// 【数据的总管理员】(Centralized Data Manager - Lightweight Facade)
 /// 业务层所有的数据请求、更新、修改均向此管理员发起。
@@ -49,6 +50,22 @@ class DataManager {
     // 1. 优先载入系统配置应用给主题/日志引擎
     try {
       await SettingsRepository.instance.restoreSystemSettings();
+      
+      final settings = await SettingsRepository.instance.getSystemSettings();
+      AppAudioService.instance.setVolume(settings.systemVolume);
+      
+      Timer? volumeDebouncer;
+      AppAudioService.instance.addListener(() {
+        volumeDebouncer?.cancel();
+        volumeDebouncer = Timer(const Duration(milliseconds: 5000), () async {
+          final current = await SettingsRepository.instance.getSystemSettings();
+          if (current.systemVolume != AppAudioService.instance.volume) {
+            SettingsRepository.instance.saveSettings(
+              current.copyWith(systemVolume: AppAudioService.instance.volume),
+            );
+          }
+        });
+      });
     } catch (_) {}
 
     // 2. 初始化网络接入终结点配置

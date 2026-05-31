@@ -6,6 +6,7 @@ import '../../../core/engine/theme/shapes/theme_shapes.dart';
 import '../../../core/engine/theme/theme_provider.dart';
 import '../../../core/engine/theme/visuals/theme_visuals.dart';
 import '../../../core/log/log_api.dart';
+import '../../../core/engine/audio/app_audio_service.dart';
 
 /// 设置页面的交互回调逻辑 - 业务层 (Data Source & Action)
 class SettingPageCallback {
@@ -17,6 +18,7 @@ class SettingPageCallback {
       shapeStyle: getCurrentShapeKey(),
       customMode: getCurrentCustomKey(),
       enabledLogGroups: logGroupsNotifier.value.toList(),
+      systemVolume: AppAudioService.instance.volume,
     );
     DataManager.instance.saveSettings(settings);
   }

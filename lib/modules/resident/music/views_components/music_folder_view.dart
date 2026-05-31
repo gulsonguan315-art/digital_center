@@ -62,39 +62,42 @@ class MusicFolderList extends StatelessWidget {
           Expanded(
             child: Row(
               children: [
-                refreshSlot(
-                  focusGeometry: const RoundedRectFocusGeometry(
-                    borderRadius: BorderRadius.all(Radius.circular(100)),
-                  ),
-                  (ctx, hasFocus, onPressed) => MusicFolderRefreshButton(
-                    hasFocus: hasFocus,
-                    onPressed: onPressed ?? () {},
-                    material: material,
+                Padding(
+                  padding: const EdgeInsets.only(right: 12.0),
+                  child: refreshSlot(
+                    focusGeometry: const RoundedRectFocusGeometry(
+                      borderRadius: BorderRadius.all(Radius.circular(100)),
+                    ),
+                    (ctx, hasFocus, onPressed) => MusicFolderRefreshButton(
+                      hasFocus: hasFocus,
+                      onPressed: onPressed ?? () {},
+                      material: material,
+                    ),
                   ),
                 ),
                 Expanded(
                   child: ListView.builder(
                     scrollDirection: Axis.horizontal,
                     itemCount: folderCount,
-                    itemBuilder: (ctx, index) => folderSlot(
-                      ctx,
-                      index,
-                      focusGeometry: RoundedRectFocusGeometry(
-                        borderRadius: material.shape.radius,
-                      ),
-                      (ctx, hasFocus, onPressed, {required folder, required isActive}) {
-                        return Padding(
-                          padding: const EdgeInsets.only(right: 12.0),
-                          child: Center(
-                            child: MusicFolderCard(
+                    itemBuilder: (ctx, index) => Padding(
+                      padding: const EdgeInsets.only(right: 12.0),
+                      child: Center(
+                        child: folderSlot(
+                          ctx,
+                          index,
+                          focusGeometry: const RoundedRectFocusGeometry(
+                            borderRadius: BorderRadius.all(Radius.circular(12)),
+                          ),
+                          (ctx, hasFocus, onPressed, {required folder, required isActive}) {
+                            return MusicFolderCard(
                               folder: folder,
                               isActive: isActive,
                               hasFocus: hasFocus,
                               material: material,
-                            ),
-                          ),
-                        );
-                      },
+                            );
+                          },
+                        ),
+                      ),
                     ),
                   ),
                 ),
@@ -120,11 +123,13 @@ class MusicFolderRefreshButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = material.colors;
     return Container(
-      margin: const EdgeInsets.only(right: 12),
       decoration: BoxDecoration(
         color: hasFocus ? colors.accent.withValues(alpha: 0.1) : Colors.transparent,
         shape: BoxShape.circle,
-        border: hasFocus ? Border.all(color: colors.accent, width: 1.5) : null,
+        border: Border.all(
+          color: hasFocus ? colors.accent : Colors.transparent, 
+          width: 1.5,
+        ),
       ),
       child: IconButton(
         icon: Icon(Icons.sync_rounded, color: colors.textSecondary),

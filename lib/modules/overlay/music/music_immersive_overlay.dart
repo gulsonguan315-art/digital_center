@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../../resident/music/music_service.dart';
 import '../../../core/control/superfocus/focus_widgets.dart';
+import '../../../core/data/data_manager.dart';
 import 'styles/immersive_scrolling_style.dart';
 import 'styles/immersive_single_line_style.dart';
 import 'styles/immersive_mood_style.dart';
@@ -23,6 +24,17 @@ class _MusicImmersiveOverlayState extends State<MusicImmersiveOverlay> {
   void initState() {
     super.initState();
     _service.addListener(_handleMusicUpdate);
+    DataManager.instance.getMusicConfig().then((config) {
+      if (mounted) setState(() => _currentStyleIndex = config.immersiveStyleIndex);
+    });
+  }
+
+  void _setStyle(int index) async {
+    setState(() => _currentStyleIndex = index);
+    try {
+      final config = await DataManager.instance.getMusicConfig();
+      DataManager.instance.saveMusicConfig(config.copyWith(immersiveStyleIndex: index));
+    } catch (_) {}
   }
 
   @override
@@ -159,8 +171,7 @@ class _MusicImmersiveOverlayState extends State<MusicImmersiveOverlay> {
                         FocusIdentity(
                           id: 'style_scrolling',
                           autofocus: true, // 进入房间自动聚焦第一个圆圈
-                          onPressed: () =>
-                              setState(() => _currentStyleIndex = 0),
+                          onPressed: () => _setStyle(0),
                           builder: (context, hasFocus) => Padding(
                             padding: const EdgeInsets.all(8.0), // 扩大可点击/发光区域
                             child: _buildStyleDot(0, hasFocus),
@@ -169,8 +180,7 @@ class _MusicImmersiveOverlayState extends State<MusicImmersiveOverlay> {
                         const SizedBox(width: 32),
                         FocusIdentity(
                           id: 'style_single_line',
-                          onPressed: () =>
-                              setState(() => _currentStyleIndex = 1),
+                          onPressed: () => _setStyle(1),
                           builder: (context, hasFocus) => Padding(
                             padding: const EdgeInsets.all(8.0),
                             child: _buildStyleDot(1, hasFocus),
@@ -179,8 +189,7 @@ class _MusicImmersiveOverlayState extends State<MusicImmersiveOverlay> {
                         const SizedBox(width: 32),
                         FocusIdentity(
                           id: 'style_mood',
-                          onPressed: () =>
-                              setState(() => _currentStyleIndex = 2),
+                          onPressed: () => _setStyle(2),
                           builder: (context, hasFocus) => Padding(
                             padding: const EdgeInsets.all(8.0),
                             child: _buildStyleDot(2, hasFocus),

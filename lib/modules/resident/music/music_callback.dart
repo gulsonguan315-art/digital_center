@@ -26,15 +26,26 @@ class MusicCallback extends ChangeNotifier {
 
   Future<void> _loadInitialData() async {
     List<String> initialFolders = [];
+    String? lastTrackId;
     try {
       final config = await DataManager.instance.getMusicConfig();
       initialFolders = config.activeFolderIds;
       service.playback.playMode = config.playMode;
+      lastTrackId = config.lastPlayingTrackId;
     } catch (_) {
       // 忽略
     }
 
     await service.playlist.loadFolders(initialFolders);
+    
+    if (lastTrackId != null) {
+      final track = service.playlist.tracks.where((t) => t.id == lastTrackId).firstOrNull;
+      if (track != null) {
+        await service.playback.selectTrack(track, autoplay: false);
+        return;
+      }
+    }
+    
     service.playback.handlePlaylistRebuilt();
   }
 
@@ -111,13 +122,16 @@ class MusicCallback extends ChangeNotifier {
   // 💾 状态持久化
   // ===========================================================================
 
-  void _saveConfig() {
-    DataManager.instance.saveMusicConfig(
-      MusicConfig(
-        activeFolderIds: service.playlist.activeFolderIds.toList(),
-        playMode: service.playback.playMode,
-      ),
-    );
+  void _saveConfig() async {
+    try {
+      final current = await DataManager.instance.getMusicConfig();
+      DataManager.instance.saveMusicConfig(
+        current.copyWith(
+          activeFolderIds: service.playlist.activeFolderIds.toList(),
+          playMode: service.playback.playMode,
+        ),
+      );
+    } catch (_) {}
   }
 
   @override

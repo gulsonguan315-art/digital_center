@@ -240,21 +240,25 @@ class MusicLyricsRoom extends StatelessWidget {
                   minusLargeSlot: (builder) => FocusIdentity(
                     id: MusicModel.btnLyricsOffsetMinusId,
                     onPressed: cb.offsetLyricsMinusLarge,
+                    focusGeometry: const RoundedRectFocusGeometry(borderRadius: BorderRadius.all(Radius.circular(6))),
                     builder: builder,
                   ),
                   minusSmallSlot: (builder) => FocusIdentity(
                     id: MusicModel.btnLyricsOffsetMinusSmallId,
                     onPressed: cb.offsetLyricsMinusSmall,
+                    focusGeometry: const RoundedRectFocusGeometry(borderRadius: BorderRadius.all(Radius.circular(6))),
                     builder: builder,
                   ),
                   plusSmallSlot: (builder) => FocusIdentity(
                     id: MusicModel.btnLyricsOffsetPlusSmallId,
                     onPressed: cb.offsetLyricsPlusSmall,
+                    focusGeometry: const RoundedRectFocusGeometry(borderRadius: BorderRadius.all(Radius.circular(6))),
                     builder: builder,
                   ),
                   plusLargeSlot: (builder) => FocusIdentity(
                     id: MusicModel.btnLyricsOffsetPlusId,
                     onPressed: cb.offsetLyricsPlusLarge,
+                    focusGeometry: const RoundedRectFocusGeometry(borderRadius: BorderRadius.all(Radius.circular(6))),
                     builder: builder,
                   ),
                   exportSlot: (builder) => FocusIdentity(
@@ -263,6 +267,7 @@ class MusicLyricsRoom extends StatelessWidget {
                       final success = await cb.exportLyricsToFile();
                       if (success) {}
                     },
+                    focusGeometry: const RoundedRectFocusGeometry(borderRadius: BorderRadius.all(Radius.circular(6))),
                     builder: builder,
                   ),
                 ),

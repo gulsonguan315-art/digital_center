@@ -12,9 +12,11 @@ import 'ui/pages/building_page.dart';
 
 import 'core/data/data_manager.dart';
 import 'core/stage/stage_initializer.dart';
+import 'package:media_kit/media_kit.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  MediaKit.ensureInitialized();
   await initializeDateFormatting('zh_CN', null);
   
   // 0. 初始化大管家并阻塞等待加载偏好（避免冷启动主题闪烁）
