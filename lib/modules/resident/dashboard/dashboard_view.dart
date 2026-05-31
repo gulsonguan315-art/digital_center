@@ -56,10 +56,15 @@ class _DashboardViewState extends State<DashboardView> {
                 builder: (context, _) {
                   return DashboardEditListener(
                     controller: _controller,
-                    child: Stack(
-                      key: _gridKey,
-                      clipBehavior: Clip.none,
-                      children: [
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.translucent,
+                      onSecondaryTap: () {
+                        _controller.setEditMode(!_controller.isEditMode);
+                      },
+                      child: Stack(
+                        key: _gridKey,
+                        clipBehavior: Clip.none,
+                        children: [
                         // 1. 编辑状态横幅提示 (Edit Mode Top Indicator)
                         if (_controller.isEditMode)
                           Positioned(
@@ -120,7 +125,8 @@ class _DashboardViewState extends State<DashboardView> {
                                 gap: gap,
                               );
                             }),
-                      ],
+                        ],
+                      ),
                     ),
                   );
                 },

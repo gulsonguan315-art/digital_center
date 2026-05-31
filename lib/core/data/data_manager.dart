@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:superfocus/core/data/models/user_settings.dart';
+
 import '../log/log.dart';
 import 'local/local_config_store.dart';
 import 'models/dashboard_item_config.dart';
@@ -27,7 +29,10 @@ class DataManager {
     // 🚀 绑定底层存储与通信通道，注册全局仓库单例
     PoetryRepository.instance = PoetryRepository(_localStore, _remoteClient);
     SettingsRepository.instance = SettingsRepository(_localStore);
-    DashboardRepository.instance = DashboardRepository(_localStore, _remoteClient);
+    DashboardRepository.instance = DashboardRepository(
+      _localStore,
+      _remoteClient,
+    );
     MusicRepository.instance = MusicRepository(_localStore);
     WeatherRepository.instance = WeatherRepository(_localStore);
   }
@@ -36,7 +41,7 @@ class DataManager {
   static final DataManager instance = DataManager._();
 
   late final LocalConfigStore _localStore;
-  
+
   String get configDirPath => _localStore.configDirPath;
   late final RemoteApiClient _remoteClient;
 
@@ -44,7 +49,8 @@ class DataManager {
 
   // 🌟 向下兼容高保真缓存属性
   PoetryData get latestPoetry => PoetryRepository.instance.latestPoetry;
-  List<DashboardItemConfig> get latestLayout => DashboardRepository.instance.latestLayout;
+  List<DashboardItemConfig> get latestLayout =>
+      DashboardRepository.instance.latestLayout;
   WeatherData? get latestWeather => WeatherRepository.instance.cachedData;
 
   /// 暴露异步初始化入口，供 main() 显式阻塞等待偏好配置加载（避免冷启动主题闪烁）
@@ -52,10 +58,10 @@ class DataManager {
     // 1. 优先载入系统配置应用给主题/日志引擎
     try {
       await SettingsRepository.instance.restoreSystemSettings();
-      
+
       final settings = await SettingsRepository.instance.getSystemSettings();
       AppAudioService.instance.setVolume(settings.systemVolume);
-      
+
       Timer? volumeDebouncer;
       AppAudioService.instance.addListener(() {
         volumeDebouncer?.cancel();
@@ -70,18 +76,30 @@ class DataManager {
       });
     } catch (_) {}
 
-    // 2. 初始化网络接入终结点配置
+    // 2. 初始化网络接入终端配置及双模交互配置
     try {
-      final endpoints = await _localStore.endpoints.readData();
+      final userSettings = await _localStore.userSettings.readData();
+      final endpoints = userSettings.api;
       _remoteClient.apiBaseUrl = endpoints.poetryBaseUrl;
-      
-      final String rawPath = '${_localStore.endpoints.configDirPath}/api_endpoints.json';
-      final String formattedPath = Platform.isWindows ? rawPath.replaceAll('/', '\\') : rawPath.replaceAll('\\', '/');
-      print('🚀 [System] Loaded API endpoints from: $formattedPath | Poetry: ${endpoints.poetryBaseUrl} | Gonic: ${endpoints.gonicBaseUrl}');
-      Log.d(LogGroup.network, 'Loaded API endpoints from persistent storage. Path: $formattedPath, Poetry: ${endpoints.poetryBaseUrl}, Gonic: ${endpoints.gonicBaseUrl}');
+
+      final String rawPath =
+          '${_localStore.userSettings.configDirPath}/user_settings.json';
+      final String formattedPath = Platform.isWindows
+          ? rawPath.replaceAll('/', '\\')
+          : rawPath.replaceAll('\\', '/');
+      print(
+        '🚀 [System] Loaded user settings from: $formattedPath | Interaction Mode: ${userSettings.interactionMode} | Poetry: ${endpoints.poetryBaseUrl} | Gonic: ${endpoints.gonicBaseUrl}',
+      );
+      Log.d(
+        LogGroup.network,
+        'Loaded user settings from persistent storage. Path: $formattedPath, Interaction Mode: ${userSettings.interactionMode}, Poetry: ${endpoints.poetryBaseUrl}, Gonic: ${endpoints.gonicBaseUrl}',
+      );
     } catch (e) {
-      print('🚀 [System] Failed to load custom API endpoints. Using defaults.');
-      Log.d(LogGroup.network, 'Failed to load custom API endpoints. Using defaults.');
+      print('🚀 [System] Failed to load custom user settings. Using defaults.');
+      Log.d(
+        LogGroup.network,
+        'Failed to load custom user settings. Using defaults.',
+      );
     }
 
     // 3. 异步引导加载子仓内存缓存
@@ -147,6 +165,13 @@ class DataManager {
       WeatherRepository.instance.fetchWeather(force: force);
 
   bool _isDisposed = false;
+
+  /// 提供对 userSettings 缓存的便捷访问
+  Future<UserSettings> getUserSettings() => _localStore.userSettings.readData();
+
+  /// 更新并保存 userSettings
+  Future<void> saveUserSettings(UserSettings settings) =>
+      _localStore.userSettings.writeData(settings);
 
   /// 进入后台时，同步刷盘挂起的数据，防止进程被杀导致数据丢失，但不关闭 Stream。
   void flush() {

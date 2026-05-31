@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import '../../device_manager.dart';
@@ -34,9 +35,26 @@ class KeyboardInputSource implements InputSource, KeyEventHandler {
   KeyEventResult handleKey(FocusNode node, KeyEvent event) {
     if (event is! KeyDownEvent) return KeyEventResult.ignored;
 
-    // 🛡️ 核心安全修复：如果当前焦点在文本输入框（TextField）中，禁止全局快捷键拦截退格、回车及方向键，确保原生打字与删除正常
+    // 🛡️ 核心安全修复：如果当前焦点在文本输入框（TextField/EditableText）中，禁止全局快捷键拦截退格、回车及方向键，确保原生打字与删除正常
     final primaryFocus = FocusManager.instance.primaryFocus;
-    if (primaryFocus != null && primaryFocus.context?.widget is EditableText) {
+    bool isTextInput = false;
+
+    if (primaryFocus != null && primaryFocus.context != null) {
+      primaryFocus.context!.visitAncestorElements((element) {
+        if (element.widget is EditableText || element.widget is TextField) {
+          isTextInput = true;
+          return false; // 找到后停止遍历
+        }
+        return true;
+      });
+      // 有些情况下本身就是 EditableText
+      if (primaryFocus.context!.widget is EditableText ||
+          primaryFocus.context!.widget is TextField) {
+        isTextInput = true;
+      }
+    }
+
+    if (isTextInput) {
       if (event.logicalKey == LogicalKeyboardKey.backspace ||
           event.logicalKey == LogicalKeyboardKey.enter ||
           event.logicalKey == LogicalKeyboardKey.numpadEnter ||

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
-import 'core/control/superfocus/focus_manager.dart';
+import 'core/control/superfocus/interaction_manager.dart';
 import 'core/control/device_manager/device_manager.dart';
 import 'core/layout/grid/grid_scope.dart';
 import 'core/layout/grid/grid_context.dart';
@@ -27,6 +27,10 @@ void main() async {
   
   // 1. 初始化舞台调度中心 (招商登记)
   StageInitializer.init();
+  
+  // 1.5 初始化双模交互系统
+  final userSettings = await DataManager.instance.getUserSettings();
+  SuperInteractionManager.instance.init(mode: userSettings.interactionMode);
   
   // 2. 启动设备管理模块，接管所有物理输入信号
   SuperInputManager.instance.init();

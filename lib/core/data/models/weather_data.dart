@@ -3,17 +3,21 @@ class WeatherData {
   final List<HourlyWeather> hourly;
   final DailyWeather? today;
 
-  WeatherData({
-    this.realtime,
-    this.hourly = const [],
-    this.today,
-  });
+  WeatherData({this.realtime, this.hourly = const [], this.today});
 
   factory WeatherData.fromJson(Map<String, dynamic> json) {
     return WeatherData(
-      realtime: json['realtime'] != null ? RealtimeWeather.fromJson(json['realtime']) : null,
-      hourly: (json['hourly'] as List<dynamic>?)?.map((e) => HourlyWeather.fromJson(e)).toList() ?? [],
-      today: json['today'] != null ? DailyWeather.fromJson(json['today']) : null,
+      realtime: json['realtime'] != null
+          ? RealtimeWeather.fromJson(json['realtime'])
+          : null,
+      hourly:
+          (json['hourly'] as List<dynamic>?)
+              ?.map((e) => HourlyWeather.fromJson(e))
+              .toList() ??
+          [],
+      today: json['today'] != null
+          ? DailyWeather.fromJson(json['today'])
+          : null,
     );
   }
 
@@ -92,7 +96,9 @@ class HourlyWeather {
 
   factory HourlyWeather.fromJson(Map<String, dynamic> json) {
     return HourlyWeather(
-      datetime: json['datetime'] != null ? DateTime.parse(json['datetime']) : DateTime.now(),
+      datetime: json['datetime'] != null
+          ? DateTime.parse(json['datetime'])
+          : DateTime.now(),
       temperature: (json['temperature'] ?? json['value'] ?? 0).toDouble(),
       skycon: json['skycon'] ?? 'UNKNOWN',
     );
@@ -171,26 +177,47 @@ class DailyWeather {
 /// 彩云天气 Skycon 到中文名称的简单映射
 String getSkyconName(String skycon) {
   switch (skycon) {
-    case 'CLEAR_DAY': return '晴（白天）';
-    case 'CLEAR_NIGHT': return '晴（夜间）';
-    case 'PARTLY_CLOUDY_DAY': return '多云（白天）';
-    case 'PARTLY_CLOUDY_NIGHT': return '多云（夜间）';
-    case 'CLOUDY': return '阴';
-    case 'LIGHT_HAZE': return '轻度雾霾';
-    case 'MODERATE_HAZE': return '中度雾霾';
-    case 'HEAVY_HAZE': return '重度雾霾';
-    case 'LIGHT_RAIN': return '小雨';
-    case 'MODERATE_RAIN': return '中雨';
-    case 'HEAVY_RAIN': return '大雨';
-    case 'STORM_RAIN': return '暴雨';
-    case 'FOG': return '雾';
-    case 'LIGHT_SNOW': return '小雪';
-    case 'MODERATE_SNOW': return '中雪';
-    case 'HEAVY_SNOW': return '大雪';
-    case 'STORM_SNOW': return '暴雪';
-    case 'DUST': return '浮尘';
-    case 'SAND': return '沙尘';
-    case 'WIND': return '大风';
-    default: return '未知';
+    case 'CLEAR_DAY':
+      return '晴（白天）';
+    case 'CLEAR_NIGHT':
+      return '晴（夜间）';
+    case 'PARTLY_CLOUDY_DAY':
+      return '多云（白天）';
+    case 'PARTLY_CLOUDY_NIGHT':
+      return '多云（夜间）';
+    case 'CLOUDY':
+      return '阴';
+    case 'LIGHT_HAZE':
+      return '轻度雾霾';
+    case 'MODERATE_HAZE':
+      return '中度雾霾';
+    case 'HEAVY_HAZE':
+      return '重度雾霾';
+    case 'LIGHT_RAIN':
+      return '小雨';
+    case 'MODERATE_RAIN':
+      return '中雨';
+    case 'HEAVY_RAIN':
+      return '大雨';
+    case 'STORM_RAIN':
+      return '暴雨';
+    case 'FOG':
+      return '雾';
+    case 'LIGHT_SNOW':
+      return '小雪';
+    case 'MODERATE_SNOW':
+      return '中雪';
+    case 'HEAVY_SNOW':
+      return '大雪';
+    case 'STORM_SNOW':
+      return '暴雪';
+    case 'DUST':
+      return '浮尘';
+    case 'SAND':
+      return '沙尘';
+    case 'WIND':
+      return '大风';
+    default:
+      return '未知';
   }
 }

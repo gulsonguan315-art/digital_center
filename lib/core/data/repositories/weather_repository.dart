@@ -16,7 +16,7 @@ class WeatherRepository {
   // 内存缓存
   WeatherData? _cachedData;
   WeatherData? get cachedData => _cachedData;
-  
+
   DateTime? _lastFetchTime;
   bool _isFetching = false;
 
@@ -38,7 +38,7 @@ class WeatherRepository {
   /// 手动刷新数据
   Future<WeatherData?> fetchWeather({bool force = false}) async {
     final now = DateTime.now();
-    
+
     if (!force) {
       // 检查内存缓存 (30 分钟内极其新鲜，无需任何 IO)
       if (_cachedData != null && _lastFetchTime != null) {
@@ -49,49 +49,67 @@ class WeatherRepository {
     }
 
     if (_isFetching) {
-      Log.d(LogGroup.network, 'Weather fetch already in progress, returning cached data.');
+      Log.d(
+        LogGroup.network,
+        'Weather fetch already in progress, returning cached data.',
+      );
       return _cachedData;
     }
 
     _isFetching = true;
     try {
-      final endpoints = await _localStore.endpoints.readData();
-      final baseUrl = endpoints.weatherBaseUrl; // e.g. https://api.caiyunapp.com/v2.6/TOKEN/LONG,LAT
+      final endpoints = (await _localStore.userSettings.readData()).api;
+      final baseUrl = endpoints
+          .weatherBaseUrl; // e.g. https://api.caiyunapp.com/v2.6/TOKEN/LONG,LAT
       if (baseUrl.isEmpty) {
-        Log.d(LogGroup.network, 'Weather base URL is empty in api_endpoints.json');
+        Log.d(
+          LogGroup.network,
+          'Weather base URL is empty in api_endpoints.json',
+        );
         return null;
       }
 
       Log.d(LogGroup.network, 'Fetching weather data from Caiyun API...');
 
       // 一次性获取所有天气数据，避免分三次请求触发免费版的 429 并发限流
-      final res = await http.get(Uri.parse('$baseUrl/weather?dailysteps=3&hourlysteps=24')).timeout(const Duration(seconds: 8));
-      
+      final res = await http
+          .get(Uri.parse('$baseUrl/weather?dailysteps=3&hourlysteps=24'))
+          .timeout(const Duration(seconds: 8));
+
       RealtimeWeather? realtime;
       DailyWeather? daily;
       List<HourlyWeather> hourly = [];
 
       if (res.statusCode == 200) {
-        final Map<String, dynamic> data = jsonDecode(utf8.decode(res.bodyBytes));
-        
+        final Map<String, dynamic> data = jsonDecode(
+          utf8.decode(res.bodyBytes),
+        );
+
         realtime = RealtimeWeather.fromJson(data);
         daily = DailyWeather.fromJson(data);
-        
-        final hList = data['result']?['hourly']?['temperature'] as List<dynamic>? ?? [];
-        final skyList = data['result']?['hourly']?['skycon'] as List<dynamic>? ?? [];
-        
+
+        final hList =
+            data['result']?['hourly']?['temperature'] as List<dynamic>? ?? [];
+        final skyList =
+            data['result']?['hourly']?['skycon'] as List<dynamic>? ?? [];
+
         for (int i = 0; i < hList.length; i++) {
           final tempItem = hList[i];
           final skyItem = i < skyList.length ? skyList[i] : {};
-          
-          hourly.add(HourlyWeather.fromJson({
-            'datetime': tempItem['datetime'],
-            'value': tempItem['value'],
-            'skycon': skyItem['value'],
-          }));
+
+          hourly.add(
+            HourlyWeather.fromJson({
+              'datetime': tempItem['datetime'],
+              'value': tempItem['value'],
+              'skycon': skyItem['value'],
+            }),
+          );
         }
       } else {
-        Log.d(LogGroup.network, 'Weather API failed: ${res.statusCode} - ${res.body}');
+        Log.d(
+          LogGroup.network,
+          'Weather API failed: ${res.statusCode} - ${res.body}',
+        );
       }
 
       if (realtime == null || daily == null || hourly.isEmpty) {
@@ -104,14 +122,13 @@ class WeatherRepository {
         today: daily,
       );
       _lastFetchTime = now;
-      
+
       // 异步刷入本地磁盘缓存
       _localStore.weather.writeWeatherCache(_cachedData!);
 
       Log.d(LogGroup.network, 'Successfully refreshed weather data.');
       _weatherStreamController.add(_cachedData);
       return _cachedData;
-
     } catch (e) {
       Log.d(LogGroup.network, 'Failed to fetch weather data: $e');
       _weatherStreamController.add(_cachedData);

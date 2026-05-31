@@ -8,10 +8,7 @@ abstract class LocalJsonStoreBase<T> {
   final String configDirPath;
   final String fileName;
 
-  LocalJsonStoreBase({
-    required this.configDirPath,
-    required this.fileName,
-  });
+  LocalJsonStoreBase({required this.configDirPath, required this.fileName});
 
   String get _filePath => '$configDirPath/$fileName';
 
@@ -31,7 +28,7 @@ abstract class LocalJsonStoreBase<T> {
       }
       final content = await file.readAsString();
       if (content.trim().isEmpty) return fallbackValue;
-      
+
       final json = jsonDecode(content) as Map<String, dynamic>;
       return fromJson(json);
     } catch (e) {

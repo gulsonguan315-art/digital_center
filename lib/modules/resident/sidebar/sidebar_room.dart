@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import '../../../core/control/superfocus/focus_api.dart';
-import '../../../core/control/superfocus/focus_manager.dart';
+import '../../../core/control/superfocus/interaction_manager.dart';
 import '../../../core/control/superfocus/building_map.dart';
 import 'sidebar_model.dart';
 import 'sidebar_view.dart';
 import 'sidebar_tile.dart';
-import 'sidebar_callback.dart';
 
 /// 侧边栏装配房间 (总包工头)
 class SidebarRoom extends StatefulWidget {
@@ -141,15 +140,11 @@ class _SidebarRoomState extends State<SidebarRoom> {
       isActive: _isItemActive(context, item.id),
       autofocus: autofocusId == item.id,
       isExpandable: hasChildren,
-      onTap: () {
-        if (hasChildren) {
-          setState(() {
-            _expandedZoneId = (_expandedZoneId == item.id) ? null : item.id;
-          });
-        } else {
-          SidebarCallback.onNavigate(item.id, parentRoomId: parentRoomId);
-        }
-      },
+      onTap: hasChildren ? () {
+        setState(() {
+          _expandedZoneId = (_expandedZoneId == item.id) ? null : item.id;
+        });
+      } : null,
     );
   }
 
@@ -160,10 +155,6 @@ class _SidebarRoomState extends State<SidebarRoom> {
       icon: SidebarModel.settingItem.icon,
       isActive: _isItemActive(context, SidebarModel.settingId),
       autofocus: autofocusId == SidebarModel.settingId,
-      onTap: () => SidebarCallback.onNavigate(
-        SidebarModel.settingId,
-        parentRoomId: SidebarModel.sidebarRoomId,
-      ),
     );
   }
 
@@ -174,7 +165,6 @@ class _SidebarRoomState extends State<SidebarRoom> {
       icon: SidebarModel.exitItem.icon,
       isActive: _isItemActive(context, SidebarModel.exitId),
       autofocus: autofocusId == SidebarModel.exitId,
-      onTap: () => SidebarCallback.onExit(),
     );
   }
 }

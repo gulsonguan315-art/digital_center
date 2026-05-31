@@ -7,7 +7,7 @@ import 'local_json_store_base.dart';
 /// 独立负责今日推荐诗词的本地持久化读取与写入，防止网络异常导致页面白屏。
 class LocalPoetryStore extends LocalJsonStoreBase<PoetryData> {
   LocalPoetryStore({required super.configDirPath})
-      : super(fileName: 'daily_poetry.json');
+    : super(fileName: 'daily_poetry.json');
 
   final _poetryController = StreamController<PoetryData>.broadcast();
 

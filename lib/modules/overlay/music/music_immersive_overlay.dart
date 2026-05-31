@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 
 import '../../resident/music/music_service.dart';
 import '../../../core/control/superfocus/focus_widgets.dart';
+import '../../../core/control/superfocus/focus_api.dart';
+import '../../../core/control/superfocus/interaction_manager.dart';
 import '../../../core/data/data_manager.dart';
 import 'styles/immersive_scrolling_style.dart';
 import 'styles/immersive_single_line_style.dart';
@@ -121,19 +123,26 @@ class _MusicImmersiveOverlayState extends State<MusicImmersiveOverlay> {
                 children: [
                   // 背景发光与呼吸效果
                   Positioned.fill(
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 2000),
-                      curve: Curves.easeInOut,
-                      decoration: BoxDecoration(
-                        // 移除 color: Colors.black 避免与 gradient 冲突
-                        gradient: RadialGradient(
-                          center: const Alignment(0, 0.2),
-                          radius: 1.5,
-                          colors: [
-                            const Color(0xFF1A1A24).withValues(alpha: 0.8),
-                            Colors.black,
-                          ],
-                          stops: const [0.0, 1.0],
+                    child: GestureDetector(
+                      onTap: () {
+                        if (SuperInteractionManager.instance.isMouseMode) {
+                          SuperFocusManager.instance.onBackCommand();
+                        }
+                      },
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 2000),
+                        curve: Curves.easeInOut,
+                        decoration: BoxDecoration(
+                          // 移除 color: Colors.black 避免与 gradient 冲突
+                          gradient: RadialGradient(
+                            center: const Alignment(0, 0.2),
+                            radius: 1.5,
+                            colors: [
+                              const Color(0xFF1A1A24).withValues(alpha: 0.8),
+                              Colors.black,
+                            ],
+                            stops: const [0.0, 1.0],
+                          ),
                         ),
                       ),
                     ),

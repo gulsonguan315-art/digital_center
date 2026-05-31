@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../control/superfocus/focus_api.dart';
-import '../control/superfocus/focus_manager.dart';
+import '../control/superfocus/interaction_manager.dart';
 import 'stage_models.dart';
 import 'stage_registry.dart';
 import 'stage_physical_frame.dart';

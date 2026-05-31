@@ -24,7 +24,8 @@ class LocalDashboardStore {
 
   LocalDashboardStore({required this.configDirPath});
 
-  static List<DashboardItemConfig> get _defaultItems => DashboardRegistry.defaultItems;
+  static List<DashboardItemConfig> get _defaultItems =>
+      DashboardRegistry.defaultItems;
 
   final _dashboardController =
       StreamController<List<DashboardItemConfig>>.broadcast();
@@ -92,7 +93,9 @@ class LocalDashboardStore {
 
   /// Writes grid configurations to disk with high-frequency debouncing to avoid I/O conflict.
   /// Offloads JSON encoding to a background Isolate.
-  Future<void> writeDashboardItemsDebounced(List<DashboardItemConfig> items) async {
+  Future<void> writeDashboardItemsDebounced(
+    List<DashboardItemConfig> items,
+  ) async {
     // 1. Snappiness First: Immediately emit events to UI streams for maximum responsiveness
     _dashboardController.add(items);
 

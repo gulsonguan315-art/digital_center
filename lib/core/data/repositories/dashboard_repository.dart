@@ -90,7 +90,9 @@ class DashboardRepository {
 
   /// 业务层向总管家申请：仅更新排版坐标和大小（x, y, spanX, spanY），
   /// 保持当前最新实时的启用状态（enabled）不被覆盖。
-  Future<void> saveDashboardLayout(List<DashboardItemConfig> layoutItems) async {
+  Future<void> saveDashboardLayout(
+    List<DashboardItemConfig> layoutItems,
+  ) async {
     final currentItems = List<DashboardItemConfig>.from(latestLayout);
     for (final layoutItem in layoutItems) {
       final idx = currentItems.indexWhere((e) => e.id == layoutItem.id);

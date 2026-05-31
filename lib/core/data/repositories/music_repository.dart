@@ -6,7 +6,7 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 
 import '../local/local_config_store.dart';
-import '../models/api_endpoints.dart';
+import '../models/user_settings.dart';
 import '../models/music_data.dart';
 import '../models/music_config.dart';
 import '../../log/log.dart';
@@ -31,7 +31,6 @@ class MusicRepository {
 
   /// 跟踪正在后台下载的音频缓存 Key
   final Set<String> _downloadingCacheKeys = {};
-
 
   /// 广播缓存完成事件通知，String 为 track.id
   final _cacheNotifier = StreamController<String>.broadcast();
@@ -74,7 +73,7 @@ class MusicRepository {
   /// 📡 1. 验证 Gonic 服务器的连通性与账号密码正确性 (Ping Connection)
   Future<bool> pingServer() async {
     try {
-      final endpoints = await _localStore.endpoints.readData();
+      final endpoints = (await _localStore.userSettings.readData()).api;
       final baseUrl = endpoints.gonicBaseUrl;
       if (baseUrl.isEmpty) return false;
 
@@ -139,7 +138,7 @@ class MusicRepository {
       }
     }
     try {
-      final endpoints = await _localStore.endpoints.readData();
+      final endpoints = (await _localStore.userSettings.readData()).api;
       final baseUrl = endpoints.gonicBaseUrl;
       if (baseUrl.isEmpty) return folders;
 
@@ -233,7 +232,7 @@ class MusicRepository {
     }
 
     try {
-      final endpoints = await _localStore.endpoints.readData();
+      final endpoints = (await _localStore.userSettings.readData()).api;
       final baseUrl = endpoints.gonicBaseUrl;
       if (baseUrl.isEmpty) {
         return {'folders': subFolders, 'tracks': tracks};
@@ -321,7 +320,7 @@ class MusicRepository {
         return cacheFile.path;
       }
 
-      final endpoints = await _localStore.endpoints.readData();
+      final endpoints = (await _localStore.userSettings.readData()).api;
       final baseUrl = endpoints.gonicBaseUrl;
       if (baseUrl.isEmpty) return '';
 
@@ -394,13 +393,16 @@ class MusicRepository {
       );
       if (cacheFile.existsSync()) {
         await cacheFile.delete();
-        Log.d(LogGroup.music, 'Cleaned corrupted track cache: ${cacheFile.path}');
+        Log.d(
+          LogGroup.music,
+          'Cleaned corrupted track cache: ${cacheFile.path}',
+        );
       }
       final tmpFile = File('${cacheFile.path}.tmp');
       if (tmpFile.existsSync()) {
         await tmpFile.delete();
       }
-      
+
       final lyricsCacheFile = File(
         '${_localStore.configDirPath}/music_cache/lyrics_$cacheKey.json',
       );
@@ -414,29 +416,33 @@ class MusicRepository {
 
   /// ⚙️ 触发后台频谱预计算任务
   void _triggerEqGeneration(String audioPath, String cacheKey) {
-    final eqFile = File('${_localStore.configDirPath}/music_cache/eq_$cacheKey.json');
+    final eqFile = File(
+      '${_localStore.configDirPath}/music_cache/eq_$cacheKey.json',
+    );
     if (eqFile.existsSync()) return;
 
     final exePath = 'third_party/generate_eq.exe';
-    
-    Process.run(exePath, [audioPath, eqFile.path]).then((result) {
-      if (result.exitCode == 0) {
-        Log.d(LogGroup.music, 'Successfully generated EQ for: $cacheKey');
-        if (!_isDisposed && !_eqNotifier.isClosed) {
-          _eqNotifier.add(cacheKey);
-        }
-      } else {
-        Log.d(LogGroup.music, 'Failed to generate EQ: ${result.stderr}');
-      }
-    }).catchError((e) {
-      Log.d(LogGroup.music, 'Failed to launch generate_eq.exe: $e');
-    });
+
+    Process.run(exePath, [audioPath, eqFile.path])
+        .then((result) {
+          if (result.exitCode == 0) {
+            Log.d(LogGroup.music, 'Successfully generated EQ for: $cacheKey');
+            if (!_isDisposed && !_eqNotifier.isClosed) {
+              _eqNotifier.add(cacheKey);
+            }
+          } else {
+            Log.d(LogGroup.music, 'Failed to generate EQ: ${result.stderr}');
+          }
+        })
+        .catchError((e) {
+          Log.d(LogGroup.music, 'Failed to launch generate_eq.exe: $e');
+        });
   }
 
   /// 🖼️ 5. 构建带鉴权的专辑/歌曲封面直链 (Get Cover Art URL)
   Future<String> getCoverArtUrl(String coverArtId) async {
     try {
-      final endpoints = await _localStore.endpoints.readData();
+      final endpoints = (await _localStore.userSettings.readData()).api;
       final baseUrl = endpoints.gonicBaseUrl;
       if (baseUrl.isEmpty) return '';
 
@@ -460,23 +466,33 @@ class MusicRepository {
       try {
         final content = await cacheFile.readAsString();
         final data = jsonDecode(content) as Map<String, dynamic>;
-        
+
         final isExported = data['is_exported'] as bool? ?? false;
         if (isExported) {
           final trackPath = track.path;
           final lastDot = trackPath.lastIndexOf('.');
-          final lrcPath = (lastDot != -1 ? trackPath.substring(0, lastDot) : trackPath) + '.lrc';
-          final exportedFile = File('${_localStore.configDirPath}/music_cache/exported_lyrics/$lrcPath');
-          
+          final lrcPath =
+              (lastDot != -1 ? trackPath.substring(0, lastDot) : trackPath) +
+              '.lrc';
+          final exportedFile = File(
+            '${_localStore.configDirPath}/music_cache/exported_lyrics/$lrcPath',
+          );
+
           if (!exportedFile.existsSync()) {
             // 如果已导出，且 exported_lyrics 中的 .lrc 被删除了，说明 Python 同步脚本已经处理了！
             // 此时 NAS 音频文件已被内嵌歌词（但文件 Size 未必改变）。
             // 我们主动删掉过时的本地缓存，强制去向 Gonic 要新的内嵌歌词（新歌词的时间轴已经是修正过的）。
-            Log.d(LogGroup.music, 'Exported .lrc is gone, invalidating lyrics cache for: ${track.title}');
+            Log.d(
+              LogGroup.music,
+              'Exported .lrc is gone, invalidating lyrics cache for: ${track.title}',
+            );
             cacheFile.deleteSync();
             // 穿透到下方重新拉取网络请求
           } else {
-            Log.d(LogGroup.music, 'Loaded lyrics from cache for: ${track.title}');
+            Log.d(
+              LogGroup.music,
+              'Loaded lyrics from cache for: ${track.title}',
+            );
             final lrc = data['lyrics'] as String?;
             final offsetMs = data['offset_ms'] as int? ?? 0;
             if (lrc != null && lrc.isEmpty) return (null, offsetMs);
@@ -495,7 +511,7 @@ class MusicRepository {
     }
 
     try {
-      final endpoints = await _localStore.endpoints.readData();
+      final endpoints = (await _localStore.userSettings.readData()).api;
       final baseUrl = endpoints.gonicBaseUrl;
       if (baseUrl.isEmpty) return (null, 0);
 
@@ -522,14 +538,13 @@ class MusicRepository {
             subsonicResponse['lyrics'] as Map<String, dynamic>? ?? {};
 
         final String? lrcContent = lyrics['value'] as String?;
-        
+
         // 核心修复：无论服务器返回是否有歌词，只要请求成功（200），我们就缓存下来！
         // 如果没有歌词，我们缓存一个空字符串，这样下次直接拦截，不再发起网络请求。
         try {
-          await cacheFile.writeAsString(jsonEncode({
-            'lyrics': lrcContent ?? '',
-            'offset_ms': 0,
-          }));
+          await cacheFile.writeAsString(
+            jsonEncode({'lyrics': lrcContent ?? '', 'offset_ms': 0}),
+          );
         } catch (e) {
           Log.d(LogGroup.music, 'Failed to write lyrics cache: $e');
         }
@@ -553,7 +568,11 @@ class MusicRepository {
 
   /// 📝 7. 更新本地缓存的歌词偏移量
   /// 用于用户在前端微调了歌词时间轴后，不改变原始歌词文本，仅更新缓存头部的 `offset_ms` 字段
-  Future<void> updateLyricsCacheOffset(MusicTrack track, int offsetMs, {bool isExported = false}) async {
+  Future<void> updateLyricsCacheOffset(
+    MusicTrack track,
+    int offsetMs, {
+    bool isExported = false,
+  }) async {
     final cacheKey = _makeMd5('${track.path}_${track.size}');
     final cacheFile = File(
       '${_localStore.configDirPath}/music_cache/lyrics_$cacheKey.json',
@@ -566,7 +585,10 @@ class MusicRepository {
       data['offset_ms'] = offsetMs;
       if (isExported) data['is_exported'] = true;
       await cacheFile.writeAsString(jsonEncode(data));
-      Log.d(LogGroup.music, 'Updated lyrics offset to ${offsetMs}ms for: ${track.title}');
+      Log.d(
+        LogGroup.music,
+        'Updated lyrics offset to ${offsetMs}ms for: ${track.title}',
+      );
     } catch (e) {
       Log.d(LogGroup.music, 'Failed to update lyrics cache offset: $e');
     }
@@ -575,7 +597,7 @@ class MusicRepository {
   /// 📡 7. 触发 Gonic 开始全库增量扫描 (Trigger Subsonic Catalog Rescan)
   Future<bool> triggerScan() async {
     try {
-      final endpoints = await _localStore.endpoints.readData();
+      final endpoints = (await _localStore.userSettings.readData()).api;
       final baseUrl = endpoints.gonicBaseUrl;
       if (baseUrl.isEmpty) return false;
 

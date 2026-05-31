@@ -1,11 +1,7 @@
 /// 🎵 音乐模块本地配置持久化数据模型 (Music Module Local Config)
 library;
 
-enum PlaybackMode {
-  listLoop,
-  singleLoop,
-  shuffle,
-}
+enum PlaybackMode { listLoop, singleLoop, shuffle }
 
 class MusicConfig {
   final List<String> activeFolderIds;
@@ -29,18 +25,20 @@ class MusicConfig {
 
     return MusicConfig(
       activeFolderIds: folders?.map((e) => e.toString()).toList() ?? [],
-      playMode: PlaybackMode.values.elementAtOrNull(modeIndex) ?? PlaybackMode.listLoop,
+      playMode:
+          PlaybackMode.values.elementAtOrNull(modeIndex) ??
+          PlaybackMode.listLoop,
       immersiveStyleIndex: styleIndex,
       lastPlayingTrackId: lastTrack,
     );
   }
 
   Map<String, dynamic> toJson() => {
-        'activeFolderIds': activeFolderIds,
-        'playMode': playMode.index,
-        'immersiveStyleIndex': immersiveStyleIndex,
-        if (lastPlayingTrackId != null) 'lastPlayingTrackId': lastPlayingTrackId,
-      };
+    'activeFolderIds': activeFolderIds,
+    'playMode': playMode.index,
+    'immersiveStyleIndex': immersiveStyleIndex,
+    if (lastPlayingTrackId != null) 'lastPlayingTrackId': lastPlayingTrackId,
+  };
 
   static const MusicConfig defaultConfig = MusicConfig(
     activeFolderIds: [],

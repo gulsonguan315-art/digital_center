@@ -197,6 +197,11 @@ class BuildingMap {
     }
   }
 
+  static void clearDynamicCache() {
+    _dynamicParentCache.clear();
+    _terminalRoomsCache.clear();
+  }
+
   static String? getEntryNodeForRoom(String parentRoomId, String targetRoomId) {
     _ensureInitialized();
     return _entryNodeCache[_entryNodeKey(parentRoomId, targetRoomId)];

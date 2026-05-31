@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/control/superfocus/focus_api.dart';
-import '../../../core/control/superfocus/focus_manager.dart';
+import '../../../core/control/superfocus/interaction_manager.dart';
 import '../../../core/engine/theme/theme_api.dart';
 import '../../../core/engine/audio/app_audio_service.dart';
 import 'music_model.dart';
@@ -299,88 +299,86 @@ class MusicControlRoom extends StatelessWidget {
             builder: (context, hasFocus) {
               return SuperFocusRoom(
                 id: MusicModel.controlZoneId,
-                child: MusicControlView(
-                  slots: {
-                    'control_bar': MusicControlBar(
-                      currentTrack: cb.service.playback.currentTrack,
-                      currentPosition: cb.service.playback.currentPosition,
-                      trackDuration: cb.service.playback.trackDuration,
-                      volume: AppAudioService.instance.volume,
-                      material: material,
-                      onSeek: (ratio) {
-                        final ms =
-                            (ratio *
-                                    cb
-                                        .service
-                                        .playback
-                                        .trackDuration
-                                        .inMilliseconds)
-                                .toInt();
-                        cb.seekTo(Duration(milliseconds: ms));
-                      },
-                      isPlaying: cb.service.playback.isPlaying,
-                      playMode: cb.service.playback.playMode,
-                      playModeSlot: (builder, {focusGeometry}) => FocusIdentity(
-                        id: MusicModel.btnPlayModeId,
-                        onPressed: cb.togglePlayMode,
-                        focusGeometry: focusGeometry,
-                        builder: (ctx, hasFocus) =>
-                            builder(ctx, hasFocus, cb.togglePlayMode),
-                      ),
-                      fastRewindSlot: (builder, {focusGeometry}) =>
-                          FocusIdentity(
+                child: Builder(
+                  builder: (context) {
+                    void routedAction(String id, VoidCallback action) {
+                      if (SuperInteractionManager.instance.isMouseMode) {
+                        SuperInteractionManager.instance.onPointerClick(id);
+                      } else {
+                        action();
+                      }
+                    }
+                    return MusicControlView(
+                      slots: {
+                        'control_bar': MusicControlBar(
+                          currentTrack: cb.service.playback.currentTrack,
+                          currentPosition: cb.service.playback.currentPosition,
+                          trackDuration: cb.service.playback.trackDuration,
+                          volume: AppAudioService.instance.volume,
+                          material: material,
+                          onSeek: (ratio) {
+                            final ms = (ratio * cb.service.playback.trackDuration.inMilliseconds).toInt();
+                            cb.seekTo(Duration(milliseconds: ms));
+                          },
+                          isPlaying: cb.service.playback.isPlaying,
+                          playMode: cb.service.playback.playMode,
+                          playModeSlot: (builder, {focusGeometry}) => FocusIdentity(
+                            id: MusicModel.btnPlayModeId,
+                            onPressed: cb.togglePlayMode,
+                            focusGeometry: focusGeometry,
+                            builder: (ctx, hasFocus) =>
+                                builder(ctx, hasFocus, () => routedAction(MusicModel.btnPlayModeId, cb.togglePlayMode)),
+                          ),
+                          fastRewindSlot: (builder, {focusGeometry}) => FocusIdentity(
                             id: MusicModel.btnFastRewindId,
                             onPressed: cb.fastRewind,
                             focusGeometry: focusGeometry,
                             builder: (ctx, hasFocus) =>
-                                builder(ctx, hasFocus, cb.fastRewind),
+                                builder(ctx, hasFocus, () => routedAction(MusicModel.btnFastRewindId, cb.fastRewind)),
                           ),
-                      prevSlot: (builder, {focusGeometry}) => FocusIdentity(
-                        id: MusicModel.btnPrevId,
-                        onPressed: cb.playPrevTrack,
-                        focusGeometry: focusGeometry,
-                        builder: (ctx, hasFocus) =>
-                            builder(ctx, hasFocus, cb.playPrevTrack),
-                      ),
-                      playPauseSlot: (builder, {focusGeometry}) =>
-                          FocusIdentity(
+                          prevSlot: (builder, {focusGeometry}) => FocusIdentity(
+                            id: MusicModel.btnPrevId,
+                            onPressed: cb.playPrevTrack,
+                            focusGeometry: focusGeometry,
+                            builder: (ctx, hasFocus) =>
+                                builder(ctx, hasFocus, () => routedAction(MusicModel.btnPrevId, cb.playPrevTrack)),
+                          ),
+                          playPauseSlot: (builder, {focusGeometry}) => FocusIdentity(
                             id: MusicModel.btnPlayId,
                             onPressed: cb.togglePlayPause,
                             focusGeometry: focusGeometry,
                             builder: (ctx, hasFocus) =>
-                                builder(ctx, hasFocus, cb.togglePlayPause),
+                                builder(ctx, hasFocus, () => routedAction(MusicModel.btnPlayId, cb.togglePlayPause)),
                           ),
-                      nextSlot: (builder, {focusGeometry}) => FocusIdentity(
-                        id: MusicModel.btnNextId,
-                        onPressed: cb.playNextTrack,
-                        focusGeometry: focusGeometry,
-                        builder: (ctx, hasFocus) =>
-                            builder(ctx, hasFocus, cb.playNextTrack),
-                      ),
-                      fastForwardSlot: (builder, {focusGeometry}) =>
-                          FocusIdentity(
+                          nextSlot: (builder, {focusGeometry}) => FocusIdentity(
+                            id: MusicModel.btnNextId,
+                            onPressed: cb.playNextTrack,
+                            focusGeometry: focusGeometry,
+                            builder: (ctx, hasFocus) =>
+                                builder(ctx, hasFocus, () => routedAction(MusicModel.btnNextId, cb.playNextTrack)),
+                          ),
+                          fastForwardSlot: (builder, {focusGeometry}) => FocusIdentity(
                             id: MusicModel.btnFastForwardId,
                             onPressed: cb.fastForward,
                             focusGeometry: focusGeometry,
                             builder: (ctx, hasFocus) =>
-                                builder(ctx, hasFocus, cb.fastForward),
+                                builder(ctx, hasFocus, () => routedAction(MusicModel.btnFastForwardId, cb.fastForward)),
                           ),
-                      recacheSlot: (builder, {focusGeometry}) => FocusIdentity(
-                        id: MusicModel.btnRecacheId,
-                        onPressed: cb.reCacheCurrentTrack,
-                        focusGeometry: focusGeometry,
-                        builder: (ctx, hasFocus) =>
-                            builder(ctx, hasFocus, cb.reCacheCurrentTrack),
-                      ),
-                      fullscreenSlot: (builder, {focusGeometry}) {
-                        void action() {
-                          Navigator.of(context).push(
-                            PageRouteBuilder(
-                              opaque: true, // 设置为 true 阻止底层页面渲染和刷新
-                              transitionDuration: const Duration(milliseconds: 400),
-                              reverseTransitionDuration: const Duration(milliseconds: 300),
-                              pageBuilder: (ctx, anim1, anim2) =>
-                                  FadeTransition(
+                          recacheSlot: (builder, {focusGeometry}) => FocusIdentity(
+                            id: MusicModel.btnRecacheId,
+                            onPressed: cb.reCacheCurrentTrack,
+                            focusGeometry: focusGeometry,
+                            builder: (ctx, hasFocus) =>
+                                builder(ctx, hasFocus, () => routedAction(MusicModel.btnRecacheId, cb.reCacheCurrentTrack)),
+                          ),
+                          fullscreenSlot: (builder, {focusGeometry}) {
+                            void action() {
+                              Navigator.of(context).push(
+                                PageRouteBuilder(
+                                  opaque: true, // 设置为 true 阻止底层页面渲染和刷新
+                                  transitionDuration: const Duration(milliseconds: 400),
+                                  reverseTransitionDuration: const Duration(milliseconds: 300),
+                                  pageBuilder: (ctx, anim1, anim2) => FadeTransition(
                                     opacity: anim1,
                                     child: ScaleTransition(
                                       scale: Tween<double>(begin: 0.9, end: 1.0).animate(
@@ -393,19 +391,21 @@ class MusicControlRoom extends StatelessWidget {
                                       child: const MusicImmersiveOverlay(),
                                     ),
                                   ),
-                            ),
-                          );
-                        }
-                        return FocusIdentity(
-                          id: MusicModel.btnFullscreenId,
-                          onPressed: action,
-                          focusGeometry: focusGeometry,
-                          builder: (ctx, hasFocus) =>
-                              builder(ctx, hasFocus, action),
-                        );
+                                ),
+                              );
+                            }
+                            return FocusIdentity(
+                              id: MusicModel.btnFullscreenId,
+                              onPressed: action,
+                              focusGeometry: focusGeometry,
+                              builder: (ctx, hasFocus) =>
+                                  builder(ctx, hasFocus, () => routedAction(MusicModel.btnFullscreenId, action)),
+                            );
+                          },
+                        ),
                       },
-                    ),
-                  },
+                    );
+                  }
                 ),
               );
             },

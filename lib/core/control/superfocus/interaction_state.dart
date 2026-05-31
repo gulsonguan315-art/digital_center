@@ -42,7 +42,7 @@ class PortalEntry {
 
 /// 焦点系统的 RAM (智能存储单元)
 /// 负责：存储原始数据、维护通知器、提供状态翻译逻辑
-class FocusState {
+class InteractionState {
   // --- 静态存储 (数据表) ---
   final Map<String, FocusNodeInfo> nodeRegistry = {};
   final List<PortalEntry> portalStack = [];

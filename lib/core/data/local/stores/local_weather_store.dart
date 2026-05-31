@@ -21,17 +21,23 @@ class LocalWeatherStore {
       if (content.isEmpty) return null;
 
       final json = jsonDecode(content) as Map<String, dynamic>;
-      
+
       // 检查缓存时间 (从文件修改时间判断)
       final lastModified = await file.lastModified();
       final age = DateTime.now().difference(lastModified);
-      
+
       if (age > const Duration(hours: 6)) {
-        Log.d(LogGroup.system, 'Local weather cache expired (age: ${age.inHours}h), needs refresh.');
+        Log.d(
+          LogGroup.system,
+          'Local weather cache expired (age: ${age.inHours}h), needs refresh.',
+        );
         return null; // 过期返回 null，要求外部重新抓取
       }
 
-      Log.d(LogGroup.system, 'Loaded weather data from local cache (age: ${age.inMinutes}m).');
+      Log.d(
+        LogGroup.system,
+        'Loaded weather data from local cache (age: ${age.inMinutes}m).',
+      );
       return WeatherData.fromJson(json);
     } catch (e) {
       Log.d(LogGroup.system, 'Failed to read weather cache: $e');

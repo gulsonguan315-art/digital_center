@@ -1,7 +1,7 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter/services.dart';
-import 'focus_state.dart';
-import 'focus_manager.dart';
+import 'interaction_state.dart';
+import 'interaction_manager.dart';
 import 'focus_geometry.dart';
 import 'focus_report.dart';
 
@@ -260,24 +260,45 @@ class _SuperFocusItemState extends State<SuperFocusItem> {
 
   @override
   Widget build(BuildContext context) {
-    return Focus(
-      focusNode: _focusNode,
-      autofocus: widget.autofocus,
-      onFocusChange: (focus) {
-        setState(() => _hasFocus = focus);
-        if (focus) {
-          if (widget.ensureVisibleCentered) {
-            Scrollable.ensureVisible(
-              context,
-              alignment: 0.5,
-              duration: const Duration(milliseconds: 200),
-              curve: Curves.easeInOut,
-            );
+    final isMouseMode = SuperInteractionManager.instance.isMouseMode;
+    return MouseRegion(
+      onEnter: (_) => SuperInteractionManager.instance.onPointerEnter(widget.id),
+      cursor: isMouseMode ? SystemMouseCursors.click : MouseCursor.defer,
+      child: GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onTap: () {
+          if (isMouseMode) {
+            SuperInteractionManager.instance.onPointerClick(widget.id);
           }
-          _reportFocus();
-        }
-      },
-      child: widget.builder(context, _hasFocus),
+        },
+        child: Focus(
+          focusNode: _focusNode,
+          autofocus: widget.autofocus && !isMouseMode,
+          canRequestFocus: !isMouseMode,
+          onFocusChange: (focus) {
+            setState(() => _hasFocus = focus);
+            if (focus) {
+              if (isMouseMode) {
+                 // 补丁 2: 鼠标模式下切断确保居中以及强制游标上报
+                 if (_focusNode.hasPrimaryFocus) {
+                     _focusNode.unfocus();
+                 }
+                 return;
+              }
+              if (widget.ensureVisibleCentered) {
+                Scrollable.ensureVisible(
+                  context,
+                  alignment: 0.5,
+                  duration: const Duration(milliseconds: 200),
+                  curve: Curves.easeInOut,
+                );
+              }
+              _reportFocus();
+            }
+          },
+          child: widget.builder(context, _hasFocus),
+        ),
+      ),
     );
   }
 }

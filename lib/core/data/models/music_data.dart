@@ -8,25 +8,20 @@ class MusicFolder {
   final String name;
   final bool isDir;
 
-  const MusicFolder({
-    required this.id,
-    required this.name,
-    this.isDir = true,
-  });
+  const MusicFolder({required this.id, required this.name, this.isDir = true});
 
   factory MusicFolder.fromJson(Map<String, dynamic> json) {
     return MusicFolder(
       id: json['id'] as String? ?? '',
-      name: json['title'] as String? ?? json['name'] as String? ?? 'Unknown Folder',
+      name:
+          json['title'] as String? ??
+          json['name'] as String? ??
+          'Unknown Folder',
       isDir: json['isDir'] as bool? ?? true,
     );
   }
 
-  Map<String, dynamic> toJson() => {
-    'id': id,
-    'name': name,
-    'isDir': isDir,
-  };
+  Map<String, dynamic> toJson() => {'id': id, 'name': name, 'isDir': isDir};
 }
 
 /// 🎶 歌曲文件元数据实体 (Audio File / Song Metadata Entity)
@@ -36,8 +31,8 @@ class MusicTrack {
   final String artist;
   final String album;
   final int duration; // 时长（秒）
-  final int size;     // 文件大小（字节）
-  final String path;  // 物理相对路径
+  final int size; // 文件大小（字节）
+  final String path; // 物理相对路径
   final String? coverArtId; // 专辑插图/封面 ID
 
   const MusicTrack({
@@ -54,10 +49,15 @@ class MusicTrack {
   factory MusicTrack.fromJson(Map<String, dynamic> json) {
     return MusicTrack(
       id: json['id'] as String? ?? '',
-      title: json['title'] as String? ?? json['name'] as String? ?? 'Unknown Title',
+      title:
+          json['title'] as String? ??
+          json['name'] as String? ??
+          'Unknown Title',
       artist: json['artist'] as String? ?? 'Unknown Artist',
       album: json['album'] as String? ?? 'Unknown Album',
-      duration: (json['duration'] is num) ? (json['duration'] as num).toInt() : 0,
+      duration: (json['duration'] is num)
+          ? (json['duration'] as num).toInt()
+          : 0,
       size: (json['size'] is num) ? (json['size'] as num).toInt() : 0,
       path: json['path'] as String? ?? '',
       coverArtId: json['coverArt'] as String?,

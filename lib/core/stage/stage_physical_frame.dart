@@ -30,7 +30,7 @@ class StagePhysicalFrame extends StatelessWidget {
               ),
               clipBehavior: Clip.none, // 🌟 允许卡片外部阴影/高光自然向外延伸，防止在边缘处被生硬切边
               child: Material(
-                color: Colors.transparent,
+                type: MaterialType.transparency,
                 child: Stack(
                   clipBehavior: Clip.none,
                   children: mainStageContent,
@@ -40,12 +40,9 @@ class StagePhysicalFrame extends StatelessWidget {
           ),
         ),
         Positioned.fill(
-          child: Material(
-            color: Colors.transparent,
-            child: Stack(
-              clipBehavior: Clip.none,
-              children: overlayStageContent,
-            ),
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: overlayStageContent,
           ),
         ),
       ],

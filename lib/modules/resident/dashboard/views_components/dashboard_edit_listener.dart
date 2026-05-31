@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../../../../core/control/superfocus/focus_manager.dart';
+import '../../../../core/control/superfocus/interaction_manager.dart';
 import '../engine/dashboard_controller.dart';
 import '../engine/dashboard_models.dart';
 
@@ -38,7 +38,7 @@ class DashboardEditListener extends StatelessWidget {
           ),
         },
         child: Focus(
-          autofocus: true,
+          canRequestFocus: false, // 仅作为事件冒泡拦截器，不主动抢占焦点
           onKeyEvent: (node, event) {
             if (!controller.isEditMode) return KeyEventResult.ignored;
             if (event is KeyUpEvent) return KeyEventResult.ignored;

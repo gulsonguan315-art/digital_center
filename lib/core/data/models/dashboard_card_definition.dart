@@ -28,27 +28,59 @@ class DashboardRegistry {
   static final List<DashboardCardDefinition> definitions = [
     const DashboardCardDefinition(
       id: clockCardId,
-      defaultConfig: DashboardItemConfig(id: clockCardId, x: 0, y: 0, spanX: 4, spanY: 1),
+      defaultConfig: DashboardItemConfig(
+        id: clockCardId,
+        x: 0,
+        y: 0,
+        spanX: 4,
+        spanY: 1,
+      ),
     ),
     const DashboardCardDefinition(
       id: poetryCardId,
-      defaultConfig: DashboardItemConfig(id: poetryCardId, x: 0, y: 1, spanX: 3, spanY: 2),
+      defaultConfig: DashboardItemConfig(
+        id: poetryCardId,
+        x: 0,
+        y: 1,
+        spanX: 3,
+        spanY: 2,
+      ),
     ),
     const DashboardCardDefinition(
       id: systemMonitorCardId,
-      defaultConfig: DashboardItemConfig(id: systemMonitorCardId, x: 0, y: 2, spanX: 4, spanY: 1),
+      defaultConfig: DashboardItemConfig(
+        id: systemMonitorCardId,
+        x: 0,
+        y: 2,
+        spanX: 4,
+        spanY: 1,
+      ),
     ),
     const DashboardCardDefinition(
       id: widgetManagerCardId,
-      defaultConfig: DashboardItemConfig(id: widgetManagerCardId, x: 0, y: 3, spanX: 4, spanY: 1),
+      defaultConfig: DashboardItemConfig(
+        id: widgetManagerCardId,
+        x: 0,
+        y: 3,
+        spanX: 4,
+        spanY: 1,
+      ),
       showInManager: false,
     ),
     const DashboardCardDefinition(
       id: weatherCardId,
-      defaultConfig: DashboardItemConfig(id: weatherCardId, x: 0, y: 4, spanX: 4, spanY: 2),
+      defaultConfig: DashboardItemConfig(
+        id: weatherCardId,
+        x: 0,
+        y: 4,
+        spanX: 4,
+        spanY: 2,
+      ),
     ),
   ];
 
-  static List<String> get activeCardIds => definitions.map((c) => c.id).toList();
-  static List<DashboardItemConfig> get defaultItems => definitions.map((c) => c.defaultConfig).toList();
+  static List<String> get activeCardIds =>
+      definitions.map((c) => c.id).toList();
+  static List<DashboardItemConfig> get defaultItems =>
+      definitions.map((c) => c.defaultConfig).toList();
 }

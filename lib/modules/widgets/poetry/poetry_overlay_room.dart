@@ -3,7 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../../../core/data/data_manager.dart';
 import '../../../core/data/models/poetry_data.dart';
-import '../../../core/control/superfocus/focus_manager.dart'; // 🌟 引入焦点管理器以触发 backCommand
+import '../../../core/control/superfocus/interaction_manager.dart'; // 🌟 引入焦点管理器以触发 backCommand
 import '../../../core/control/superfocus/focus_api.dart';
 import '../../../core/control/superfocus/focus_widgets.dart';
 import '../../../core/engine/theme/theme_api.dart';
@@ -313,15 +313,22 @@ class _PoetryOverlayContentState extends State<PoetryOverlayContent>
               children: [
                 // 1. 全屏高斯模糊与暗色背景平滑过渡
                 Positioned.fill(
-                  child: BackdropFilter(
-                    filter: ImageFilter.blur(
-                      sigmaX: _blurAnimation.value,
-                      sigmaY: _blurAnimation.value,
-                    ),
-                    child: Container(
-                      color: colors.surface.withValues(
-                        // 🌟 纠正 RoleColors 属性使用 surface
-                        alpha: 0.92 * _fadeAnimation.value,
+                  child: GestureDetector(
+                    onTap: () {
+                      if (SuperInteractionManager.instance.isMouseMode) {
+                        _saveAndExit();
+                      }
+                    },
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(
+                        sigmaX: _blurAnimation.value,
+                        sigmaY: _blurAnimation.value,
+                      ),
+                      child: Container(
+                        color: colors.surface.withValues(
+                          // 🌟 纠正 RoleColors 属性使用 surface
+                          alpha: 0.92 * _fadeAnimation.value,
+                        ),
                       ),
                     ),
                   ),

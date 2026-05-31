@@ -2,7 +2,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 
 import 'stores/local_dashboard_store.dart';
-import 'stores/local_endpoints_store.dart';
+import 'stores/local_user_settings_store.dart';
 import 'stores/local_music_store.dart';
 import 'stores/local_poetry_store.dart';
 import 'stores/local_settings_store.dart';
@@ -19,7 +19,9 @@ class LocalConfigStore {
     dashboard = LocalDashboardStore(configDirPath: configDirPath);
     settings = LocalSettingsStore(configDirPath: configDirPath);
     poetry = LocalPoetryStore(configDirPath: configDirPath); // 📂 注册诗词子仓
-    endpoints = LocalEndpointsStore(configDirPath: configDirPath); // 📂 注册全局 API 终端子仓
+    userSettings = LocalUserSettingsStore(
+      configDirPath: configDirPath,
+    ); // 📂 注册全局用户配置子仓
     music = LocalMusicStore(configDirPath: configDirPath); // 🎵 注册音乐子仓
     weather = LocalWeatherStore(configDirPath: configDirPath); // 🌤️ 注册天气缓存子仓
   }
@@ -33,8 +35,8 @@ class LocalConfigStore {
   /// 📂 每日网络诗词专属子仓
   late final LocalPoetryStore poetry;
 
-  /// 📂 全局 API 接口终端配置专属子仓
-  late final LocalEndpointsStore endpoints;
+  /// 📂 全局用户配置子仓
+  late final LocalUserSettingsStore userSettings;
 
   /// 🎵 音乐模块播放状态和选中目录专属子仓
   late final LocalMusicStore music;
@@ -45,7 +47,8 @@ class LocalConfigStore {
   /// 获取系统 AppData 存储路径
   String get configDirPath {
     if (kIsWeb) return '';
-    final String appData = Platform.environment['APPDATA'] ?? Directory.systemTemp.path;
+    final String appData =
+        Platform.environment['APPDATA'] ?? Directory.systemTemp.path;
     return '$appData/digital_center';
   }
 

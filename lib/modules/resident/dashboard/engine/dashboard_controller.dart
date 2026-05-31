@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../../../core/data/data_manager.dart';
+import '../../../../core/control/superfocus/interaction_manager.dart';
 import 'dashboard_models.dart';
 import 'dashboard_grid_engine.dart';
 
@@ -14,6 +15,14 @@ class DashboardController extends ChangeNotifier {
   DashboardController(this._dataManager) {
     _subscribeToDataManager();
   }
+
+  late final bool Function() _backInterceptor = () {
+    if (_isEditMode) {
+      setEditMode(false);
+      return true; // 被拦截器消费
+    }
+    return false;
+  };
 
   List<DashboardItemConfig> _items = [];
   List<DashboardItemConfig> get items => _items;
@@ -38,7 +47,10 @@ class DashboardController extends ChangeNotifier {
   void setEditMode(bool value) {
     if (_isEditMode == value) return;
     _isEditMode = value;
-    if (!_isEditMode) {
+    if (_isEditMode) {
+      SuperInteractionManager.instance.registerBackInterceptor(_backInterceptor);
+    } else {
+      SuperInteractionManager.instance.unregisterBackInterceptor(_backInterceptor);
       _grabbedItemId = null;
       // 退出编辑模式时，安全保存最终布局到本地数据库
       _dataManager.saveDashboardLayout(_items);
@@ -94,6 +106,7 @@ class DashboardController extends ChangeNotifier {
 
   @override
   void dispose() {
+    SuperInteractionManager.instance.unregisterBackInterceptor(_backInterceptor);
     _subscription?.cancel();
     super.dispose();
   }

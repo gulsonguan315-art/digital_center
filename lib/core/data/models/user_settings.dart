@@ -3,7 +3,7 @@
 class ApiEndpoints {
   final String poetryBaseUrl;
   final String weatherBaseUrl; // 预留天气 API
-  final String mediaBaseUrl;   // 预留多媒体 API
+  final String mediaBaseUrl; // 预留多媒体 API
   final String gonicBaseUrl;
   final String gonicUsername;
   final String gonicPassword;
@@ -67,4 +67,32 @@ class ApiEndpoints {
 
     return sanitized;
   }
+}
+
+/// 综合用户配置模型，分块存储 api 及交互模式
+class UserSettings {
+  final ApiEndpoints api;
+  final String interactionMode;
+
+  const UserSettings({required this.api, this.interactionMode = 'focus'});
+
+  factory UserSettings.fromJson(Map<String, dynamic> json) {
+    return UserSettings(
+      api: json['api'] != null
+          ? ApiEndpoints.fromJson(json['api'] as Map<String, dynamic>)
+          : ApiEndpoints.defaultEndpoints,
+      interactionMode: json['interactionMode'] as String? ?? 'focus',
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    '_help_interactionMode': '【交互模式配置】支持 "focus" (遥控器纯焦点模式) 或 "mouse" (纯鼠标点击模式)',
+    'interactionMode': interactionMode,
+    'api': api.toJson(),
+  };
+
+  static const UserSettings defaultSettings = UserSettings(
+    api: ApiEndpoints.defaultEndpoints,
+    interactionMode: 'focus',
+  );
 }

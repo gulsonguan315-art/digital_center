@@ -1,10 +1,9 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter/services.dart';
+import 'interaction_controller.dart';
+import 'interaction_state.dart';
 import 'scoped_2d_scanner.dart';
 import 'building_map.dart';
-import 'focus_report.dart';
-import 'focus_state.dart';
-
 import '../../log/log_api.dart';
 
 mixin FocusTraceLogger {
@@ -66,50 +65,18 @@ mixin FocusTraceLogger {
   }
 }
 
-class SuperFocusManager with FocusTraceLogger {
-  static final SuperFocusManager instance = SuperFocusManager._internal();
-  SuperFocusManager._internal();
-
-  /// 焦点系统的 RAM (内存单元)
-  final FocusState state = FocusState();
-
+class FocusController extends BaseInteractionController with FocusTraceLogger {
   // --- 兼容性代理 (指向 RAM 中的寄存器) ---
-  ValueNotifier<FocusTopology> get topologyNotifier => state.topologyNotifier;
-  ValueNotifier<FocusReport?> get cursorReportNotifier =>
-      state.cursorReportNotifier;
-  ValueNotifier<bool> get cursorHiddenNotifier => state.cursorHiddenNotifier;
   String? get currentRoomId => state.currentRoomId;
 
   // --- CPU 内部临时状态 ---
-  final ValueNotifier<String?> intentionRoomId = ValueNotifier(null);
   String? _lastActionSource;
   bool _pendingCallback = false;
 
   final Scoped2dScanner scanner = const Scoped2dScanner();
   FocusTraversalPolicy get policy => scanner;
 
-  // --- RAM 操作指令 ---
-
-  void reportCursor(FocusReport report) {
-    if (state.cursorReportNotifier.value == report) return;
-    state.cursorReportNotifier.value = report;
-  }
-
-  void hideCursor() => state.cursorHiddenNotifier.value = true;
-  void showCursor() => state.cursorHiddenNotifier.value = false;
-  void clearCursor() => state.cursorReportNotifier.value = null;
-
-  void registerNode(
-    String id,
-    FocusNode node,
-    String roomId, {
-    VoidCallback? onPressed,
-  }) {
-    state.nodeRegistry[id] = FocusNodeInfo(node, roomId, onPressed: onPressed);
-    _tryFulfillIntention();
-  }
-
-  void unregisterNode(String id) => state.nodeRegistry.remove(id);
+  bool _actionDispatched = false;
 
   void cancelNavigation() {
     if (intentionRoomId.value != null) {
@@ -117,6 +84,11 @@ class SuperFocusManager with FocusTraceLogger {
       intentionRoomId.value = null;
       if (state.portalStack.isNotEmpty) state.portalStack.removeLast();
     }
+  }
+
+  @override
+  void onNodeRegistered(String id) {
+    _tryFulfillIntention();
   }
 
   void _tryFulfillIntention() {
@@ -132,12 +104,7 @@ class SuperFocusManager with FocusTraceLogger {
     });
   }
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // 设备管理模块指令接口（由 DeviceManager 调用，业务代码不应直接使用）
-  // ─────────────────────────────────────────────────────────────────────────
-
-  /// 【移动指令】向指定方向移动焦点
-  /// 中间态守卫：系统正在执行意图跳转时，忽略一切移动指令，防止焦点树损毁。
+  @override
   void onMove(TraversalDirection direction) {
     if (intentionRoomId.value != null) return;
     final primaryFocus = FocusManager.instance.primaryFocus;
@@ -145,10 +112,7 @@ class SuperFocusManager with FocusTraceLogger {
     policy.inDirection(primaryFocus, direction);
   }
 
-  bool _actionDispatched = false;
-
-  /// 【确认指令】触发当前聚焦节点的 onPressed 及 onAction
-  /// 中间态守卫：系统正在执行意图跳转时，忽略确认指令，防止重叠跳转。
+  @override
   void onConfirm() {
     if (intentionRoomId.value != null) return;
     final entry = state.nodeRegistry.entries
@@ -176,9 +140,8 @@ class SuperFocusManager with FocusTraceLogger {
     }
   }
 
-  /// 【返回指令】执行焦点回退（无需 BuildContext）
-  /// 语义优先级：中间态时 Back = 取消当前意图；正常态时 Back = 导航回退。
-  void onBackCommand() {
+  @override
+  void onBack() {
     if (intentionRoomId.value != null) {
       cancelNavigation();
       return;
@@ -263,8 +226,6 @@ class SuperFocusManager with FocusTraceLogger {
     }
   }
 
-  // --- CPU 逻辑指令 (计算与跳转) ---
-
   void onRoomEnter(String roomId, {bool printLog = true}) {
     if (currentRoomId != roomId) {
       final oldPath = state.topologyNotifier.value.activePath;
@@ -284,10 +245,6 @@ class SuperFocusManager with FocusTraceLogger {
           deactivated.isNotEmpty ? deactivated.toString() : null,
           activated.isNotEmpty ? activated.toString() : null,
         );
-        assert(() {
-          print('---');
-          return true;
-        }());
       }
     }
   }
@@ -346,16 +303,9 @@ class SuperFocusManager with FocusTraceLogger {
   ) {
     logLanding(_lastActionSource, info.roomId, nodeId, tag);
     onRoomEnter(info.roomId, printLog: false);
-    assert(() {
-      print('---');
-      return true;
-    }());
     intentionRoomId.value = null;
     info.node.requestFocus();
   }
-
-  /// 保留向后兼容，内部委托给 onBackCommand()
-  void onBack(BuildContext context) => onBackCommand();
 
   void onAction(String sourceRoom, String id, {bool asTerminalRoom = false}) {
     _actionDispatched = true;
@@ -412,5 +362,10 @@ class SuperFocusManager with FocusTraceLogger {
     }
   }
 
-  bool isZone(String id) => BuildingMap.isZone(id);
+  // FocusController 专属的事件：忽略鼠标事件
+  @override
+  void onPointerEnter(String targetId) {}
+
+  @override
+  void onPointerClick(String targetId) {}
 }

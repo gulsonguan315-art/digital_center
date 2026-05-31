@@ -1,7 +1,7 @@
 library focus_api;
 
 import 'package:flutter/material.dart';
-import 'focus_manager.dart';
+import 'interaction_manager.dart';
 import 'focus_widgets.dart';
 
 // 1. 【暴露组件】
@@ -9,7 +9,7 @@ export 'focus_widgets.dart'
     show SuperFocusRoom, FocusIdentity, FocusShape, FocusTopologyScope;
 
 // 2. 【暴露模型】
-export 'focus_state.dart' show FocusTopology;
+export 'interaction_state.dart' show FocusTopology;
 export 'focus_geometry.dart'
     show FocusGeometry, RoundedRectFocusGeometry, SidebarTileFocusGeometry;
 
