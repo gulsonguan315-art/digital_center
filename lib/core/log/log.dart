@@ -6,6 +6,7 @@ class LogGroup {
   static const String network = 'Network';
   static const String ui = 'UI';
   static const String system = 'System';
+  static const String music = 'Music';
 }
 
 /// 全局日志系统
@@ -18,6 +19,7 @@ class Log {
         LogGroup.network,
         LogGroup.ui,
         LogGroup.system,
+        LogGroup.music,
       });
 
   /// 快捷访问当前的白名单

@@ -25,6 +25,7 @@ class MusicRepository {
     if (_isDisposed) return;
     _isDisposed = true;
     _cacheNotifier.close();
+    _eqNotifier.close();
     _downloadingCacheKeys.clear();
   }
 
@@ -35,6 +36,10 @@ class MusicRepository {
   /// 广播缓存完成事件通知，String 为 track.id
   final _cacheNotifier = StreamController<String>.broadcast();
   Stream<String> get onTrackCached => _cacheNotifier.stream;
+
+  /// 广播EQ生成完成事件通知，String 为 cacheKey
+  final _eqNotifier = StreamController<String>.broadcast();
+  Stream<String> get onEqGenerated => _eqNotifier.stream;
 
   /// 全局唯一单例，由 DataManager 在初始化时注入绑定
   static late final MusicRepository instance;
@@ -76,7 +81,7 @@ class MusicRepository {
       final authParams = await _buildAuthParams(endpoints);
       final url = '$baseUrl/rest/ping.view?$authParams';
 
-      Log.d(LogGroup.network, 'Pinging Gonic server at: $baseUrl');
+      Log.d(LogGroup.music, 'Pinging Gonic server at: $baseUrl');
       final response = await http
           .get(Uri.parse(url))
           .timeout(const Duration(seconds: 4));
@@ -88,12 +93,12 @@ class MusicRepository {
             data['subsonic-response'] as Map<String, dynamic>? ?? {};
         final status = subsonicResponse['status'] as String? ?? 'failed';
 
-        Log.d(LogGroup.network, 'Gonic ping status: $status');
+        Log.d(LogGroup.music, 'Gonic ping status: $status');
         return status == 'ok';
       }
       return false;
     } catch (e) {
-      Log.d(LogGroup.network, 'Failed to ping Gonic server: $e');
+      Log.d(LogGroup.music, 'Failed to ping Gonic server: $e');
       return false;
     }
   }
@@ -125,12 +130,12 @@ class MusicRepository {
           folders.add(MusicFolder.fromJson(item as Map<String, dynamic>));
         }
         Log.d(
-          LogGroup.network,
+          LogGroup.music,
           'Loaded ${folders.length} root folders from cache',
         );
         return folders;
       } catch (e) {
-        Log.d(LogGroup.network, 'Failed to load root folders from cache: $e');
+        Log.d(LogGroup.music, 'Failed to load root folders from cache: $e');
       }
     }
     try {
@@ -141,7 +146,7 @@ class MusicRepository {
       final authParams = await _buildAuthParams(endpoints);
       final url = '$baseUrl/rest/getIndexes.view?$authParams';
 
-      Log.d(LogGroup.network, 'Fetching physical root folders from Gonic');
+      Log.d(LogGroup.music, 'Fetching physical root folders from Gonic');
       final response = await http
           .get(Uri.parse(url))
           .timeout(const Duration(seconds: 5));
@@ -167,7 +172,7 @@ class MusicRepository {
         }
 
         Log.d(
-          LogGroup.network,
+          LogGroup.music,
           'Successfully parsed ${folders.length} root poetry folders from Gonic',
         );
 
@@ -175,11 +180,11 @@ class MusicRepository {
           final cacheData = folders.map((f) => f.toJson()).toList();
           await cacheFile.writeAsString(jsonEncode(cacheData));
         } catch (e) {
-          Log.d(LogGroup.network, 'Failed to write root folders cache: $e');
+          Log.d(LogGroup.music, 'Failed to write root folders cache: $e');
         }
       }
     } catch (e) {
-      Log.d(LogGroup.network, 'Failed to fetch root folders from Gonic: $e');
+      Log.d(LogGroup.music, 'Failed to fetch root folders from Gonic: $e');
     }
     return folders;
   }
@@ -215,13 +220,13 @@ class MusicRepository {
         );
 
         Log.d(
-          LogGroup.network,
+          LogGroup.music,
           'Loaded directory contents for ID: $folderId from cache',
         );
         return {'folders': subFolders, 'tracks': tracks};
       } catch (e) {
         Log.d(
-          LogGroup.network,
+          LogGroup.music,
           'Failed to load directory cache for ID: $folderId: $e',
         );
       }
@@ -238,7 +243,7 @@ class MusicRepository {
       final url =
           '$baseUrl/rest/getMusicDirectory.view?$authParams&id=$folderId';
 
-      Log.d(LogGroup.network, 'Fetching directory contents for ID: $folderId');
+      Log.d(LogGroup.music, 'Fetching directory contents for ID: $folderId');
       final response = await http
           .get(Uri.parse(url))
           .timeout(const Duration(seconds: 5));
@@ -262,7 +267,7 @@ class MusicRepository {
           }
         }
         Log.d(
-          LogGroup.network,
+          LogGroup.music,
           'Directory contents parsed: ${subFolders.length} subfolders, ${tracks.length} tracks',
         );
 
@@ -274,14 +279,14 @@ class MusicRepository {
           await cacheFile.writeAsString(jsonEncode(cacheData));
         } catch (e) {
           Log.d(
-            LogGroup.network,
+            LogGroup.music,
             'Failed to write directory cache for ID: $folderId: $e',
           );
         }
       }
     } catch (e) {
       Log.d(
-        LogGroup.network,
+        LogGroup.music,
         'Failed to fetch directory contents for ID: $folderId: $e',
       );
     }
@@ -312,6 +317,7 @@ class MusicRepository {
         '${_localStore.configDirPath}/music_cache/audio_$cacheKey.dat',
       );
       if (!forceOnline && cacheFile.existsSync()) {
+        _triggerEqGeneration(cacheFile.path, cacheKey);
         return cacheFile.path;
       }
 
@@ -330,7 +336,7 @@ class MusicRepository {
 
       return url;
     } catch (e) {
-      Log.d(LogGroup.network, 'Failed to get audio path or URL: $e');
+      Log.d(LogGroup.music, 'Failed to get audio path or URL: $e');
       return '';
     }
   }
@@ -343,7 +349,7 @@ class MusicRepository {
   ) async {
     try {
       Log.d(
-        LogGroup.network,
+        LogGroup.music,
         'Starting background download for audio cache: ${cacheFile.path}',
       );
       final tmpFile = File('${cacheFile.path}.tmp');
@@ -362,15 +368,16 @@ class MusicRepository {
         // 只有下载完整且没有中断，才重命名为正式缓存文件
         await tmpFile.rename(cacheFile.path);
         Log.d(
-          LogGroup.network,
+          LogGroup.music,
           'Successfully cached audio to: ${cacheFile.path}',
         );
+        _triggerEqGeneration(cacheFile.path, cacheKey);
         if (!_isDisposed && !_cacheNotifier.isClosed) {
           _cacheNotifier.add(trackId); // 通知 UI 缓存完成
         }
       }
     } catch (e) {
-      Log.d(LogGroup.network, 'Background audio caching failed: $e');
+      Log.d(LogGroup.music, 'Background audio caching failed: $e');
     } finally {
       _downloadingCacheKeys.remove(cacheKey);
     }
@@ -387,7 +394,7 @@ class MusicRepository {
       );
       if (cacheFile.existsSync()) {
         await cacheFile.delete();
-        Log.d(LogGroup.network, 'Cleaned corrupted track cache: ${cacheFile.path}');
+        Log.d(LogGroup.music, 'Cleaned corrupted track cache: ${cacheFile.path}');
       }
       final tmpFile = File('${cacheFile.path}.tmp');
       if (tmpFile.existsSync()) {
@@ -401,8 +408,29 @@ class MusicRepository {
         await lyricsCacheFile.delete();
       }
     } catch (e) {
-      Log.d(LogGroup.network, 'Failed to clear track cache: $e');
+      Log.d(LogGroup.music, 'Failed to clear track cache: $e');
     }
+  }
+
+  /// ⚙️ 触发后台频谱预计算任务
+  void _triggerEqGeneration(String audioPath, String cacheKey) {
+    final eqFile = File('${_localStore.configDirPath}/music_cache/eq_$cacheKey.json');
+    if (eqFile.existsSync()) return;
+
+    final exePath = 'third_party/generate_eq.exe';
+    
+    Process.run(exePath, [audioPath, eqFile.path]).then((result) {
+      if (result.exitCode == 0) {
+        Log.d(LogGroup.music, 'Successfully generated EQ for: $cacheKey');
+        if (!_isDisposed && !_eqNotifier.isClosed) {
+          _eqNotifier.add(cacheKey);
+        }
+      } else {
+        Log.d(LogGroup.music, 'Failed to generate EQ: ${result.stderr}');
+      }
+    }).catchError((e) {
+      Log.d(LogGroup.music, 'Failed to launch generate_eq.exe: $e');
+    });
   }
 
   /// 🖼️ 5. 构建带鉴权的专辑/歌曲封面直链 (Get Cover Art URL)
@@ -415,7 +443,7 @@ class MusicRepository {
       final authParams = await _buildAuthParams(endpoints);
       return '$baseUrl/rest/getCoverArt.view?$authParams&id=$coverArtId';
     } catch (e) {
-      Log.d(LogGroup.network, 'Failed to build cover art URL: $e');
+      Log.d(LogGroup.music, 'Failed to build cover art URL: $e');
       return '';
     }
   }
@@ -444,25 +472,25 @@ class MusicRepository {
             // 如果已导出，且 exported_lyrics 中的 .lrc 被删除了，说明 Python 同步脚本已经处理了！
             // 此时 NAS 音频文件已被内嵌歌词（但文件 Size 未必改变）。
             // 我们主动删掉过时的本地缓存，强制去向 Gonic 要新的内嵌歌词（新歌词的时间轴已经是修正过的）。
-            Log.d(LogGroup.network, 'Exported .lrc is gone, invalidating lyrics cache for: ${track.title}');
+            Log.d(LogGroup.music, 'Exported .lrc is gone, invalidating lyrics cache for: ${track.title}');
             cacheFile.deleteSync();
             // 穿透到下方重新拉取网络请求
           } else {
-            Log.d(LogGroup.network, 'Loaded lyrics from cache for: ${track.title}');
+            Log.d(LogGroup.music, 'Loaded lyrics from cache for: ${track.title}');
             final lrc = data['lyrics'] as String?;
             final offsetMs = data['offset_ms'] as int? ?? 0;
             if (lrc != null && lrc.isEmpty) return (null, offsetMs);
             return (lrc, offsetMs);
           }
         } else {
-          Log.d(LogGroup.network, 'Loaded lyrics from cache for: ${track.title}');
+          Log.d(LogGroup.music, 'Loaded lyrics from cache for: ${track.title}');
           final lrc = data['lyrics'] as String?;
           final offsetMs = data['offset_ms'] as int? ?? 0;
           if (lrc != null && lrc.isEmpty) return (null, offsetMs);
           return (lrc, offsetMs);
         }
       } catch (e) {
-        Log.d(LogGroup.network, 'Failed to load lyrics from cache: $e');
+        Log.d(LogGroup.music, 'Failed to load lyrics from cache: $e');
       }
     }
 
@@ -478,7 +506,7 @@ class MusicRepository {
       final url = '$baseUrl/rest/getLyrics.view?$authParams&$queryParams';
 
       Log.d(
-        LogGroup.network,
+        LogGroup.music,
         'Fetching lyrics for: ${track.artist} - ${track.title}',
       );
       final response = await http
@@ -503,12 +531,12 @@ class MusicRepository {
             'offset_ms': 0,
           }));
         } catch (e) {
-          Log.d(LogGroup.network, 'Failed to write lyrics cache: $e');
+          Log.d(LogGroup.music, 'Failed to write lyrics cache: $e');
         }
 
         if (lrcContent != null && lrcContent.trim().isNotEmpty) {
           Log.d(
-            LogGroup.network,
+            LogGroup.music,
             'Successfully retrieved synced LRC lyrics for: ${track.title}',
           );
           return (lrcContent, 0);
@@ -516,7 +544,7 @@ class MusicRepository {
       }
     } catch (e) {
       Log.d(
-        LogGroup.network,
+        LogGroup.music,
         'Failed to fetch lyrics for: ${track.artist} - ${track.title}: $e',
       );
     }
@@ -538,9 +566,9 @@ class MusicRepository {
       data['offset_ms'] = offsetMs;
       if (isExported) data['is_exported'] = true;
       await cacheFile.writeAsString(jsonEncode(data));
-      Log.d(LogGroup.network, 'Updated lyrics offset to ${offsetMs}ms for: ${track.title}');
+      Log.d(LogGroup.music, 'Updated lyrics offset to ${offsetMs}ms for: ${track.title}');
     } catch (e) {
-      Log.d(LogGroup.network, 'Failed to update lyrics cache offset: $e');
+      Log.d(LogGroup.music, 'Failed to update lyrics cache offset: $e');
     }
   }
 
@@ -554,7 +582,7 @@ class MusicRepository {
       final authParams = await _buildAuthParams(endpoints);
       final url = '$baseUrl/rest/startScan.view?$authParams';
 
-      Log.d(LogGroup.network, 'Requesting Gonic scan via startScan.view');
+      Log.d(LogGroup.music, 'Requesting Gonic scan via startScan.view');
       final response = await http
           .get(Uri.parse(url))
           .timeout(const Duration(seconds: 5));
@@ -565,7 +593,7 @@ class MusicRepository {
         final subsonicResponse =
             data['subsonic-response'] as Map<String, dynamic>? ?? {};
         final status = subsonicResponse['status'] as String? ?? 'failed';
-        Log.d(LogGroup.network, 'Gonic startScan trigger result: $status');
+        Log.d(LogGroup.music, 'Gonic startScan trigger result: $status');
         return status == 'ok';
       }
       return false;

@@ -33,7 +33,7 @@ class MusicService extends ChangeNotifier {
       onUpdate: notifyListeners,
     );
 
-    visualizer.startTicker(() => playback.isPlaying);
+    visualizer.startTicker(playback);
 
     // 监听本地缓存成功事件，刷新播放列表 UI 状态
     _cacheSub = MusicRepository.instance.onTrackCached.listen((_) {
@@ -51,4 +51,3 @@ class MusicService extends ChangeNotifier {
     super.dispose();
   }
 }
-

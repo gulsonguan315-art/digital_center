@@ -227,16 +227,43 @@ class MoodLineWidget extends StatelessWidget {
                 // 恢复退场时的高斯模糊，随着 age 增加而变模糊
                 final double blurAmount = (currentAge * 6.0).clamp(0.0, 20.0);
                 
-                // 绝对不能用 if (blurAmount > 0) 条件包裹！
-                // 条件包裹会导致渲染树结构突变，从而强行销毁并重建内部所有的 StatefulWidget（引发歌词状态丢失、重新入场！）
-                Widget animatedChild = ImageFiltered(
+                // 允许 sigma 绝对为 0！之前强制 0.001 是罪魁祸首！
+                // 在 Impeller 引擎中，任何哪怕是 0.001 的 blur 都会强制触发一次离屏渲染（Offscreen Pass）。
+                // 离屏渲染的纹理因为精度误差和浮点数混合计算，会在边界留下极为微弱的 Alpha 残留（也就是您截图里的“撕裂/鬼影线条”）！
+                Widget blurredChild = ImageFiltered(
                   imageFilter: ImageFilter.blur(
-                    // 避免传入绝对 0，防止部分引擎版本报错或意外优化
-                    sigmaX: blurAmount == 0 ? 0.001 : blurAmount, 
-                    sigmaY: blurAmount == 0 ? 0.001 : blurAmount,
-                    tileMode: TileMode.decal, // 必须使用 decal 模式，防止边缘像素延伸产生白线 (Edge Bleeding)
+                    sigmaX: blurAmount, 
+                    sigmaY: blurAmount,
+                    tileMode: TileMode.clamp,
                   ),
                   child: innerChild!,
+                );
+
+                // 终极绝杀遮罩：
+                Widget animatedChild = ShaderMask(
+                  blendMode: BlendMode.dstIn,
+                  shaderCallback: (Rect bounds) {
+                    final double vStop = (32.0 / bounds.height).clamp(0.0, 0.5);
+                    return LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: const [Colors.transparent, Colors.black, Colors.black, Colors.transparent],
+                      stops: [0.0, vStop, 1.0 - vStop, 1.0], 
+                    ).createShader(bounds);
+                  },
+                  child: ShaderMask(
+                    blendMode: BlendMode.dstIn,
+                    shaderCallback: (Rect bounds) {
+                      final double hStop = (32.0 / bounds.width).clamp(0.0, 0.5);
+                      return LinearGradient(
+                        begin: Alignment.centerLeft,
+                        end: Alignment.centerRight,
+                        colors: const [Colors.transparent, Colors.black, Colors.black, Colors.transparent],
+                        stops: [0.0, hStop, 1.0 - hStop, 1.0], 
+                      ).createShader(bounds);
+                    },
+                    child: blurredChild,
+                  ),
                 );
 
                 return Transform.rotate(
@@ -263,7 +290,13 @@ class MoodLineWidget extends StatelessWidget {
       },
       child: FloatingWidget(
         seed: item.sequenceIndex,
-        child: item.cachedWidget,
+        child: Padding(
+          // ⚠️ 极其关键的 Padding！专门解决您提到的 "Edge Bleeding" (边缘溢血/纹理截断) Bug。
+          // 当 ImageFiltered(blur) 在退场时渲染高斯模糊，如果容器紧贴着文字，模糊算法就会在边缘“断崖式”撞墙，导致边缘出现难看的线条。
+          // 给它 32 像素的“缓冲区”，就能让模糊效果平滑过渡到 0 alpha，线条就会彻底消失！
+          padding: const EdgeInsets.all(32.0),
+          child: item.cachedWidget,
+        ),
       ),
     );
   }

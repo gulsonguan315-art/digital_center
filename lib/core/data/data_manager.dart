@@ -36,6 +36,8 @@ class DataManager {
   static final DataManager instance = DataManager._();
 
   late final LocalConfigStore _localStore;
+  
+  String get configDirPath => _localStore.configDirPath;
   late final RemoteApiClient _remoteClient;
 
   LocalConfigStore get localStore => _localStore;
