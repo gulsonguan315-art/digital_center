@@ -58,8 +58,7 @@ class _LyricsAnimatorState extends State<LyricsAnimator> {
       reverseDuration: widget.type == LyricAnimationType.elasticDrop 
           ? const Duration(milliseconds: 400) 
           : widget.duration,
-      switchInCurve: _getInCurve(),
-      switchOutCurve: _getOutCurve(),
+      // 不在这里设置 curve，保持默认的 linear，否则会因为 elastic/back 曲线溢出 [0, 1] 导致 Interval 报错崩溃
       layoutBuilder: (Widget? currentChild, List<Widget> previousChildren) {
         return Stack(
           alignment: Alignment.center,
@@ -81,47 +80,59 @@ class _LyricsAnimatorState extends State<LyricsAnimator> {
         );
       },
       transitionBuilder: (Widget child, Animation<double> animation) {
+        // 物理回弹用的主轴动画（允许超出 1.0）
+        final movementAnimation = CurvedAnimation(
+          parent: animation,
+          curve: _getInCurve(),
+          reverseCurve: _getOutCurve(),
+        );
+        // 透明度用的独立动画（被强行提速到前 40%，且不会因为主轴动画的溢出而崩溃）
+        final opacityAnimation = CurvedAnimation(
+          parent: animation,
+          curve: const Interval(0.0, 0.4, curve: Curves.easeIn),
+          reverseCurve: _getOutCurve(),
+        );
+
         switch (widget.type) {
           case LyricAnimationType.fadeScale:
             return FadeTransition(
-              opacity: animation,
+              opacity: opacityAnimation,
               child: ScaleTransition(
-                // 从 0.85 放大到 1.0
-                scale: Tween<double>(begin: 0.85, end: 1.0).animate(animation),
+                // 从 0.85 放大到 1.0，维持完整的长周期物理回弹感
+                scale: Tween<double>(begin: 0.85, end: 1.0).animate(movementAnimation),
                 child: child,
               ),
             );
             
           case LyricAnimationType.springSlideUp:
             return FadeTransition(
-              opacity: animation,
+              opacity: opacityAnimation,
               child: SlideTransition(
                 // 从下方 20% 位置弹簧滑入
                 position: Tween<Offset>(
                   begin: const Offset(0, 0.2),
                   end: Offset.zero,
-                ).animate(animation),
+                ).animate(movementAnimation),
                 child: child,
               ),
             );
 
           case LyricAnimationType.elasticDrop:
             return FadeTransition(
-              opacity: Tween<double>(begin: 0.0, end: 1.0).animate(
-                CurvedAnimation(
-                  parent: animation,
-                  // 提早结束透明度动画，让弹簧效果更清晰可见
-                  curve: const Interval(0.0, 0.6, curve: Curves.easeIn),
-                ),
+              opacity: CurvedAnimation(
+                parent: animation,
+                // 提早结束透明度动画，让弹簧效果更清晰可见
+                curve: const Interval(0.0, 0.6, curve: Curves.easeIn),
+                reverseCurve: _getOutCurve(),
               ),
               child: SlideTransition(
                 // 从上方 40% 的位置掉落
                 position: Tween<Offset>(
                   begin: const Offset(0, -0.4),
                   end: Offset.zero,
-                ).animate(animation),
+                ).animate(movementAnimation),
                 child: ScaleTransition(
-                  scale: Tween<double>(begin: 0.8, end: 1.0).animate(animation),
+                  scale: Tween<double>(begin: 0.8, end: 1.0).animate(movementAnimation),
                   child: child,
                 ),
               ),

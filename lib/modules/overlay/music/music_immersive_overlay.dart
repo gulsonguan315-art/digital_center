@@ -32,8 +32,6 @@ class _MusicImmersiveOverlayState extends State<MusicImmersiveOverlay> {
     super.dispose();
   }
 
-
-
   void _handleMusicUpdate() {
     if (mounted) {
       setState(() {});
@@ -55,7 +53,7 @@ class _MusicImmersiveOverlayState extends State<MusicImmersiveOverlay> {
                   color: Colors.white.withValues(alpha: hasFocus ? 0.8 : 0.4),
                   blurRadius: hasFocus ? 16 : 8,
                   spreadRadius: hasFocus ? 4 : 2,
-                )
+                ),
               ]
             : null,
       ),
@@ -66,7 +64,15 @@ class _MusicImmersiveOverlayState extends State<MusicImmersiveOverlay> {
   Widget build(BuildContext context) {
     final lyrics = _service.lyrics.parsedLyrics;
     final position = _service.playback.currentPosition;
-    final activeIndex = lyrics.isEmpty ? -1 : _service.lyrics.getActiveLyricIndex(position);
+    final activeIndex = lyrics.isEmpty
+        ? -1
+        : _service.lyrics.getActiveLyricIndex(position);
+
+    // 单独给 情绪碎片模式 增加 300 毫秒提前量，测试视觉效果
+    final moodPosition = position + const Duration(milliseconds: 300);
+    final moodActiveIndex = lyrics.isEmpty
+        ? -1
+        : _service.lyrics.getActiveLyricIndex(moodPosition);
 
     return Scaffold(
       backgroundColor: Colors.black, // 设置为纯黑背景
@@ -75,7 +81,8 @@ class _MusicImmersiveOverlayState extends State<MusicImmersiveOverlay> {
         child: Builder(
           builder: (roomContext) {
             // 必须在 Builder 内部调用 RoomScope.of() 才能监听到上述注册的房间状态
-            final scope = roomContext.dependOnInheritedWidgetOfExactType<RoomScope>();
+            final scope = roomContext
+                .dependOnInheritedWidgetOfExactType<RoomScope>();
             if (scope != null && !scope.isActive) {
               WidgetsBinding.instance.addPostFrameCallback((_) {
                 if (mounted && Navigator.canPop(context)) {
@@ -116,7 +123,7 @@ class _MusicImmersiveOverlayState extends State<MusicImmersiveOverlay> {
                       ),
                     ),
                   ),
-                  
+
                   // 动态切换歌词呈现风格
                   Positioned.fill(
                     child: AnimatedSwitcher(
@@ -128,16 +135,16 @@ class _MusicImmersiveOverlayState extends State<MusicImmersiveOverlay> {
                               currentPosition: position,
                             )
                           : _currentStyleIndex == 1
-                              ? ImmersiveSingleLineStyle(
-                                  lyrics: lyrics,
-                                  activeIndex: activeIndex,
-                                  currentPosition: position,
-                                  isPlaying: _service.playback.isPlaying,
-                                )
-                              : ImmersiveMoodStyle(
-                                  lyrics: lyrics,
-                                  activeIndex: activeIndex,
-                                ),
+                          ? ImmersiveSingleLineStyle(
+                              lyrics: lyrics,
+                              activeIndex: activeIndex,
+                              currentPosition: position,
+                              isPlaying: _service.playback.isPlaying,
+                            )
+                          : ImmersiveMoodStyle(
+                              lyrics: lyrics,
+                              activeIndex: moodActiveIndex, // 使用提前了 300ms 的专属下标
+                            ),
                     ),
                   ),
 
@@ -152,7 +159,8 @@ class _MusicImmersiveOverlayState extends State<MusicImmersiveOverlay> {
                         FocusIdentity(
                           id: 'style_scrolling',
                           autofocus: true, // 进入房间自动聚焦第一个圆圈
-                          onPressed: () => setState(() => _currentStyleIndex = 0),
+                          onPressed: () =>
+                              setState(() => _currentStyleIndex = 0),
                           builder: (context, hasFocus) => Padding(
                             padding: const EdgeInsets.all(8.0), // 扩大可点击/发光区域
                             child: _buildStyleDot(0, hasFocus),
@@ -161,7 +169,8 @@ class _MusicImmersiveOverlayState extends State<MusicImmersiveOverlay> {
                         const SizedBox(width: 32),
                         FocusIdentity(
                           id: 'style_single_line',
-                          onPressed: () => setState(() => _currentStyleIndex = 1),
+                          onPressed: () =>
+                              setState(() => _currentStyleIndex = 1),
                           builder: (context, hasFocus) => Padding(
                             padding: const EdgeInsets.all(8.0),
                             child: _buildStyleDot(1, hasFocus),
@@ -170,7 +179,8 @@ class _MusicImmersiveOverlayState extends State<MusicImmersiveOverlay> {
                         const SizedBox(width: 32),
                         FocusIdentity(
                           id: 'style_mood',
-                          onPressed: () => setState(() => _currentStyleIndex = 2),
+                          onPressed: () =>
+                              setState(() => _currentStyleIndex = 2),
                           builder: (context, hasFocus) => Padding(
                             padding: const EdgeInsets.all(8.0),
                             child: _buildStyleDot(2, hasFocus),
@@ -182,7 +192,7 @@ class _MusicImmersiveOverlayState extends State<MusicImmersiveOverlay> {
                 ],
               ),
             );
-          }
+          },
         ),
       ),
     );

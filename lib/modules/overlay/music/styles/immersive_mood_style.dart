@@ -97,10 +97,9 @@ class _ImmersiveMoodStyleState extends State<ImmersiveMoodStyle> {
         }
       }
 
-      // 2. 随机对其模式：左对齐，居中，右对齐
+      // 2. 随机对齐模式：左对齐，右对齐（去掉居中，使排版更具错落的美感）
       final aligns = [
         WrapAlignment.start,
-        WrapAlignment.center,
         WrapAlignment.end,
       ];
       final textAlignment = aligns[random.nextInt(aligns.length)];
@@ -224,6 +223,20 @@ class MoodLineWidget extends StatelessWidget {
                 final double currentOpacity = (1.0 - currentAge * 0.5).clamp(0.0, 1.0);
                 final double currentScale = (1.0 - currentAge * 0.35).clamp(0.1, 1.0);
                 final double currentDy = -(currentAge * 60.0);
+                
+                // 恢复退场时的高斯模糊，随着 age 增加而变模糊
+                final double blurAmount = (currentAge * 6.0).clamp(0.0, 20.0);
+                
+                // 绝对不能用 if (blurAmount > 0) 条件包裹！
+                // 条件包裹会导致渲染树结构突变，从而强行销毁并重建内部所有的 StatefulWidget（引发歌词状态丢失、重新入场！）
+                Widget animatedChild = ImageFiltered(
+                  imageFilter: ImageFilter.blur(
+                    // 避免传入绝对 0，防止部分引擎版本报错或意外优化
+                    sigmaX: blurAmount == 0 ? 0.001 : blurAmount, 
+                    sigmaY: blurAmount == 0 ? 0.001 : blurAmount,
+                  ),
+                  child: innerChild!,
+                );
 
                 return Transform.rotate(
                   angle: 0.0001, // 杀手锏：打破底层引擎纯平移带来的物理像素吸附（Pixel Snapping）
@@ -234,7 +247,7 @@ class MoodLineWidget extends StatelessWidget {
                       alignment: Alignment.center,
                       child: Opacity(
                         opacity: currentOpacity,
-                        child: innerChild!,
+                        child: animatedChild,
                       ),
                     ),
                   ),

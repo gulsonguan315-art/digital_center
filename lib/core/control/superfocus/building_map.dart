@@ -40,10 +40,10 @@ class BuildingMap {
     'book': ['*科幻', '*人文=>testPage'],
 
     'musicPage': [
+      '/music_control',
       '/music_folder',
       '/music_list',
       '/music_lyrics',
-      '/music_control',
     ],
     'music_folder': ['*'],
     'music_list': ['*'],
