@@ -32,6 +32,7 @@ class MusicLyricsController {
     isLoadingLyrics = true;
     _lastScrollTarget = null;
     cumulativeOffsetMs = 0;
+    parsedLyrics = []; // 切换歌曲时立即清空上一首的旧歌词，防止短暂渲染遗留歌词 Bug
     onUpdate();
 
     try {

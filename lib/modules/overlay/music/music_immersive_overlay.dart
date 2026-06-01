@@ -3,12 +3,12 @@ import 'package:flutter/services.dart';
 
 import '../../resident/music/music_service.dart';
 import '../../../core/control/superfocus/focus_widgets.dart';
-import '../../../core/control/superfocus/focus_api.dart';
 import '../../../core/control/superfocus/interaction_manager.dart';
 import '../../../core/data/data_manager.dart';
 import 'styles/immersive_scrolling_style.dart';
 import 'styles/immersive_single_line_style.dart';
 import 'styles/immersive_mood_style.dart';
+import 'views_components/shader_visualizer_circle.dart';
 
 class MusicImmersiveOverlay extends StatefulWidget {
   const MusicImmersiveOverlay({super.key});
@@ -27,8 +27,9 @@ class _MusicImmersiveOverlayState extends State<MusicImmersiveOverlay> {
     super.initState();
     _service.addListener(_handleMusicUpdate);
     DataManager.instance.getMusicConfig().then((config) {
-      if (mounted)
+      if (mounted) {
         setState(() => _currentStyleIndex = config.immersiveStyleIndex);
+      }
     });
   }
 
@@ -172,7 +173,7 @@ class _MusicImmersiveOverlayState extends State<MusicImmersiveOverlay> {
                     ),
                   ),
 
-                  // 左下角：低频底鼓圆圈 (Bass - 频段0)
+                  // 左下角：重低音圆圈 (Bass - 频段0，带径向运动模糊)
                   Positioned(
                     left: 200, // 圆心 X 坐标
                     bottom: 250, // 圆心 Y 坐标
@@ -184,40 +185,16 @@ class _MusicImmersiveOverlayState extends State<MusicImmersiveOverlay> {
                         final bassEnergy = heights.isNotEmpty
                             ? heights[0]
                             : 0.0;
-                        // 基础大小 100，随着能量膨胀，最大增加 500
-                        final size = 100.0 + (bassEnergy * 500.0);
-                        return OverflowBox(
-                          maxWidth: double.infinity,
-                          maxHeight: double.infinity,
-                          child: Container(
-                            width: size,
-                            height: size,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Colors.transparent, // 内部透明
-                            border: Border.all(
-                              color: Colors.blueAccent.withValues(
-                                alpha: 0.4 + (bassEnergy * 0.6),
-                              ),
-                              width: 2.0 + (bassEnergy * 4.0), // 线条随能量变粗
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.blueAccent.withValues(
-                                  alpha: 0.3 * bassEnergy,
-                                ),
-                                blurRadius: 10 * bassEnergy,
-                                spreadRadius: 2 * bassEnergy,
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    },
+                        return ShaderVisualizerCircle(
+                          energy: bassEnergy,
+                          color: Colors.blueAccent,
+                          strokeWidth: 2.0,
+                        );
+                      },
                     ),
                   ),
 
-                  // 右上角：人声圆圈 (Vocals - 频段3)
+                  // 右上角：人声圆圈 (Vocals - 频段3，带径向运动模糊)
                   Positioned(
                     right: 200, // 圆心 X 坐标
                     top: 250, // 圆心 Y 坐标
@@ -229,36 +206,12 @@ class _MusicImmersiveOverlayState extends State<MusicImmersiveOverlay> {
                         final vocalEnergy = heights.isNotEmpty
                             ? heights[3]
                             : 0.0;
-                        // 基础大小 100，随着能量膨胀，最大增加 500
-                        final size = 100.0 + (vocalEnergy * 500.0);
-                        return OverflowBox(
-                          maxWidth: double.infinity,
-                          maxHeight: double.infinity,
-                          child: Container(
-                            width: size,
-                            height: size,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Colors.transparent, // 内部透明
-                            border: Border.all(
-                              color: Colors.pinkAccent.withValues(
-                                alpha: 0.4 + (vocalEnergy * 0.6),
-                              ),
-                              width: 1.5 + (vocalEnergy * 3.0),
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.pinkAccent.withValues(
-                                  alpha: 0.3 * vocalEnergy,
-                                ),
-                                blurRadius: 8 * vocalEnergy,
-                                spreadRadius: 2 * vocalEnergy,
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    },
+                        return ShaderVisualizerCircle(
+                          energy: vocalEnergy,
+                          color: Colors.pinkAccent,
+                          strokeWidth: 1.5,
+                        );
+                      },
                     ),
                   ),
 
