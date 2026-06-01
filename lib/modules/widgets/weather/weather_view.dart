@@ -37,23 +37,31 @@ class WeatherView extends StatelessWidget {
           return DashboardCard(
             layer: ThemeLayer.base,
             padding: const EdgeInsets.all(24.0),
-            child: Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.cloud_off_rounded,
-                    size: 48,
-                    color: colors.textSecondary.withValues(alpha: 0.5),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final scale = (constraints.maxWidth / 360.0).clamp(0.45, 1.5);
+                return Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.cloud_off_rounded,
+                        size: (48 * scale).clamp(24.0, 64.0),
+                        color: colors.textSecondary.withValues(alpha: 0.5),
+                      ),
+                      SizedBox(height: (16 * scale).clamp(8.0, 24.0)),
+                      SurfaceText(
+                        '暂无天气数据\n请检查网络或 api_endpoints.json',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: colors.textSecondary,
+                          fontSize: (13 * scale).clamp(9.0, 16.0),
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 16),
-                  SurfaceText(
-                    '暂无天气数据\n请检查网络或 api_endpoints.json',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: colors.textSecondary, fontSize: 13),
-                  ),
-                ],
-              ),
+                );
+              }
             ),
           );
         }
@@ -61,101 +69,182 @@ class WeatherView extends StatelessWidget {
         final rt = data.realtime!;
         final today = data.today;
 
-        // 2x1 紧凑型均衡卡片 UI
+        // 2x1 紧凑型均衡卡片 UI (带自适应缩放与布局切换)
         return DashboardCard(
           layer: ThemeLayer.base,
-          padding: const EdgeInsets.symmetric(horizontal: 28.0, vertical: 20.0),
-          child: SizedBox.expand(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                // 左侧：超大气温 + 天气描述和极值
-                Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SurfaceText(
-                      '${rt.temperature.round()}°',
-                      style: TextStyle(
-                        fontSize: 64,
-                        fontWeight: FontWeight.w900,
-                        color: colors.textPrimary,
-                        height: 1.0,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    SurfaceText(
-                      '${getSkyconName(rt.skycon)}',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: colors.textPrimary,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    if (today != null)
-                      SurfaceText(
-                        '${today.minTemp.round()}° ~ ${today.maxTemp.round()}°',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: colors.textSecondary,
-                        ),
-                      ),
-                  ],
-                ),
+          padding: EdgeInsets.zero,
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final double scaleWidth = constraints.maxWidth / 360.0;
+              final double scaleHeight = constraints.maxHeight / 170.0;
+              final double scale = (scaleWidth < scaleHeight ? scaleWidth : scaleHeight).clamp(0.45, 1.5);
 
-                // 右侧：大图标 + 湿度空气质量
-                Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    _getSkyconIcon(rt.skycon, size: 72, color: colors.accent),
-                    const SizedBox(height: 12),
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
+              final dynamicPadding = EdgeInsets.symmetric(
+                horizontal: (28 * scale).clamp(8.0, 36.0),
+                vertical: (20 * scale).clamp(6.0, 24.0),
+              );
+
+              final double tempSize = (64 * scale).clamp(24.0, 80.0);
+              final double skyconSize = (18 * scale).clamp(11.0, 24.0);
+              final double rangeSize = (14 * scale).clamp(10.0, 18.0);
+              final double mainIconSize = (72 * scale).clamp(28.0, 96.0);
+              final double subIconSize = (14 * scale).clamp(8.0, 18.0);
+              final double subTextSize = (13 * scale).clamp(9.0, 16.0);
+
+              final double gapBig = (12 * scale).clamp(4.0, 18.0);
+              final double gapSmall = (6 * scale).clamp(2.0, 10.0);
+
+              // 宽度小于 240 时切换为更紧凑的垂直排列，防止横向挤压溢出
+              final bool useVerticalLayout = constraints.maxWidth < 240.0;
+
+              if (useVerticalLayout) {
+                return Padding(
+                  padding: dynamicPadding,
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        Icon(
-                          Icons.water_drop_rounded,
-                          size: 14,
-                          color: colors.textSecondary,
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            _getSkyconIcon(rt.skycon, size: mainIconSize * 0.8, color: colors.accent),
+                            SizedBox(width: gapSmall),
+                            SurfaceText(
+                              '${rt.temperature.round()}°',
+                              style: TextStyle(
+                                fontSize: tempSize * 0.8,
+                                fontWeight: FontWeight.w900,
+                                color: colors.textPrimary,
+                                height: 1.0,
+                              ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(width: 4),
+                        SizedBox(height: gapSmall),
                         SurfaceText(
-                          '湿度 ${(rt.humidity * 100).round()}%',
+                          getSkyconName(rt.skycon),
                           style: TextStyle(
-                            fontSize: 13,
+                            fontSize: skyconSize,
                             fontWeight: FontWeight.bold,
-                            color: colors.textSecondary,
+                            color: colors.textPrimary,
                           ),
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 6),
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.eco_rounded,
-                          size: 14,
-                          color: _getAqiColor(rt.aqi),
-                        ),
-                        const SizedBox(width: 4),
-                        SurfaceText(
-                          '${rt.aqiDesc} ${rt.aqi}',
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.bold,
-                            color: _getAqiColor(rt.aqi),
+                        if (today != null) ...[
+                          const SizedBox(height: 2),
+                          SurfaceText(
+                            '${today.minTemp.round()}° ~ ${today.maxTemp.round()}°',
+                            style: TextStyle(
+                              fontSize: rangeSize,
+                              fontWeight: FontWeight.w600,
+                              color: colors.textSecondary,
+                            ),
                           ),
-                        ),
+                        ],
                       ],
                     ),
-                  ],
+                  ),
+                );
+              }
+
+              // 宽屏模式：左右经典分栏
+              return Padding(
+                padding: dynamicPadding,
+                child: SizedBox.expand(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      // 左侧：气温 + 描述 + 极值
+                      Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          SurfaceText(
+                            '${rt.temperature.round()}°',
+                            style: TextStyle(
+                              fontSize: tempSize,
+                              fontWeight: FontWeight.w900,
+                              color: colors.textPrimary,
+                              height: 1.0,
+                            ),
+                          ),
+                          SizedBox(height: gapBig),
+                          SurfaceText(
+                            getSkyconName(rt.skycon),
+                            style: TextStyle(
+                              fontSize: skyconSize,
+                              fontWeight: FontWeight.bold,
+                              color: colors.textPrimary,
+                            ),
+                          ),
+                          SizedBox(height: gapSmall),
+                          if (today != null)
+                            SurfaceText(
+                              '${today.minTemp.round()}° ~ ${today.maxTemp.round()}°',
+                              style: TextStyle(
+                                fontSize: rangeSize,
+                                fontWeight: FontWeight.w600,
+                                color: colors.textSecondary,
+                              ),
+                            ),
+                        ],
+                      ),
+
+                      // 右侧：大图标 + 湿度 & AQI
+                      Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          _getSkyconIcon(rt.skycon, size: mainIconSize, color: colors.accent),
+                          SizedBox(height: gapBig),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.water_drop_rounded,
+                                size: subIconSize,
+                                color: colors.textSecondary,
+                              ),
+                              SizedBox(width: 4),
+                              SurfaceText(
+                                '湿度 ${(rt.humidity * 100).round()}%',
+                                style: TextStyle(
+                                  fontSize: subTextSize,
+                                  fontWeight: FontWeight.bold,
+                                  color: colors.textSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: gapSmall),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.eco_rounded,
+                                size: subIconSize,
+                                color: _getAqiColor(rt.aqi),
+                              ),
+                              SizedBox(width: 4),
+                              SurfaceText(
+                                '${rt.aqiDesc} ${rt.aqi}',
+                                style: TextStyle(
+                                  fontSize: subTextSize,
+                                  fontWeight: FontWeight.bold,
+                                  color: _getAqiColor(rt.aqi),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-              ],
-            ),
+              );
+            },
           ),
         );
       },

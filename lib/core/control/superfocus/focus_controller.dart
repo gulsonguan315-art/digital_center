@@ -1,5 +1,4 @@
 import 'package:flutter/widgets.dart';
-import 'package:flutter/services.dart';
 import 'interaction_controller.dart';
 import 'interaction_state.dart';
 import 'scoped_2d_scanner.dart';
