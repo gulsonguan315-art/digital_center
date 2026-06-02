@@ -70,7 +70,19 @@ class _ShaderVisualizerCircleState extends State<ShaderVisualizerCircle> {
     final double rawVelocity = currentRadius - _lastRadius;
     
     // 经典一阶低通滤波 (Low-pass Filter)，阻尼掉音频微弱的高频噪声抖动，使拖尾顺滑自然
-    _velocity = rawVelocity * 0.75 + _velocity * 0.25;
+    final double filteredVelocity = rawVelocity * 0.75 + _velocity * 0.25;
+    
+    // 🛠️ 工业级死区过滤与非线性放大算法
+    final double absVel = filteredVelocity.abs();
+    if (absVel < 2.0) {
+      // 过滤微小抖动，保持圆圈边缘绝对平滑锐利，彻底治愈高频微弱闪烁
+      _velocity = 0.0;
+    } else {
+      // 大幅运动非线性动态放大，建立顺滑的渐进曲线
+      final double scaledVel = (absVel - 2.0) * 1.5;
+      _velocity = filteredVelocity.sign * scaledVel;
+    }
+    
     _lastRadius = currentRadius;
   }
 
