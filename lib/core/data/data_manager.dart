@@ -183,6 +183,7 @@ class DataManager {
     if (_isDisposed) return;
     _isDisposed = true;
     MusicRepository.instance.dispose();
+    PoetryRepository.instance.dispose();
     _localStore.dispose();
   }
 }

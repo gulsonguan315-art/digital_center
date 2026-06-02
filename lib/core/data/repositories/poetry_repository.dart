@@ -16,6 +16,7 @@ class PoetryRepository {
 
   Stream<PoetryData>? _poetryStream;
   PoetryData? _lastPoetry; // 内存高保真缓存，支持 Web 重用与零延时同步
+  Timer? _midnightTimer;
 
   PoetryData get latestPoetry => _lastPoetry ?? PoetryData.defaultPoetry;
 
@@ -24,6 +25,26 @@ class PoetryRepository {
     try {
       _lastPoetry = await _localStore.poetry.readPoetry();
     } catch (_) {}
+    _scheduleMidnightRefresh();
+  }
+
+  void _scheduleMidnightRefresh() {
+    _midnightTimer?.cancel();
+    final now = DateTime.now();
+    // 计算下一个午夜的时间 (跨天加 1 秒，确保足够跨入第二天)
+    final tomorrow = DateTime(now.year, now.month, now.day + 1);
+    final durationToMidnight = tomorrow.difference(now) + const Duration(seconds: 1);
+
+    _midnightTimer = Timer(durationToMidnight, () {
+      // 午夜时分，主动在后台同步最新的古诗
+      _syncPoetryInBackground();
+      // 同步完成后，安排下一个午夜的定时器
+      _scheduleMidnightRefresh();
+    });
+  }
+
+  void dispose() {
+    _midnightTimer?.cancel();
   }
 
   /// 业务层向总管家申请：响应式收听每日推荐网络诗词。
