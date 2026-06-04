@@ -64,6 +64,10 @@ class LocalConfigStore {
       if (!musicCacheDir.existsSync()) {
         musicCacheDir.createSync(recursive: true);
       }
+      final musicSubDir = Directory('$configDirPath/music_cache/music');
+      if (!musicSubDir.existsSync()) {
+        musicSubDir.createSync(recursive: true);
+      }
     } catch (e) {
       // 容错防御：静默拦截系统级 I/O 权限异常
     }

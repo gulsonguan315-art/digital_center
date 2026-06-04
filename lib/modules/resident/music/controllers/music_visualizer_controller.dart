@@ -161,8 +161,8 @@ class MusicVisualizerController {
   }
 
   void loadEqData(String configDirPath, String trackPath, int trackSize) async {
-      final cacheKey = _makeMd5('${trackPath}_${trackSize}');
-      final eqFile = File('$configDirPath/music_cache/eq_$cacheKey.json');
+      final normalizedPath = trackPath.replaceAll('/', Platform.pathSeparator).replaceAll('\\', Platform.pathSeparator);
+      final eqFile = File('$configDirPath/music_cache/music/$normalizedPath.eq.json');
       if (eqFile.existsSync()) {
         try {
           final content = await eqFile.readAsString();

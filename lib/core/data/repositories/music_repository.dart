@@ -293,12 +293,18 @@ class MusicRepository {
     return {'folders': subFolders, 'tracks': tracks};
   }
 
+  String _getNormalizedTrackPath(String path) {
+    return path
+        .replaceAll('/', Platform.pathSeparator)
+        .replaceAll('\\', Platform.pathSeparator);
+  }
+
   /// 🔍 检查某首歌曲是否已经下载缓存到本地
   bool isTrackCached(MusicTrack track) {
     try {
-      final cacheKey = _makeMd5('${track.path}_${track.size}');
+      final normalizedPath = _getNormalizedTrackPath(track.path);
       final cacheFile = File(
-        '${_localStore.configDirPath}/music_cache/audio_$cacheKey.dat',
+        '${_localStore.configDirPath}/music_cache/music/$normalizedPath',
       );
       return cacheFile.existsSync();
     } catch (e) {
@@ -312,11 +318,12 @@ class MusicRepository {
   }) async {
     try {
       final cacheKey = _makeMd5('${track.path}_${track.size}');
+      final normalizedPath = _getNormalizedTrackPath(track.path);
       final cacheFile = File(
-        '${_localStore.configDirPath}/music_cache/audio_$cacheKey.dat',
+        '${_localStore.configDirPath}/music_cache/music/$normalizedPath',
       );
       if (!forceOnline && cacheFile.existsSync()) {
-        _triggerEqGeneration(cacheFile.path, cacheKey);
+        _triggerEqGeneration(cacheFile.path, cacheKey, normalizedPath);
         return cacheFile.path;
       }
 
@@ -330,7 +337,7 @@ class MusicRepository {
       // 异步触发下载，如果当前没有处于下载队列中，则启动后台下载线程
       if (!_downloadingCacheKeys.contains(cacheKey)) {
         _downloadingCacheKeys.add(cacheKey);
-        _downloadAndCacheAudio(url, cacheFile, track.id, cacheKey);
+        _downloadAndCacheAudio(url, cacheFile, track.id, cacheKey, normalizedPath);
       }
 
       return url;
@@ -345,12 +352,16 @@ class MusicRepository {
     File cacheFile,
     String trackId,
     String cacheKey,
+    String normalizedPath,
   ) async {
     try {
       Log.d(
         LogGroup.music,
         'Starting background download for audio cache: ${cacheFile.path}',
       );
+      if (!cacheFile.parent.existsSync()) {
+        cacheFile.parent.createSync(recursive: true);
+      }
       final tmpFile = File('${cacheFile.path}.tmp');
       if (tmpFile.existsSync()) {
         await tmpFile.delete();
@@ -370,7 +381,7 @@ class MusicRepository {
           LogGroup.music,
           'Successfully cached audio to: ${cacheFile.path}',
         );
-        _triggerEqGeneration(cacheFile.path, cacheKey);
+        _triggerEqGeneration(cacheFile.path, cacheKey, normalizedPath);
         if (!_isDisposed && !_cacheNotifier.isClosed) {
           _cacheNotifier.add(trackId); // 通知 UI 缓存完成
         }
@@ -388,8 +399,9 @@ class MusicRepository {
       final cacheKey = _makeMd5('${track.path}_${track.size}');
       _downloadingCacheKeys.remove(cacheKey);
 
+      final normalizedPath = _getNormalizedTrackPath(track.path);
       final cacheFile = File(
-        '${_localStore.configDirPath}/music_cache/audio_$cacheKey.dat',
+        '${_localStore.configDirPath}/music_cache/music/$normalizedPath',
       );
       if (cacheFile.existsSync()) {
         await cacheFile.delete();
@@ -404,39 +416,137 @@ class MusicRepository {
       }
 
       final lyricsCacheFile = File(
-        '${_localStore.configDirPath}/music_cache/lyrics_$cacheKey.json',
+        '${_localStore.configDirPath}/music_cache/music/$normalizedPath.lyrics.json',
       );
       if (lyricsCacheFile.existsSync()) {
         await lyricsCacheFile.delete();
       }
+
+      final eqCacheFile = File(
+        '${_localStore.configDirPath}/music_cache/music/$normalizedPath.eq.json',
+      );
+      if (eqCacheFile.existsSync()) {
+        await eqCacheFile.delete();
+      }
+
+      // 递归清理空父文件夹
+      _deleteEmptyParents(cacheFile, '${_localStore.configDirPath}/music_cache/music');
     } catch (e) {
       Log.d(LogGroup.music, 'Failed to clear track cache: $e');
     }
   }
 
+  /// 🗑️ 清理指定物理文件夹路径的全部本地缓存（包含音频、EQ、歌词）
+  Future<void> clearFolderCache(String relativeFolderPath) async {
+    try {
+      final normalizedFolder = _getNormalizedTrackPath(relativeFolderPath);
+      final folderDir = Directory(
+        '${_localStore.configDirPath}/music_cache/music/$normalizedFolder',
+      );
+      if (folderDir.existsSync()) {
+        await folderDir.delete(recursive: true);
+        Log.d(LogGroup.music, 'Cleaned folder cache recursively: ${folderDir.path}');
+        
+        // 递归清理上级空父文件夹
+        _deleteEmptyParents(File('${folderDir.path}/dummy.txt'), '${_localStore.configDirPath}/music_cache/music');
+      }
+    } catch (e) {
+      Log.d(LogGroup.music, 'Failed to clear folder cache: $e');
+    }
+  }
+
+  /// 递归清理空父文件夹，直到遇到 stopAtPath
+  void _deleteEmptyParents(File file, String stopAtPath) {
+    try {
+      Directory parent = file.parent;
+      final stopDir = Directory(stopAtPath);
+      while (parent.path != stopDir.path && parent.existsSync()) {
+        if (parent.listSync().isEmpty) {
+          parent.deleteSync();
+          parent = parent.parent;
+        } else {
+          break;
+        }
+      }
+    } catch (_) {}
+  }
+
   /// ⚙️ 触发后台频谱预计算任务
-  void _triggerEqGeneration(String audioPath, String cacheKey) {
+  void _triggerEqGeneration(String audioPath, String cacheKey, String normalizedPath) async {
     final eqFile = File(
-      '${_localStore.configDirPath}/music_cache/eq_$cacheKey.json',
+      '${_localStore.configDirPath}/music_cache/music/$normalizedPath.eq.json',
     );
     if (eqFile.existsSync()) return;
 
     final exePath = 'third_party/generate_eq.exe';
 
-    Process.run(exePath, [audioPath, eqFile.path])
-        .then((result) {
-          if (result.exitCode == 0) {
-            Log.d(LogGroup.music, 'Successfully generated EQ for: $cacheKey');
-            if (!_isDisposed && !_eqNotifier.isClosed) {
-              _eqNotifier.add(cacheKey);
+    // 确保父目录存在
+    if (!eqFile.parent.existsSync()) {
+      eqFile.parent.createSync(recursive: true);
+    }
+
+    // 解决 Windows 下 miniaudio/generate_eq.exe 对中文路径解析失败 (ERROR: failed to decode file) 的 Bug
+    // 方案：将音频复制到 ASCII 临时路径，运行生成后再移动 JSON 结果
+    final tmpAudioFile = File(
+      '${_localStore.configDirPath}/music_cache/tmp_audio_$cacheKey.tmp',
+    );
+    final tmpEqFile = File(
+      '${_localStore.configDirPath}/music_cache/tmp_eq_$cacheKey.json',
+    );
+
+    try {
+      final sourceFile = File(audioPath);
+      if (!sourceFile.existsSync()) return;
+      await sourceFile.copy(tmpAudioFile.path);
+
+      Process.run(exePath, [tmpAudioFile.path, tmpEqFile.path])
+          .then((result) async {
+            // 无论成功还是失败，均需要安全清理临时音频文件
+            try {
+              if (tmpAudioFile.existsSync()) {
+                await tmpAudioFile.delete();
+              }
+            } catch (_) {}
+
+            if (result.exitCode == 0 && tmpEqFile.existsSync()) {
+              try {
+                if (eqFile.existsSync()) {
+                  await eqFile.delete();
+                }
+                await tmpEqFile.rename(eqFile.path);
+                Log.d(LogGroup.music, 'Successfully generated EQ for: $cacheKey');
+                if (!_isDisposed && !_eqNotifier.isClosed) {
+                  _eqNotifier.add(cacheKey);
+                }
+              } catch (e) {
+                Log.d(LogGroup.music, 'Failed to rename EQ file: $e');
+              }
+            } else {
+              Log.d(LogGroup.music, 'Failed to generate EQ: ${result.stderr}');
             }
-          } else {
-            Log.d(LogGroup.music, 'Failed to generate EQ: ${result.stderr}');
-          }
-        })
-        .catchError((e) {
-          Log.d(LogGroup.music, 'Failed to launch generate_eq.exe: $e');
-        });
+
+            // 清理临时 EQ 文件（如果未重命名成功或失败残留）
+            try {
+              if (tmpEqFile.existsSync()) {
+                await tmpEqFile.delete();
+              }
+            } catch (_) {}
+          })
+          .catchError((e) async {
+            Log.d(LogGroup.music, 'Failed to launch generate_eq.exe: $e');
+            // 清理临时文件
+            try {
+              if (tmpAudioFile.existsSync()) await tmpAudioFile.delete();
+              if (tmpEqFile.existsSync()) await tmpEqFile.delete();
+            } catch (_) {}
+          });
+    } catch (e) {
+      Log.d(LogGroup.music, 'Failed to setup temporary files for EQ generation: $e');
+      try {
+        if (tmpAudioFile.existsSync()) await tmpAudioFile.delete();
+        if (tmpEqFile.existsSync()) await tmpEqFile.delete();
+      } catch (_) {}
+    }
   }
 
   /// 🖼️ 5. 构建带鉴权的专辑/歌曲封面直链 (Get Cover Art URL)
@@ -457,9 +567,9 @@ class MusicRepository {
   /// 📝 6. 获取同步 LRC 歌词数据 (Fetch LRC Lyrics Data)
   /// Gonic 在后台会自动索引同目录下同名的 `.lrc` 歌词文件，并直接通过 `getLyrics.view` 返回。
   Future<(String?, int)> fetchLyrics(MusicTrack track) async {
-    final cacheKey = _makeMd5('${track.path}_${track.size}');
+    final normalizedPath = _getNormalizedTrackPath(track.path);
     final cacheFile = File(
-      '${_localStore.configDirPath}/music_cache/lyrics_$cacheKey.json',
+      '${_localStore.configDirPath}/music_cache/music/$normalizedPath.lyrics.json',
     );
 
     if (cacheFile.existsSync()) {
@@ -542,6 +652,9 @@ class MusicRepository {
         // 核心修复：无论服务器返回是否有歌词，只要请求成功（200），我们就缓存下来！
         // 如果没有歌词，我们缓存一个空字符串，这样下次直接拦截，不再发起网络请求。
         try {
+          if (!cacheFile.parent.existsSync()) {
+            cacheFile.parent.createSync(recursive: true);
+          }
           await cacheFile.writeAsString(
             jsonEncode({'lyrics': lrcContent ?? '', 'offset_ms': 0}),
           );
@@ -573,9 +686,9 @@ class MusicRepository {
     int offsetMs, {
     bool isExported = false,
   }) async {
-    final cacheKey = _makeMd5('${track.path}_${track.size}');
+    final normalizedPath = _getNormalizedTrackPath(track.path);
     final cacheFile = File(
-      '${_localStore.configDirPath}/music_cache/lyrics_$cacheKey.json',
+      '${_localStore.configDirPath}/music_cache/music/$normalizedPath.lyrics.json',
     );
     if (!cacheFile.existsSync()) return;
 

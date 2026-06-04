@@ -1,14 +1,16 @@
 import 'dart:math';
+import 'package:flutter/material.dart';
 
 import '../../../resident/music/views_components/lrc_parser.dart';
 
 class MoodChunk {
   final String text;
-  final double scale; // 大小权重，如 0.8, 1.1, 1.4
-  final double alpha; // 透明度权重，如 0.5, 1.0
+  final double scale; // 大小权重
+  final double alpha; // 透明度权重
   final Duration delay; // 逐字入场延迟
+  final Color color; // 随机颜色
 
-  MoodChunk(this.text, this.scale, this.alpha, this.delay);
+  MoodChunk(this.text, this.scale, this.alpha, this.delay, this.color);
 }
 
 class LyricsChunker {
@@ -91,36 +93,46 @@ class LyricsChunker {
       delays.add(delay);
     }
 
-    if (rawChunks.length == 1)
-      return [MoodChunk(rawChunks[0], 1.2, 1.0, delays[0])];
-
-    // 生成固定但错落的字号权重和透明度权重
-    final List<double> scales = [];
+    // 生成原先的 alpha 权重，并直接将其映射到 RGB 通道，实现固定的黑白灰随机色调
     final List<double> alphas = [];
-    if (rawChunks.length == 2) {
-      scales.addAll([_random.nextBool() ? 0.9 : 1.0, 1.3]);
+    final List<double> scales = [];
+    if (rawChunks.length == 1) {
+      alphas.add(1.0);
+      scales.add(1.2);
+    } else if (rawChunks.length == 2) {
       alphas.addAll([0.5, 1.0]);
-
-      scales.shuffle(_random);
       alphas.shuffle(_random);
+      scales.addAll([_random.nextBool() ? 0.9 : 1.0, 1.3]);
+      scales.shuffle(_random);
     } else if (rawChunks.length == 3) {
-      scales.addAll([0.8, 1.15, 1.4]);
       alphas.addAll([0.5, 0.75, 1.0]);
-
-      scales.shuffle(_random);
       alphas.shuffle(_random);
+      scales.addAll([0.8, 1.15, 1.4]);
+      scales.shuffle(_random);
     } else {
-      // 如果块大于3个，随机分配不同大小
-      final baseScales = [0.8, 1.0, 1.2, 1.4];
       final baseAlphas = [0.4, 0.6, 0.8, 1.0];
+      final baseScales = [0.8, 1.0, 1.2, 1.4];
       for (int i = 0; i < rawChunks.length; i++) {
-        scales.add(baseScales[_random.nextInt(baseScales.length)]);
         alphas.add(baseAlphas[_random.nextInt(baseAlphas.length)]);
+        scales.add(baseScales[_random.nextInt(baseScales.length)]);
       }
     }
 
     return List.generate(rawChunks.length, (i) {
-      return MoodChunk(rawChunks[i], scales[i], alphas[i], delays[i]);
+      final double grayVal = alphas[i];
+      final color = Color.fromRGBO(
+        (grayVal * 255).round(),
+        (grayVal * 255).round(),
+        (grayVal * 255).round(),
+        1.0,
+      );
+      return MoodChunk(
+        rawChunks[i],
+        scales[i],
+        1.0, // 固定不透明度 (透明度在后期动画中由组件整体控制)
+        delays[i],
+        color,
+      );
     });
   }
 }

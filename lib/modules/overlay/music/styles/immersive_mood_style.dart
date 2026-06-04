@@ -147,7 +147,7 @@ class _ImmersiveMoodStyleState extends State<ImmersiveMoodStyle> {
                   chunk.text,
                   key: ValueKey('chunk_${newItem.sequenceIndex}_${lineIndex}_$i'),
                   style: TextStyle(
-                    color: Colors.white.withValues(alpha: chunk.alpha),
+                    color: chunk.color,
                     fontSize: 72.0 * chunk.scale,
                     fontWeight: FontWeight.w900,
                     height: 1.1,
