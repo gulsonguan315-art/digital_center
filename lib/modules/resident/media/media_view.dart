@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import '../../../core/data/models/media_item.dart';
 import '../../../core/engine/theme/theme_api.dart';
 import '../../../core/layout/grid/grid_extensions.dart';
 import 'media_model.dart';
+import 'media_service.dart';
 
 /// 🖼️ 影视海报卡片组件 (Media Poster Card Component)
 class MediaCard extends StatelessWidget {
@@ -18,7 +20,6 @@ class MediaCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 动态确定层级：聚焦时使用 ThemeLayer.above，否则为 ThemeLayer.base 托付材质管理
     final layer = isFocused ? ThemeLayer.above : ThemeLayer.base;
 
     return ThemeIdentity(
@@ -30,7 +31,6 @@ class MediaCard extends StatelessWidget {
           final colors = material.colors;
           final chrome = material.visual;
 
-          // 依据主题设计，在聚焦时动态应用主题内发光或投影
           final List<BoxShadow>? shadows = isFocused
               ? chrome.outerShadows
                   .map(
@@ -64,26 +64,14 @@ class MediaCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // 海报图区域：暂无物理图片数据，使用元数据渐变及播放器 Icon 渲染
+                    // ── 海报图区域 ───────────────────────────────────────────────
                     Expanded(
-                      child: Container(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: item.gradientColors,
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                        ),
-                        child: Center(
-                          child: Icon(
-                            Icons.play_circle_fill_rounded,
-                            size: context.units(4.0), // 对齐网格单位，缩放时完美等比缩小
-                            color: Colors.white.withValues(alpha: 0.8),
-                          ),
-                        ),
+                      child: PosterImage(
+                        item: item,
+                        placeholder: colors.backgroundFocused,
                       ),
                     ),
-                    // 影视元数据文字排版区
+                    // ── 元数据文字排版区 ─────────────────────────────────────────
                     Padding(
                       padding: EdgeInsets.symmetric(
                         horizontal: context.units(1.1),
@@ -99,7 +87,7 @@ class MediaCard extends StatelessWidget {
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
                               color: colors.textPrimary,
-                              fontSize: context.units(1.2), // 对齐网格单位
+                              fontSize: context.units(1.2),
                               fontWeight: FontWeight.bold,
                             ),
                           ),
@@ -107,31 +95,35 @@ class MediaCard extends StatelessWidget {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text(
-                                '${item.year} • ${item.genre.split(' / ').first}',
-                                style: TextStyle(
-                                  color: colors.textSecondary,
-                                  fontSize: context.units(1.0), // 对齐网格单位
-                                ),
-                              ),
-                              Container(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: context.units(0.4),
-                                  vertical: context.units(0.1),
-                                ),
-                                decoration: BoxDecoration(
-                                  color: colors.accent.withValues(alpha: 0.1),
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
+                              Expanded(
                                 child: Text(
-                                  '★ ${item.rating}',
+                                  _subtitle(item),
+                                  overflow: TextOverflow.ellipsis,
                                   style: TextStyle(
-                                    color: colors.accent,
-                                    fontSize: context.units(0.9), // 对齐网格单位
-                                    fontWeight: FontWeight.bold,
+                                    color: colors.textSecondary,
+                                    fontSize: context.units(1.0),
                                   ),
                                 ),
                               ),
+                              if (item.rating != null)
+                                Container(
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: context.units(0.4),
+                                    vertical: context.units(0.1),
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: colors.accent.withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Text(
+                                    '★ ${item.rating!.toStringAsFixed(1)}',
+                                    style: TextStyle(
+                                      color: colors.accent,
+                                      fontSize: context.units(0.9),
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
                             ],
                           ),
                         ],
@@ -146,9 +138,68 @@ class MediaCard extends StatelessWidget {
       ),
     );
   }
+
+  String _subtitle(MediaItem item) {
+    final parts = <String>[];
+    if (item.year != null) parts.add(item.year.toString());
+    if (item.genre != null) parts.add(item.genre!.split(' / ').first);
+    return parts.join(' • ');
+  }
 }
 
-/// 🖥️ 影视中心主视图排版 (Media Page Layout)
+/// 海报图片组件：优先 Image.network，无海报 Tag 时显示占位色块
+class PosterImage extends StatelessWidget {
+  final MediaItem item;
+  final Color placeholder;
+
+  const PosterImage({super.key, required this.item, required this.placeholder});
+
+  @override
+  Widget build(BuildContext context) {
+    final url = item.posterTag != null
+        ? MediaService.instance.posterUrl(item.id, item.posterTag)
+        : '';
+
+    if (url.isEmpty) {
+      return PlaceholderView(color: placeholder);
+    }
+
+    return Image.network(
+      url,
+      fit: BoxFit.cover,
+      loadingBuilder: (_, child, progress) {
+        if (progress == null) return child;
+        return PlaceholderView(color: placeholder);
+      },
+      errorBuilder: (_, e, s) => PlaceholderView(color: placeholder),
+    );
+  }
+}
+
+/// 无海报时的占位色块（使用主题 surfaceVariant 色）
+class PlaceholderView extends StatelessWidget {
+  final Color color;
+  const PlaceholderView({super.key, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: color,
+      child: Center(
+        child: Icon(
+          Icons.movie_outlined,
+          size: context.units(4.0),
+          color: Colors.white.withValues(alpha: 0.25),
+        ),
+      ),
+    );
+  }
+}
+
+// =============================================================================
+// 🖥️ 影视中心主视图排版 (Media Page Layout)
+// =============================================================================
+
 class MediaPageView extends StatelessWidget {
   final String category;
   final Widget Function(
@@ -159,10 +210,8 @@ class MediaPageView extends StatelessWidget {
       bool hasFocus,
       VoidCallback onTap, {
       required MediaItem item,
-    })
-    builder,
-  )
-  gridItemSlot;
+    }) builder,
+  ) gridItemSlot;
 
   const MediaPageView({
     super.key,
@@ -172,28 +221,26 @@ class MediaPageView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final service = MediaService.instance;
     final activeLabel = MediaModel.categoryLabels[category] ?? '影视中心 / Media';
-    final items = MediaModel.mockItems
-        .where((item) => item.category == category)
-        .toList();
 
-    // 🌟 排版原理高度优先：卡片高度在不同分辨率的屏幕上行数都是一样的
-    final double cardHeight = context.units(28); // 影视卡片高度固定为 28 个网格单位
-    final double aspectRatio = 0.72;             // 典型海报宽高比 (宽/高)
+    // 高度优先网格参数
+    final double cardHeight = context.units(28);
+    final double aspectRatio = 0.72;
     final double cardWidth = cardHeight * aspectRatio;
-    final double gap = context.units(2);         // 卡片间距固定为 2 个网格单位
+    final double gap = context.units(2);
 
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: Padding(
         padding: EdgeInsets.symmetric(
-          horizontal: context.units(4), // 页面两侧内边距对齐网格单位
+          horizontal: context.units(4),
           vertical: context.units(2),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ── 头部标题 ──────────────────────────────────────────────────────
+            // ── 头部标题 ────────────────────────────────────────────────────
             Builder(
               builder: (ctx) {
                 final colors = ctx.useTheme().colors;
@@ -201,7 +248,7 @@ class MediaPageView extends StatelessWidget {
                   activeLabel,
                   style: TextStyle(
                     color: colors.textPrimary,
-                    fontSize: ctx.units(3.5), // 标题字号对齐网格单位
+                    fontSize: ctx.units(3.5),
                     fontWeight: FontWeight.w900,
                     letterSpacing: 1.0,
                   ),
@@ -210,59 +257,125 @@ class MediaPageView extends StatelessWidget {
             ),
             SizedBox(height: context.units(2)),
 
-            // ── 影视卡片海报网格 ───────────────────────────────────────────────
+            // ── 海报网格 ─────────────────────────────────────────────────────
             Expanded(
-              child: items.isEmpty
-                  ? Builder(
-                      builder: (ctx) {
-                        final colors = ctx.useTheme().colors;
-                        return Center(
-                          child: Text(
-                            '该分类下暂无影视内容',
-                            style: TextStyle(
-                              color: colors.textSecondary,
-                              fontSize: ctx.units(2.0),
-                            ),
-                          ),
-                        );
-                      },
-                    )
-                  : LayoutBuilder(
-                      builder: (context, constraints) {
-                        final containerWidth = constraints.maxWidth;
-                        // 根据高度求宽度计算列数 (列数 = (容器宽度 + 间距) / (单列宽度 + 间距))
-                        final double rawCols = (containerWidth + gap) / (cardWidth + gap);
-                        final int cols = rawCols.floor().clamp(1, 100);
+              child: Builder(
+                builder: (ctx) {
+                  final colors = ctx.useTheme().colors;
+                  final items = service.items;
+                  final state = service.loadState;
 
-                        return GridView.builder(
-                          padding: EdgeInsets.only(bottom: context.units(4)),
-                          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: cols,
-                            crossAxisSpacing: gap,
-                            mainAxisSpacing: gap,
-                            childAspectRatio: aspectRatio, // 保持完美的海报宽高比
-                          ),
-                          itemCount: items.length,
-                          itemBuilder: (context, index) {
-                            return gridItemSlot(
-                              context,
-                              index,
-                              (context, hasFocus, onTap, {required item}) {
-                                return MediaCard(
-                                  item: item,
-                                  isFocused: hasFocus,
-                                  onTap: onTap,
-                                );
-                              },
-                            );
-                          },
-                        );
-                      },
-                    ),
+                  // 加载中 + 空列表 → 显示骨架屏
+                  if (state == MediaLoadState.loading && items.isEmpty) {
+                    return SkeletonGrid(
+                      cardWidth: cardWidth,
+                      cardHeight: cardHeight,
+                      gap: gap,
+                      aspectRatio: aspectRatio,
+                    );
+                  }
+
+                  // 加载完成但空列表 → 提示
+                  if (items.isEmpty) {
+                    return Center(
+                      child: Text(
+                        '该分类下暂无影视内容',
+                        style: TextStyle(
+                          color: colors.textSecondary,
+                          fontSize: ctx.units(2.0),
+                        ),
+                      ),
+                    );
+                  }
+
+                  return LayoutBuilder(
+                    builder: (context, constraints) {
+                      final double rawCols =
+                          (constraints.maxWidth + gap) / (cardWidth + gap);
+                      final int cols = rawCols.floor().clamp(1, 100);
+
+                      return GridView.builder(
+                        padding: EdgeInsets.only(bottom: context.units(4)),
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: cols,
+                          crossAxisSpacing: gap,
+                          mainAxisSpacing: gap,
+                          childAspectRatio: aspectRatio,
+                        ),
+                        itemCount: items.length,
+                        itemBuilder: (context, index) {
+                          return gridItemSlot(
+                            context,
+                            index,
+                            (context, hasFocus, onTap, {required item}) {
+                              return MediaCard(
+                                item: item,
+                                isFocused: hasFocus,
+                                onTap: onTap,
+                              );
+                            },
+                          );
+                        },
+                      );
+                    },
+                  );
+                },
+              ),
             ),
           ],
         ),
       ),
+    );
+  }
+}
+
+/// 骨架屏：加载中时显示灰色占位卡片
+class SkeletonGrid extends StatelessWidget {
+  final double cardWidth;
+  final double cardHeight;
+  final double gap;
+  final double aspectRatio;
+
+  const SkeletonGrid({
+    super.key,
+    required this.cardWidth,
+    required this.cardHeight,
+    required this.gap,
+    required this.aspectRatio,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final double rawCols =
+            (constraints.maxWidth + gap) / (cardWidth + gap);
+        final int cols = rawCols.floor().clamp(1, 100);
+
+        return GridView.builder(
+          padding: EdgeInsets.only(bottom: context.units(4)),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: cols,
+            crossAxisSpacing: gap,
+            mainAxisSpacing: gap,
+            childAspectRatio: aspectRatio,
+          ),
+          itemCount: cols * 3, // 显示约 3 行骨架
+          itemBuilder: (context, index) {
+            return Builder(
+              builder: (ctx) {
+                final colors = ctx.useTheme().colors;
+                return Container(
+                  decoration: BoxDecoration(
+                    color: colors.backgroundFocused.withValues(alpha: 0.5),
+                    borderRadius: ctx.useTheme().shape.radius,
+                  ),
+                );
+              },
+            );
+          },
+        );
+      },
     );
   }
 }

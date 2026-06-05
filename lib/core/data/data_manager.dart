@@ -16,6 +16,7 @@ import 'repositories/settings_repository.dart';
 import 'repositories/music_repository.dart';
 import 'repositories/music_cache_manager.dart';
 import 'repositories/weather_repository.dart';
+import 'repositories/media_repository.dart';
 import 'models/weather_data.dart';
 import '../engine/audio/app_audio_service.dart';
 
@@ -37,6 +38,7 @@ class DataManager {
     MusicCacheManager.instance = MusicCacheManager(_localStore);
     MusicRepository.instance = MusicRepository(_localStore);
     WeatherRepository.instance = WeatherRepository(_localStore);
+    MediaRepository.instance = MediaRepository(_localStore); // 🎬 影视仓库
   }
 
   /// 全局唯一单例入口，业务层通过 DataManager.instance 统一访问
@@ -108,6 +110,7 @@ class DataManager {
     await PoetryRepository.instance.init();
     await DashboardRepository.instance.init();
     await WeatherRepository.instance.init();
+    await MediaRepository.instance.init(); // 🎬 影视分类映射表初始化
   }
 
   // ===========================================================================

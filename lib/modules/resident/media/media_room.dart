@@ -34,19 +34,18 @@ class _MediaRoomState extends State<MediaRoom> {
                   SuperFocusManager.instance.intentionRoomId.value ==
                   MediaModel.mediaPageId;
 
-              // 如果页面不活跃且未在进入意图中，直接跳过渲染以节省 GPU 资源
+              // 页面不活跃且未在进入意图中，跳过渲染节省 GPU
               if (!isActive && !isEntering) {
                 return const SizedBox.shrink();
               }
 
-              // 订阅 MediaService 状态，并在分类变更时自动重绘海报墙
+              // 订阅 MediaService 状态（分类 / 条目列表 / 加载状态）
               return ListenableBuilder(
                 listenable: MediaService.instance,
                 builder: (context, _) {
-                  final activeCategory = MediaService.instance.selectedCategory;
-                  final items = MediaModel.mockItems
-                      .where((item) => item.category == activeCategory)
-                      .toList();
+                  final service = MediaService.instance;
+                  final activeCategory = service.selectedCategory;
+                  final items = service.items;
 
                   return MediaPageView(
                     category: activeCategory,
@@ -63,12 +62,11 @@ class _MediaRoomState extends State<MediaRoom> {
                         role: ThemeRole.card,
                         child: Builder(
                           builder: (context) {
-                            // 🌟 解决问题 3：在 ThemeIdentity(role: ThemeRole.card) 上下文中获取卡片圆角，确保高亮框也是圆角而不会退化为直角
                             final material = context.useTheme();
-
                             return FocusIdentity(
                               id: focusId,
                               onPressed: action,
+                              ensureVisibleEdge: true,
                               focusGeometry: RoundedRectFocusGeometry(
                                 borderRadius: material.shape.radius,
                               ),

@@ -1,3 +1,4 @@
+import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 import 'interaction_state.dart';
 import 'interaction_manager.dart';
@@ -145,6 +146,9 @@ class SuperFocusItem extends StatefulWidget {
   final FocusGeometry? focusGeometry;
   final GlobalKey? visualBoundsKey;
   final bool ensureVisibleCentered;
+  /// 边缘露出模式：滚动刺好把整个卡片露出，然后小幅回弹给一点呼吸空间。
+  /// 适用于矩阵/列表等多行列局场景，不会跳到屏幕中心。
+  final bool ensureVisibleEdge;
 
   const SuperFocusItem({
     super.key,
@@ -156,6 +160,7 @@ class SuperFocusItem extends StatefulWidget {
     this.focusGeometry,
     this.visualBoundsKey,
     this.ensureVisibleCentered = false,
+    this.ensureVisibleEdge = false,
   });
 
   @override
@@ -292,6 +297,8 @@ class _SuperFocusItemState extends State<SuperFocusItem> {
                   duration: const Duration(milliseconds: 200),
                   curve: Curves.easeInOut,
                 );
+              } else if (widget.ensureVisibleEdge) {
+                _ensureVisibleEdge(context);
               }
               _reportFocus();
             }
@@ -300,6 +307,70 @@ class _SuperFocusItemState extends State<SuperFocusItem> {
         ),
       ),
     );
+  }
+
+  // ---------------------------------------------------------------------------
+  // 边缘露出 + 小幅回弹滚动逻辑
+  // ---------------------------------------------------------------------------
+
+  /// 两阶段滚动：第一阶段滚到刷好边缘屡出，第二阶段回弹一小步给呼吸空间。
+  /// 不会趪空出画面，不会跳屏幕中心。
+  void _ensureVisibleEdge(BuildContext ctx) {
+    final renderObject = ctx.findRenderObject();
+    if (renderObject == null) return;
+
+    final scrollable = Scrollable.maybeOf(ctx);
+    if (scrollable == null) return;
+
+    final position = scrollable.position;
+    final viewport = RenderAbstractViewport.of(renderObject);
+
+    // 滚动到到位后的呼吸边距 (dp)
+    const double breathingRoom = 16.0;
+
+    final double currentOffset = position.pixels;
+
+    // 将项目飞头对齐视口飞头所需的滚动量（leading = top）
+    final double leadTarget =
+        viewport.getOffsetToReveal(renderObject, 0.0).offset;
+    // 将项目飞尾对齐视口飞尾所需的滚动量（trailing = bottom）
+    final double trailTarget =
+        viewport.getOffsetToReveal(renderObject, 1.0).offset;
+
+    double? snapTo;   // 第一阶段：刷好边缘，整个卡片刚好入画
+    double? settleTo; // 第二阶段：回弹到有呼吸空间的位置
+
+    if (currentOffset < trailTarget - 1) {
+      // 卡片在视口下方：封面尾部对齐视口尾部
+      snapTo   = trailTarget;
+      settleTo = trailTarget + breathingRoom; // 向上多滚一些，卡片离尾部留白
+    } else if (currentOffset > leadTarget + 1) {
+      // 卡片在视口上方：封面顶部对齐视口顶部
+      snapTo   = leadTarget;
+      settleTo = leadTarget - breathingRoom; // 向下多滚一些，卡片离顶部留白
+    }
+
+    if (snapTo == null || settleTo == null) return; // 已经全部可见无需滚动
+
+    snapTo   = snapTo  .clamp(position.minScrollExtent, position.maxScrollExtent);
+    settleTo = settleTo.clamp(position.minScrollExtent, position.maxScrollExtent);
+
+    // 第一阶段：快速滚到屡出弹算边缘
+    position
+        .animateTo(
+          snapTo,
+          duration: const Duration(milliseconds: 220),
+          curve: Curves.easeOut,
+        )
+        .then((_) {
+          if (!mounted || !_focusNode.hasPrimaryFocus) return;
+          // 第二阶段：回弹到有呼吸空间的落点
+          position.animateTo(
+            settleTo!,
+            duration: const Duration(milliseconds: 160),
+            curve: Curves.easeOut,
+          );
+        });
   }
 }
 

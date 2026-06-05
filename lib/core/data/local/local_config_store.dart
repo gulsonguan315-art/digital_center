@@ -7,6 +7,7 @@ import 'stores/local_music_store.dart';
 import 'stores/local_poetry_store.dart';
 import 'stores/local_settings_store.dart';
 import 'stores/local_weather_store.dart';
+import 'stores/local_media_store.dart';
 
 /// 👑 本地持久化主调度大管家 (Local Config Storage Coordinator)
 /// 负责全局数字中心持久化文件夹的初始化，并统一挂载注册所有具体的业务子存储仓。
@@ -24,6 +25,7 @@ class LocalConfigStore {
     ); // 📂 注册全局用户配置子仓
     music = LocalMusicStore(configDirPath: configDirPath); // 🎵 注册音乐子仓
     weather = LocalWeatherStore(configDirPath: configDirPath); // 🌤️ 注册天气缓存子仓
+    media = LocalMediaStore(configDirPath: configDirPath); // 🎬 注册影视元数据缓存子仓
   }
 
   /// 📂 看板卡片排版专属子仓
@@ -43,6 +45,9 @@ class LocalConfigStore {
 
   /// 🌤️ 气象数据专属子仓
   late final LocalWeatherStore weather;
+
+  /// 🎬 影视元数据缓存子仓
+  late final LocalMediaStore media;
 
   /// 获取系统 AppData 存储路径
   String get configDirPath {

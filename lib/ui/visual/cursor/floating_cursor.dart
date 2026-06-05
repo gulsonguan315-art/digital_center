@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/scheduler.dart';
 import '../../../core/control/superfocus/interaction_manager.dart';
 import '../../../core/engine/theme/theme_api.dart';
@@ -94,15 +95,49 @@ class _FloatingHighlightBoxState extends State<FloatingHighlightBox>
       Offset.zero & renderBox.size,
     );
 
+    Rect targetRect = newRect;
+
+    // 获取所在的视口，实现焦点框“撞边卡住”的效果
+    final viewport = RenderAbstractViewport.maybeOf(renderBox);
+    if (viewport is RenderBox) {
+      final viewportBox = viewport as RenderBox;
+      final viewportTransform = viewportBox.getTransformTo(null);
+      final viewportRect = MatrixUtils.transformRect(
+        viewportTransform,
+        Offset.zero & viewportBox.size,
+      );
+
+      double dx = 0;
+      double dy = 0;
+
+      if (targetRect.height <= viewportRect.height) {
+        if (targetRect.top < viewportRect.top) {
+          dy = viewportRect.top - targetRect.top;
+        } else if (targetRect.bottom > viewportRect.bottom) {
+          dy = viewportRect.bottom - targetRect.bottom;
+        }
+      }
+
+      if (targetRect.width <= viewportRect.width) {
+        if (targetRect.left < viewportRect.left) {
+          dx = viewportRect.left - targetRect.left;
+        } else if (targetRect.right > viewportRect.right) {
+          dx = viewportRect.right - targetRect.right;
+        }
+      }
+
+      targetRect = targetRect.shift(Offset(dx, dy));
+    }
+
     bool isChanged = false;
     if (_liveRect == null) {
       isChanged = true;
     } else {
       final delta =
-          (newRect.left - _liveRect!.left).abs() +
-          (newRect.top - _liveRect!.top).abs() +
-          (newRect.width - _liveRect!.width).abs() +
-          (newRect.height - _liveRect!.height).abs();
+          (targetRect.left - _liveRect!.left).abs() +
+          (targetRect.top - _liveRect!.top).abs() +
+          (targetRect.width - _liveRect!.width).abs() +
+          (targetRect.height - _liveRect!.height).abs();
       if (delta > 0.1) {
         isChanged = true;
       }
@@ -110,12 +145,13 @@ class _FloatingHighlightBoxState extends State<FloatingHighlightBox>
 
     if (isChanged) {
       setState(() {
-        _liveRect = newRect;
-        _lastValidRect = newRect;
+        _liveRect = targetRect;
+        _lastValidRect = targetRect;
       });
     }
   }
 
+  @override
   Widget build(BuildContext context) {
     final report = SuperFocusManager.instance.cursorReportNotifier.value;
     final isActuallyHidden =
