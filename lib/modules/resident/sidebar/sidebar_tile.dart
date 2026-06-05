@@ -4,6 +4,7 @@ import '../../../core/layout/grid/grid_extensions.dart';
 import '../../../core/control/superfocus/focus_api.dart';
 import '../../../ui/base/text/surface_text.dart';
 import 'sidebar_metrics.dart';
+
 class SidebarTile extends StatelessWidget {
   const SidebarTile({
     super.key,
@@ -14,6 +15,8 @@ class SidebarTile extends StatelessWidget {
     this.isDisabled = false,
     this.autofocus = false,
     this.isExpandable = false,
+    this.isCollapsed = false,
+    this.depth = 0,
     this.onTap,
   });
 
@@ -24,6 +27,8 @@ class SidebarTile extends StatelessWidget {
   final bool isDisabled;
   final bool autofocus;
   final bool isExpandable;
+  final bool isCollapsed;
+  final int depth;
   final VoidCallback? onTap;
 
   Color _resolveForeground(RoleColors colors) {
@@ -44,8 +49,11 @@ class SidebarTile extends StatelessWidget {
       autofocus: autofocus,
       onPressed: isDisabled ? null : () => onTap?.call(),
       focusGeometry: SidebarTileFocusGeometry(
-        borderRadius: BorderRadius.circular(
-          context.units(SidebarMetrics.tileRadiusU),
+        borderRadius: BorderRadius.horizontal(
+          left: Radius.circular(context.units(SidebarMetrics.tileRadiusU)),
+          right: isCollapsed 
+              ? Radius.zero 
+              : Radius.circular(context.units(SidebarMetrics.tileRadiusU)),
         ),
         openRightness: isActive ? 1.0 : 0.0,
         concaveRadius: context.units(SidebarMetrics.surfaceRadiusU),
@@ -83,64 +91,94 @@ class SidebarTile extends StatelessWidget {
                 duration: const Duration(milliseconds: 200),
                 height: context.units(SidebarMetrics.tileHeightU),
                 padding: EdgeInsets.only(
-                  left: context.units(SidebarMetrics.tilePaddingLeftU),
+                  left: context.units(isCollapsed ? 0.8 : SidebarMetrics.tilePaddingLeftU),
                   right: context.units(SidebarMetrics.tilePaddingRightU),
                 ),
                 decoration: BoxDecoration(
                   color: background,
-                  borderRadius: BorderRadius.circular(
-                    context.units(SidebarMetrics.tileRadiusU),
+                  borderRadius: BorderRadius.horizontal(
+                    left: Radius.circular(context.units(SidebarMetrics.tileRadiusU)),
+                    right: isCollapsed 
+                        ? Radius.zero 
+                        : Radius.circular(context.units(SidebarMetrics.tileRadiusU)),
                   ),
                 ),
                 child: AnimatedScale(
                   scale: (isFocused || isActive) ? 1.05 : 1.0,
                   duration: const Duration(milliseconds: 200),
                   curve: Curves.easeOutCubic,
-                  child: Row(
-                    children: [
-                      Icon(
-                        icon,
-                        size: context.units(SidebarMetrics.iconSizeU),
-                        color: foreground,
-                        shadows: shadows, // 应用拟物阴影
-                      ),
-                      SizedBox(width: context.units(SidebarMetrics.iconGapU)),
-                      Expanded(
-                        child: SurfaceText(
-                          label,
-                          style: TextStyle(
-                            fontSize: context.units(SidebarMetrics.labelSizeU),
-                            fontWeight: isActive
-                                ? FontWeight.bold
-                                : FontWeight.w800,
-                            color: foreground,
-                            letterSpacing: 0.5,
-                            shadows: shadows, // 应用拟物阴影
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                  child: OverflowBox(
+                    alignment: Alignment.centerLeft,
+                    minWidth: context.units(SidebarMetrics.widthU) - 
+                              context.units(SidebarMetrics.contentPaddingLeftU) - 
+                              context.units(SidebarMetrics.contentPaddingRightU) - 
+                              context.units(SidebarMetrics.tilePaddingLeftU) - 
+                              context.units(SidebarMetrics.tilePaddingRightU) - 
+                              (isCollapsed ? 0 : depth * context.units(1.6)),
+                    maxWidth: context.units(SidebarMetrics.widthU) - 
+                              context.units(SidebarMetrics.contentPaddingLeftU) - 
+                              context.units(SidebarMetrics.contentPaddingRightU) - 
+                              context.units(SidebarMetrics.tilePaddingLeftU) - 
+                              context.units(SidebarMetrics.tilePaddingRightU) - 
+                              (isCollapsed ? 0 : depth * context.units(1.6)),
+                    child: Row(
+                      children: [
+                        Icon(
+                          icon,
+                          size: context.units(SidebarMetrics.iconSizeU),
+                          color: foreground,
+                          shadows: shadows, // 应用拟物阴影
                         ),
-                      ),
-                      const SizedBox(width: 4),
-                      Icon(
-                        isExpandable
-                            ? Icons.keyboard_arrow_down_rounded
-                            : Icons.keyboard_arrow_right_rounded,
-                        size: 14,
-                        color: foreground.withValues(alpha: 0.5),
-                      ),
-                      if (isActive) ...[
-                        const SizedBox(width: 6),
-                        Container(
-                          width: 4,
-                          height: 4,
-                          decoration: BoxDecoration(
-                            color: colors.accent,
-                            shape: BoxShape.circle,
+                        SizedBox(width: context.units(SidebarMetrics.iconGapU)),
+                        Expanded(
+                          child: AnimatedOpacity(
+                            duration: const Duration(milliseconds: 200),
+                            opacity: isCollapsed ? 0.0 : 1.0,
+                            child: SurfaceText(
+                              label,
+                              style: TextStyle(
+                                fontSize: context.units(SidebarMetrics.labelSizeU),
+                                fontWeight: isActive
+                                    ? FontWeight.bold
+                                    : FontWeight.w800,
+                                color: foreground,
+                                letterSpacing: 0.5,
+                                shadows: shadows, // 应用拟物阴影
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.visible,
+                            ),
                           ),
                         ),
+                        const SizedBox(width: 4),
+                        AnimatedOpacity(
+                          duration: const Duration(milliseconds: 200),
+                          opacity: isCollapsed ? 0.0 : 1.0,
+                          child: Icon(
+                            isExpandable
+                                ? Icons.keyboard_arrow_down_rounded
+                                : Icons.keyboard_arrow_right_rounded,
+                            size: 14,
+                            color: foreground.withValues(alpha: 0.5),
+                          ),
+                        ),
+                        if (isActive) ... [
+                          const SizedBox(width: 6),
+                          AnimatedOpacity(
+                            duration: const Duration(milliseconds: 200),
+                            opacity: isCollapsed ? 0.0 : 1.0,
+                            child: Container(
+                              width: 4,
+                              height: 4,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: colors.accent,
+                              ),
+                            ),
+                          ),
+                        ]
                       ],
-                    ],
+                    ),
                   ),
                 ),
               );

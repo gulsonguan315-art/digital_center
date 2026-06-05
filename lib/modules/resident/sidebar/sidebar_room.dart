@@ -51,17 +51,21 @@ class _SidebarRoomState extends State<SidebarRoom> {
                 final activeId = _findActiveLeafId(context, SidebarModel.menuItems);
                 
                 final effectiveActiveId = activeId ?? 
-                    (_isItemActive(context, SidebarModel.exitId) ? SidebarModel.exitId : null);
+                    (_isItemActive(context, SidebarModel.settingId) ? SidebarModel.settingId : 
+                    (_isItemActive(context, SidebarModel.exitId) ? SidebarModel.exitId : null));
                 
                 final String autofocusId = effectiveActiveId ?? SidebarModel.dashboardId;
+                final bool isCollapsed = !topology.activePath.contains(SidebarModel.sidebarRoomId) || 
+                                         (topology.activeRoom?.startsWith('mediaDetail_') == true);
 
                 return widget.child ?? SidebarView(
                   activeId: effectiveActiveId,
                   expandedZoneId: _expandedZoneId,
-                  slots: _buildTiles(context, autofocusId),
+                  isCollapsed: isCollapsed,
+                  slots: _buildTiles(context, autofocusId, isCollapsed),
                   zoneWrappers: _buildZoneWrappers(),
-                  settingSlot: _buildSettingTile(context, autofocusId),
-                  exitSlot: _buildExitTile(context, autofocusId),
+                  settingSlot: _buildSettingTile(context, autofocusId, isCollapsed),
+                  exitSlot: _buildExitTile(context, autofocusId, isCollapsed),
                 );
               }
             ),
@@ -132,18 +136,20 @@ class _SidebarRoomState extends State<SidebarRoom> {
     return wrappers;
   }
 
-  Map<String, Widget> _buildTiles(BuildContext context, String autofocusId) {
+  Map<String, Widget> _buildTiles(BuildContext context, String autofocusId, bool isCollapsed) {
     final Map<String, Widget> slots = {};
-    void collect(List<SidebarItemModel> items, {String? parentRoomId}) {
+    void collect(List<SidebarItemModel> items, {String? parentRoomId, int depth = 0}) {
       for (final item in items) {
         slots[item.id] = _buildSingleTile(
           context,
           item,
           autofocusId,
+          isCollapsed,
+          depth,
           parentRoomId: parentRoomId,
         );
         if (item.children != null) {
-          collect(item.children!, parentRoomId: item.id);
+          collect(item.children!, parentRoomId: item.id, depth: depth + 1);
         }
       }
     }
@@ -154,7 +160,9 @@ class _SidebarRoomState extends State<SidebarRoom> {
   Widget _buildSingleTile(
     BuildContext context,
     SidebarItemModel item,
-    String autofocusId, {
+    String autofocusId,
+    bool isCollapsed,
+    int depth, {
     String? parentRoomId,
   }) {
     final hasChildren = item.children != null && item.children!.isNotEmpty;
@@ -179,27 +187,41 @@ class _SidebarRoomState extends State<SidebarRoom> {
       isActive: _isItemActive(context, item.id),
       autofocus: autofocusId == item.id,
       isExpandable: hasChildren,
+      isCollapsed: isCollapsed,
+      depth: depth,
       onTap: tapAction,
     );
   }
 
-  Widget _buildSettingTile(BuildContext context, String autofocusId) {
+  Widget _buildSettingTile(BuildContext context, String autofocusId, bool isCollapsed) {
     return SidebarTile(
       id: SidebarModel.settingId,
       label: SidebarModel.settingItem.label,
       icon: SidebarModel.settingItem.icon,
       isActive: _isItemActive(context, SidebarModel.settingId),
       autofocus: autofocusId == SidebarModel.settingId,
+      isCollapsed: isCollapsed,
+      depth: 0,
+      onTap: () => FocusAPI.dispatchAction(
+        SidebarModel.sidebarRoomId,
+        SidebarModel.settingId,
+      ),
     );
   }
 
-  Widget _buildExitTile(BuildContext context, String autofocusId) {
+  Widget _buildExitTile(BuildContext context, String autofocusId, bool isCollapsed) {
     return SidebarTile(
       id: SidebarModel.exitId,
       label: SidebarModel.exitItem.label,
       icon: SidebarModel.exitItem.icon,
       isActive: _isItemActive(context, SidebarModel.exitId),
       autofocus: autofocusId == SidebarModel.exitId,
+      isCollapsed: isCollapsed,
+      depth: 0,
+      onTap: () => FocusAPI.dispatchAction(
+        SidebarModel.sidebarRoomId,
+        SidebarModel.exitId,
+      ),
     );
   }
 }

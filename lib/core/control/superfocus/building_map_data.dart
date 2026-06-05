@@ -43,7 +43,7 @@ class BuildingMapData {
       '*adt=>mediaPage',
     ],
 
-    'mediaPage': ['*'],
+    'mediaPage': ['*', '/*'],
     'book': ['*科幻', '*人文=>testPage'],
 
     // ── [2] 音乐模块 (Music) ──────────────────────────────────────────────────

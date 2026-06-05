@@ -5,6 +5,7 @@ import '../../../core/engine/theme/theme_api.dart';
 import 'media_model.dart';
 import 'media_view.dart';
 import 'media_service.dart';
+import 'media_detail_room.dart';
 
 /// 📂 影视页面主房间 (Media Room - Composition Root)
 class MediaRoom extends StatefulWidget {
@@ -39,6 +40,11 @@ class _MediaRoomState extends State<MediaRoom> {
                 return const SizedBox.shrink();
               }
 
+              // 判断是否在详情页
+              final String? detailId = topology.activeRoom?.startsWith('mediaDetail_') == true 
+                  ? topology.activeRoom!.replaceFirst('mediaDetail_', '')
+                  : null;
+
               // 订阅 MediaService 状态（分类 / 条目列表 / 加载状态）
               return ListenableBuilder(
                 listenable: MediaService.instance,
@@ -47,7 +53,8 @@ class _MediaRoomState extends State<MediaRoom> {
                   final activeCategory = service.selectedCategory;
                   final items = service.items;
 
-                  return MediaPageView(
+                  final gridView = MediaPageView(
+                    key: const ValueKey('media_grid'),
                     category: activeCategory,
                     gridItemSlot: (context, index, innerBuilder) {
                       if (index >= items.length) return const SizedBox.shrink();
@@ -55,7 +62,7 @@ class _MediaRoomState extends State<MediaRoom> {
                       final focusId = item.id;
 
                       void action() {
-                        debugPrint('🎬 激活影视卡片：${item.title} (ID: ${item.id})');
+                        FocusAPI.dispatchAction(MediaModel.mediaPageId, 'mediaDetail_${item.id}', asTerminalRoom: true);
                       }
 
                       return ThemeIdentity(
@@ -81,6 +88,34 @@ class _MediaRoomState extends State<MediaRoom> {
                         ),
                       );
                     },
+                  );
+
+                  return Stack(
+                    children: [
+                      // 底层海报墙 (保持挂载以维持滚动状态)
+                      gridView,
+
+                      // 顶层详情页覆盖
+                      if (detailId != null)
+                        Positioned.fill(
+                          child: TweenAnimationBuilder<double>(
+                            key: ValueKey(detailId),
+                            tween: Tween(begin: 0.0, end: 1.0),
+                            duration: const Duration(milliseconds: 350),
+                            curve: Curves.easeOutCubic,
+                            builder: (context, value, child) {
+                              return Opacity(
+                                opacity: value,
+                                child: Transform.translate(
+                                  offset: Offset(0, 20 * (1 - value)),
+                                  child: child,
+                                ),
+                              );
+                            },
+                            child: MediaDetailRoom(itemId: detailId),
+                          ),
+                        ),
+                    ],
                   );
                 },
               );

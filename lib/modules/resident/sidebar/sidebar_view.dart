@@ -17,6 +17,7 @@ class SidebarView extends StatefulWidget {
   final Widget? exitSlot;
   final String? activeId;
   final String? expandedZoneId;
+  final bool isCollapsed;
 
   const SidebarView({
     super.key,
@@ -26,6 +27,7 @@ class SidebarView extends StatefulWidget {
     this.exitSlot,
     this.activeId,
     this.expandedZoneId,
+    this.isCollapsed = false,
   });
 
   @override
@@ -62,44 +64,54 @@ class _SidebarViewState extends State<SidebarView> {
 
   @override
   Widget build(BuildContext context) {
+    final targetWidth = widget.isCollapsed 
+        ? context.units(SidebarMetrics.collapsedWidthU) 
+        : context.units(SidebarMetrics.widthU);
+
     return ThemeIdentity(
       role: ThemeRole.sidebar,
-      child: SizedBox(
-        width: context.units(SidebarMetrics.widthU),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 350),
+        curve: Curves.easeOutCubic,
+        width: targetWidth,
         child: SidebarSurface(
           roundLeft: false,
-          activeRect: _calculateActiveRect(widget.activeId),
-          child: Padding(
-            padding: EdgeInsets.fromLTRB(
-              context.units(SidebarMetrics.contentPaddingLeftU),
-              context.units(SidebarMetrics.contentPaddingTopU),
-              context.units(SidebarMetrics.contentPaddingRightU),
-              context.units(SidebarMetrics.contentPaddingBottomU),
-            ),
-            child: Column(
-              children: [
-                SizedBox(height: context.units(SidebarMetrics.brandTopGapU)),
-                const _SidebarBrandHeader(),
-                SizedBox(height: context.units(SidebarMetrics.headerItemsGapU)),
-                
-                ...SidebarModel.menuItems.map((item) => _buildLayoutTree(item)),
+          activeKey: widget.activeId != null ? _tileKeys[widget.activeId] : null,
+          child: ClipRect(
+            child: AnimatedPadding(
+              duration: const Duration(milliseconds: 350),
+              curve: Curves.easeOutCubic,
+              padding: EdgeInsets.fromLTRB(
+                context.units(widget.isCollapsed ? 1.0 : SidebarMetrics.contentPaddingLeftU),
+                context.units(SidebarMetrics.contentPaddingTopU),
+                context.units(widget.isCollapsed ? 0.0 : SidebarMetrics.contentPaddingRightU),
+                context.units(SidebarMetrics.contentPaddingBottomU),
+              ),
+              child: Column(
+                children: [
+                  SizedBox(height: context.units(SidebarMetrics.brandTopGapU)),
+                  _SidebarBrandHeader(isCollapsed: widget.isCollapsed),
+                  SizedBox(height: context.units(SidebarMetrics.headerItemsGapU)),
+                  
+                  ...SidebarModel.menuItems.map((item) => _buildLayoutTree(item)),
 
-                const Spacer(),
+                  const Spacer(),
 
-                if (widget.settingSlot != null) ...[
-                   KeyedSubtree(
-                     key: _tileKeys[SidebarModel.settingId],
-                     child: widget.settingSlot!,
-                   ),
-                   SizedBox(height: context.units(SidebarMetrics.itemGapU)),
+                  if (widget.settingSlot != null) ...[
+                     KeyedSubtree(
+                       key: _tileKeys[SidebarModel.settingId],
+                       child: widget.settingSlot!,
+                     ),
+                     SizedBox(height: context.units(SidebarMetrics.itemGapU)),
+                  ],
+
+                  if (widget.exitSlot != null)
+                     KeyedSubtree(
+                       key: _tileKeys[SidebarModel.exitId],
+                       child: widget.exitSlot!,
+                     ),
                 ],
-
-                if (widget.exitSlot != null)
-                   KeyedSubtree(
-                     key: _tileKeys[SidebarModel.exitId],
-                     child: widget.exitSlot!,
-                   ),
-              ],
+              ),
             ),
           ),
         ),
@@ -121,7 +133,7 @@ class _SidebarViewState extends State<SidebarView> {
         Padding(
           padding: EdgeInsets.only(
             bottom: context.units(SidebarMetrics.itemGapU),
-            left: depth > 0 ? context.units(1.6 * depth) : 0,
+            left: (depth > 0 && !widget.isCollapsed) ? context.units(1.6 * depth) : 0,
           ),
           child: KeyedSubtree(
             key: _tileKeys[item.id],
@@ -156,62 +168,66 @@ class _SidebarViewState extends State<SidebarView> {
     final wrapper = widget.zoneWrappers[item.id];
     return wrapper?.call(childrenUI) ?? childrenUI;
   }
-
-  Rect? _calculateActiveRect(String? activeId) {
-    if (activeId == null) return null;
-    final activeKey = _tileKeys[activeId];
-    final tileContext = activeKey?.currentContext;
-    final surfaceBox = context.findRenderObject() as RenderBox?;
-    final tileBox = tileContext?.findRenderObject() as RenderBox?;
-    if (tileContext == null || surfaceBox == null || tileBox == null || !surfaceBox.hasSize || !tileBox.hasSize) return null;
-
-    final localOffset = tileBox.localToGlobal(Offset.zero, ancestor: surfaceBox);
-    return Rect.fromLTRB(
-      localOffset.dx, // ✅ 自动包含左边距和缩进，让子菜单的缺口自动向右移
-      localOffset.dy, 
-      context.units(SidebarMetrics.widthU), 
-      localOffset.dy + tileBox.size.height
-    );
-  }
 }
 
 class _SidebarBrandHeader extends StatelessWidget {
-  const _SidebarBrandHeader();
+  final bool isCollapsed;
+  const _SidebarBrandHeader({required this.isCollapsed});
   @override
   Widget build(BuildContext context) {
     final radius = context.units(SidebarMetrics.brandPanelRadiusU);
     return ThemeIdentity(
       role: ThemeRole.sidebar,
       layer: ThemeLayer.under,
-      child: SidebarSurface(
-        radius: radius,
-        child: Container(
+      child: AnimatedPadding(
+        duration: const Duration(milliseconds: 350),
+        curve: Curves.easeOutCubic,
+        padding: EdgeInsets.only(right: context.units(isCollapsed ? 1.0 : 0.0)),
+        child: SidebarSurface(
+          radius: radius,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 350),
+          curve: Curves.easeOutCubic,
           height: context.units(SidebarMetrics.brandHeaderHeightU),
           padding: EdgeInsets.symmetric(
-            horizontal: context.units(SidebarMetrics.brandPanelPaddingHorizontalU),
+            horizontal: context.units(isCollapsed ? 0.6 : SidebarMetrics.brandPanelPaddingHorizontalU),
           ),
           child: ThemeIdentity(
             role: ThemeRole.sidebar,
             layer: ThemeLayer.base,
-            child: Row(
-              children: [
-                Icon(
-                  Icons.blur_on_rounded,
-                  size: context.units(SidebarMetrics.brandBadgeIconSizeU),
-                  color: context.useTheme().colors.accent,
-                ),
-                SizedBox(width: context.units(SidebarMetrics.brandBadgeGapU)),
-                Expanded(
-                  child: SurfaceText(
-                    'Digital. Center',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w900,
-                      fontSize: context.units(SidebarMetrics.brandTitleSizeU),
-                      letterSpacing: 1,
-                    ),
+            child: OverflowBox(
+              alignment: Alignment.centerLeft,
+              minWidth: context.units(SidebarMetrics.widthU) - 
+                        context.units(SidebarMetrics.contentPaddingLeftU) - 
+                        context.units(SidebarMetrics.contentPaddingRightU) - 
+                        (2 * context.units(SidebarMetrics.brandPanelPaddingHorizontalU)),
+              maxWidth: context.units(SidebarMetrics.widthU) - 
+                        context.units(SidebarMetrics.contentPaddingLeftU) - 
+                        context.units(SidebarMetrics.contentPaddingRightU) - 
+                        (2 * context.units(SidebarMetrics.brandPanelPaddingHorizontalU)),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.blur_on_rounded,
+                    size: context.units(SidebarMetrics.brandBadgeIconSizeU),
+                    color: context.useTheme().colors.accent,
                   ),
-                ),
-              ],
+                  if (!isCollapsed) ...[
+                    SizedBox(width: context.units(SidebarMetrics.brandBadgeGapU)),
+                    Expanded(
+                      child: SurfaceText(
+                        'Digital. Center',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w900,
+                          fontSize: context.units(SidebarMetrics.brandTitleSizeU),
+                          letterSpacing: 1,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+              ),
             ),
           ),
         ),

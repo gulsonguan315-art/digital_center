@@ -1,5 +1,6 @@
 class SidebarMetrics {
   static const double widthU = 26.0;
+  static const double collapsedWidthU = 5.6;
   static const double surfaceRadiusU = 2.4;
 
   static const double brandTopGapU = 3.2;
