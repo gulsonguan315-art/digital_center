@@ -35,7 +35,15 @@ class BuildingMapData {
       '*exit',
     ],
 
-    'media': ['*mov', '*tv', '*ani', '*doc', '*adt'],
+    'media': [
+      '*mov=>mediaPage',
+      '*tv=>mediaPage',
+      '*ani=>mediaPage',
+      '*doc=>mediaPage',
+      '*adt=>mediaPage',
+    ],
+
+    'mediaPage': ['*'],
     'book': ['*科幻', '*人文=>testPage'],
 
     // ── [2] 音乐模块 (Music) ──────────────────────────────────────────────────

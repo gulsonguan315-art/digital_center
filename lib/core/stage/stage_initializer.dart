@@ -1,4 +1,5 @@
 import '../../modules/resident/dashboard/dashboard_page.dart';
+import '../../modules/resident/media/media_page.dart';
 import '../../modules/resident/music/music_page.dart'; // 🌟 引入音乐中心房间
 import '../../modules/resident/settings/setting_page.dart';
 import '../../modules/resident/test/test_page.dart';
@@ -16,6 +17,15 @@ class StageInitializer {
         zone: StageZone.main,
         keepAlive: true,
         builder: (context) => const DashboardRoom(),
+      ),
+    );
+
+    StageRegistry.register(
+      StageContract(
+        roomId: 'mediaPage',
+        zone: StageZone.main,
+        keepAlive: true,
+        builder: (context) => const MediaRoom(),
       ),
     );
 

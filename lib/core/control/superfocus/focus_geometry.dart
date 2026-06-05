@@ -13,9 +13,7 @@ abstract class FocusGeometry {
 }
 
 class RoundedRectFocusGeometry extends FocusGeometry {
-  const RoundedRectFocusGeometry({
-    this.borderRadius = BorderRadius.zero,
-  });
+  const RoundedRectFocusGeometry({this.borderRadius = BorderRadius.zero});
 
   final BorderRadiusGeometry borderRadius;
 
@@ -170,6 +168,5 @@ class SidebarTileFocusGeometry extends FocusGeometry {
           concaveRadius == other.concaveRadius;
 
   @override
-  int get hashCode =>
-      Object.hash(borderRadius, openRightness, concaveRadius);
+  int get hashCode => Object.hash(borderRadius, openRightness, concaveRadius);
 }

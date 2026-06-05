@@ -350,6 +350,8 @@ class FocusController extends BaseInteractionController with FocusTraceLogger {
     final String? navTarget = BuildingMap.resolveNavTarget(sourceRoom, id);
     if (navTarget != null) {
       logRoomAction(sourceRoom, id, navTarget);
+      // 动态更新入口节点：确保 Back 时回落到实际触发导航的那个节点
+      BuildingMap.updateEntryNode(sourceRoom, navTarget, id);
       onRoomEnter(navTarget, printLog: false);
       intentionRoomId.value = navTarget;
       _executeSearch(navTarget);

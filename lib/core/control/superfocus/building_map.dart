@@ -107,6 +107,18 @@ class BuildingMap {
     return _entryNodeCache[_entryNodeKey(parentRoomId, targetRoomId)];
   }
 
+  /// 运行时动态更新「入口节点」缓存。
+  /// 用于多个 NavTarget 指向同一目标房间时，记录实际触发的那个按钮 ID，
+  /// 以便 Back 时能精确回落到发起导航的那个节点。
+  static void updateEntryNode(
+    String parentRoomId,
+    String targetRoomId,
+    String nodeId,
+  ) {
+    _ensureInitialized();
+    _entryNodeCache[_entryNodeKey(parentRoomId, targetRoomId)] = nodeId;
+  }
+
   /// 获取房间的有效成员列表（支持递归继承）
   static List<String>? _getEffectiveItems(String roomId) {
     // 1. 尝试获取显式定义的成员

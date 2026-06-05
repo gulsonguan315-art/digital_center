@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../core/control/superfocus/focus_api.dart';
 import '../../../core/control/superfocus/interaction_manager.dart';
 import '../../../core/control/superfocus/building_map.dart';
+import '../media/media_service.dart';
 import 'sidebar_model.dart';
 import 'sidebar_view.dart';
 import 'sidebar_tile.dart';
@@ -17,6 +18,24 @@ class SidebarRoom extends StatefulWidget {
 
 class _SidebarRoomState extends State<SidebarRoom> {
   String? _expandedZoneId;
+
+  @override
+  void initState() {
+    super.initState();
+    MediaService.instance.addListener(_onMediaServiceChanged);
+  }
+
+  @override
+  void dispose() {
+    MediaService.instance.removeListener(_onMediaServiceChanged);
+    super.dispose();
+  }
+
+  void _onMediaServiceChanged() {
+    if (mounted) {
+      setState(() {});
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -55,6 +74,12 @@ class _SidebarRoomState extends State<SidebarRoom> {
   /// ✅ 增强型激活判断：支持全域穿透 (扫描所有侧边栏相关房间)
   bool _isItemActive(BuildContext context, String id) {
     if (context.useIsActive(id)) return true;
+
+    // 🌟 修复：影视子分类在其特定激活且 mediaPage 处于当前激活拓扑时方能激活高亮
+    if (const ['mov', 'tv', 'ani', 'doc', 'adt'].contains(id)) {
+      return id == MediaService.instance.selectedCategory &&
+          context.useIsActive('mediaPage');
+    }
 
     // 1. 确定需要扫描的候选房间列表 (主侧边栏 + 所有 Zone)
     final List<String> candidateRooms = [
@@ -133,6 +158,20 @@ class _SidebarRoomState extends State<SidebarRoom> {
     String? parentRoomId,
   }) {
     final hasChildren = item.children != null && item.children!.isNotEmpty;
+
+    VoidCallback? tapAction;
+    if (hasChildren) {
+      tapAction = () {
+        setState(() {
+          _expandedZoneId = (_expandedZoneId == item.id) ? null : item.id;
+        });
+      };
+    } else if (const ['mov', 'tv', 'ani', 'doc', 'adt'].contains(item.id)) {
+      tapAction = () {
+        MediaService.instance.setCategory(item.id);
+      };
+    }
+
     return SidebarTile(
       id: item.id,
       label: item.label,
@@ -140,11 +179,7 @@ class _SidebarRoomState extends State<SidebarRoom> {
       isActive: _isItemActive(context, item.id),
       autofocus: autofocusId == item.id,
       isExpandable: hasChildren,
-      onTap: hasChildren ? () {
-        setState(() {
-          _expandedZoneId = (_expandedZoneId == item.id) ? null : item.id;
-        });
-      } : null,
+      onTap: tapAction,
     );
   }
 
