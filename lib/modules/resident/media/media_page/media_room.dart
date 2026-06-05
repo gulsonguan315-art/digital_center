@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
-import '../../../core/control/superfocus/focus_api.dart';
-import '../../../core/control/superfocus/interaction_manager.dart';
-import '../../../core/engine/theme/theme_api.dart';
-import 'media_model.dart';
+import '../../../../core/control/superfocus/focus_api.dart';
+import '../../../../core/control/superfocus/interaction_manager.dart';
+import '../../../../core/engine/theme/theme_api.dart';
+import '../media_model.dart';
 import 'media_view.dart';
-import 'media_service.dart';
-import 'media_detail_room.dart';
+import '../media_service.dart';
+import 'media_callback.dart';
+import '../media_detail/media_detail_room.dart';
 
 /// 📂 影视页面主房间 (Media Room - Composition Root)
 class MediaRoom extends StatefulWidget {
@@ -74,21 +75,7 @@ class _MediaRoomState extends State<MediaRoom> {
                       final item = items[index];
                       final focusId = item.id;
 
-                      void action() {
-                        if (item.jellyfinType == 'BoxSet') {
-                          if (expandedBoxSetId == item.id) {
-                            // 如果当前已经展开了该合集，再次点击时触发返回逻辑关闭子房间
-                            FocusAPI.dispatchBackCommand();
-                          } else {
-                            MediaService.instance.ensureBoxSetLoaded(item.id);
-                            FocusAPI.dispatchAction(MediaModel.mediaPageId, 'mediaExpand_${item.id}');
-                          }
-                        } else {
-                          final isSeries = item.jellyfinType == 'Series';
-                          final prefix = isSeries ? 'seriesDetail_' : 'movieDetail_';
-                          FocusAPI.dispatchAction(MediaModel.mediaPageId, '$prefix${item.id}', asTerminalRoom: true);
-                        }
-                      }
+                      void action() => MediaCallback.onMediaPosterTap(item, expandedBoxSetId);
 
                       return ThemeIdentity(
                         role: ThemeRole.card,

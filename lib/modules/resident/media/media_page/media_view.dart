@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
-import '../../../core/data/models/media_item.dart';
-import '../../../core/engine/theme/theme_api.dart';
-import '../../../core/layout/grid/grid_extensions.dart';
-import 'media_model.dart';
-import 'media_service.dart';
-import '../../../core/control/superfocus/focus_api.dart';
+import '../../../../core/data/models/media_item.dart';
+import '../../../../core/engine/theme/theme_api.dart';
+import '../../../../core/layout/grid/grid_extensions.dart';
+import '../media_model.dart';
+import '../media_service.dart';
+import 'media_callback.dart';
+import '../../../../core/control/superfocus/focus_api.dart';
 
 /// 🖼️ 影视海报卡片组件 (Media Poster Card Component)
 class MediaCard extends StatelessWidget {
@@ -434,9 +435,7 @@ class MediaPageView extends StatelessWidget {
                                                     return FocusIdentity(
                                                       id: childItem.id,
                                                       onPressed: () {
-                                                        final isSeries = childItem.jellyfinType == 'Series';
-                                                        final prefix = isSeries ? 'seriesDetail_' : 'movieDetail_';
-                                                        FocusAPI.dispatchAction('mediaExpand_$expandedBoxSetId', '$prefix${childItem.id}', asTerminalRoom: true);
+                                                        MediaCallback.onBoxSetChildTap(childItem, expandedBoxSetId!);
                                                       },
                                                       ensureVisibleEdge: true,
                                                       focusGeometry: RoundedRectFocusGeometry(
@@ -446,9 +445,7 @@ class MediaPageView extends StatelessWidget {
                                                         item: childItem,
                                                         isFocused: hasFocus,
                                                         onTap: () {
-                                                          final isSeries = childItem.jellyfinType == 'Series';
-                                                          final prefix = isSeries ? 'seriesDetail_' : 'movieDetail_';
-                                                          FocusAPI.dispatchAction('mediaExpand_$expandedBoxSetId', '$prefix${childItem.id}', asTerminalRoom: true);
+                                                          MediaCallback.onBoxSetChildTap(childItem, expandedBoxSetId!);
                                                         },
                                                       ),
                                                     );

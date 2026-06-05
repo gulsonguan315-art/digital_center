@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../../core/control/superfocus/focus_api.dart';
-import '../../../core/engine/theme/theme_api.dart';
+import '../../../../core/control/superfocus/focus_api.dart';
+import '../../../../core/engine/theme/theme_api.dart';
 
 class MediaDetailRoom extends StatelessWidget {
   final String itemId;
