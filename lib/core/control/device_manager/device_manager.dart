@@ -35,6 +35,9 @@ enum InputSignal {
   /// 返回/取消
   back,
 
+  /// 呼出控制菜单
+  menu,
+
   /// 音量加
   volumeUp,
 
@@ -88,6 +91,17 @@ class SuperInputManager {
 
   final List<InputSource> _sources = [];
   bool _initialized = false;
+  final List<bool Function(InputSignal signal)> _interceptors = [];
+
+  void registerInterceptor(bool Function(InputSignal signal) interceptor) {
+    if (!_interceptors.contains(interceptor)) {
+      _interceptors.add(interceptor);
+    }
+  }
+
+  void unregisterInterceptor(bool Function(InputSignal signal) interceptor) {
+    _interceptors.remove(interceptor);
+  }
 
   /// 初始化并启动默认输入源（键盘）
   void init() {
@@ -113,6 +127,14 @@ class SuperInputManager {
   void _handleSignal(InputSignal signal) {
     Log.d(LogGroup.system, '信号接收：$signal', subGroup: 'DeviceManager');
 
+    // 1. 优先遍历拦截器（栈顶优先 LIFO）
+    for (final interceptor in _interceptors.reversed) {
+      if (interceptor(signal)) { // 如果拦截器返回 true，代表已消费
+        Log.d(LogGroup.system, '信号 [$signal] 被拦截器消费', subGroup: 'DeviceManager');
+        return; // 立即终止，不触发全局动作
+      }
+    }
+
     switch (signal) {
       // 全局独占信号
       case InputSignal.volumeUp:
@@ -133,6 +155,9 @@ class SuperInputManager {
         FocusAPI.dispatchConfirm();
       case InputSignal.back:
         FocusAPI.dispatchBackCommand();
+      case InputSignal.menu:
+        // menu 信号由局部拦截器消费；若未拦截则在此处忽略
+        break;
     }
   }
 

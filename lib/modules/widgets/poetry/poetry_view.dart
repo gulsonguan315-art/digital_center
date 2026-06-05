@@ -87,6 +87,7 @@ class PoetryView extends StatelessWidget {
                     fontWeight: FontWeight.bold,
                     color: colors.accent.withValues(alpha: 0.12),
                     height: 1,
+                    decoration: TextDecoration.none,
                   ),
                 ),
               ),
@@ -102,6 +103,7 @@ class PoetryView extends StatelessWidget {
                     fontWeight: FontWeight.bold,
                     color: colors.accent.withValues(alpha: 0.12),
                     height: 1,
+                    decoration: TextDecoration.none,
                   ),
                 ),
               ),
@@ -136,13 +138,17 @@ class PoetryView extends StatelessWidget {
                         color: colors.accent.withValues(alpha: 0.4),
                       ),
                       const SizedBox(width: 8),
-                      SurfaceText(
-                        '${data.author} · 《${data.title}》',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.normal,
-                          color: colors.textSecondary.withValues(alpha: 0.7),
-                          letterSpacing: 1.5,
+                      Flexible(
+                        child: SurfaceText(
+                          '${data.author} · 《${data.title}》',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.normal,
+                            color: colors.textSecondary.withValues(alpha: 0.7),
+                            letterSpacing: 1.5,
+                          ),
                         ),
                       ),
                       const SizedBox(width: 16),

@@ -3,12 +3,15 @@ import 'package:flutter/services.dart';
 
 import '../../resident/music/music_service.dart';
 import '../../../core/control/superfocus/focus_widgets.dart';
+import '../../../core/control/superfocus/focus_api.dart';
 import '../../../core/control/superfocus/interaction_manager.dart';
+import '../../../core/control/device_manager/device_manager.dart';
 import '../../../core/data/data_manager.dart';
 import 'styles/immersive_scrolling_style.dart';
 import 'styles/immersive_single_line_style.dart';
 import 'styles/immersive_mood_style.dart';
 import 'views_components/shader_visualizer_circle.dart';
+import 'views_components/music_immersive_control_panel.dart';
 
 class MusicImmersiveOverlay extends StatefulWidget {
   const MusicImmersiveOverlay({super.key});
@@ -20,7 +23,52 @@ class MusicImmersiveOverlay extends StatefulWidget {
 class _MusicImmersiveOverlayState extends State<MusicImmersiveOverlay> {
   final FocusNode _focusNode = FocusNode();
   final MusicService _service = MusicService.instance;
-  int _currentStyleIndex = 0; // 0: 滚动, 1: 单行
+  int _currentStyleIndex = 0; // 0: 滚动, 1: 单行, 2: 情绪碎片
+
+  bool _handleLocalInput(InputSignal signal) {
+    final showStyleMenu = SuperFocusManager.instance.state.checkIsActive('music_menu');
+
+    if (showStyleMenu) {
+      if (signal == InputSignal.menu || signal == InputSignal.back) {
+        FocusAPI.dispatchBackCommand();
+        return true;
+      }
+      return false; // 允许菜单项间正常使用方向键与确认键
+    } else {
+      switch (signal) {
+        case InputSignal.left:
+          // 快退 10 秒
+          final current = _service.playback.currentPosition;
+          final target = current - const Duration(seconds: 10);
+          _service.playback.seekTo(target < Duration.zero ? Duration.zero : target);
+          return true;
+        case InputSignal.right:
+          // 快进 10 秒
+          final current = _service.playback.currentPosition;
+          final duration = _service.playback.trackDuration;
+          final target = current + const Duration(seconds: 10);
+          _service.playback.seekTo(target > duration ? duration : target);
+          return true;
+        case InputSignal.up:
+          _service.playback.playPrevTrack();
+          return true;
+        case InputSignal.down:
+          _service.playback.playNextTrack();
+          return true;
+        case InputSignal.confirm:
+          _service.playback.togglePlayPause();
+          return true;
+        case InputSignal.menu:
+          // 动作触发焦点从空气节点路由转移至菜单 music_menu
+          FocusAPI.dispatchAction('music_overlay', 'music_overlay_air_node');
+          return true;
+        case InputSignal.back:
+          return false; // 放行以回退路由
+        default:
+          return false;
+      }
+    }
+  }
 
   @override
   void initState() {
@@ -56,28 +104,6 @@ class _MusicImmersiveOverlayState extends State<MusicImmersiveOverlay> {
     }
   }
 
-  Widget _buildStyleDot(int index, bool hasFocus) {
-    final isSelected = _currentStyleIndex == index;
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 300),
-      width: hasFocus ? 20 : (isSelected ? 16 : 12),
-      height: hasFocus ? 20 : (isSelected ? 16 : 12),
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: isSelected ? Colors.white : Colors.white.withValues(alpha: 0.3),
-        boxShadow: hasFocus || isSelected
-            ? [
-                BoxShadow(
-                  color: Colors.white.withValues(alpha: hasFocus ? 0.8 : 0.4),
-                  blurRadius: hasFocus ? 16 : 8,
-                  spreadRadius: hasFocus ? 4 : 2,
-                ),
-              ]
-            : null,
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final lyrics = _service.lyrics.parsedLyrics;
@@ -96,38 +122,34 @@ class _MusicImmersiveOverlayState extends State<MusicImmersiveOverlay> {
       backgroundColor: Colors.black, // 设置为纯黑背景
       body: SuperFocusRoom(
         id: 'music_overlay',
-        child: Builder(
-          builder: (roomContext) {
-            // 必须在 Builder 内部调用 RoomScope.of() 才能监听到上述注册的房间状态
-            final scope = roomContext
-                .dependOnInheritedWidgetOfExactType<RoomScope>();
-            if (scope != null && !scope.isActive) {
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                if (mounted && Navigator.canPop(context)) {
-                  Navigator.of(context).pop();
-                }
-              });
-            }
+        child: InputInterceptor(
+          onSignal: _handleLocalInput,
+          child: Builder(
+            builder: (roomContext) {
+              final showStyleMenu = roomContext.useIsActive('music_menu');
+              final scope = roomContext
+                  .dependOnInheritedWidgetOfExactType<RoomScope>();
+              if (scope != null && !scope.isActive) {
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (mounted && Navigator.canPop(context)) {
+                    Navigator.of(context).pop();
+                  }
+                });
+              }
 
-            return Focus(
-              onKeyEvent: (node, event) {
-                if (event is! KeyDownEvent) return KeyEventResult.ignored;
-
-                if (event.logicalKey == LogicalKeyboardKey.space) {
-                  _service.playback.togglePlayPause();
-                  return KeyEventResult.handled;
-                }
-                // 注：移除左右键拦截，以便 SuperFocus 能正常移动焦点
-                return KeyEventResult.ignored;
-              },
-              child: Stack(
+              return Stack(
                 children: [
                   // 背景发光与呼吸效果
                   Positioned.fill(
                     child: GestureDetector(
+                      behavior: HitTestBehavior.translucent,
                       onTap: () {
-                        if (SuperInteractionManager.instance.isMouseMode) {
-                          SuperFocusManager.instance.onBackCommand();
+                        if (showStyleMenu) {
+                          FocusAPI.dispatchBackCommand();
+                        } else {
+                          if (Navigator.canPop(context)) {
+                            Navigator.of(context).pop();
+                          }
                         }
                       },
                       child: AnimatedContainer(
@@ -173,6 +195,11 @@ class _MusicImmersiveOverlayState extends State<MusicImmersiveOverlay> {
                     ),
                   ),
 
+                  // 约束保护：强制空气节点用 Positioned.fill 包裹，且常驻以防焦点退回父容器
+                  const Positioned.fill(
+                    child: SuperFocusAirNode(),
+                  ),
+
                   // 左下角：重低音圆圈 (Bass - 频段0，带径向运动模糊)
                   Positioned(
                     left: 200, // 圆心 X 坐标
@@ -215,48 +242,23 @@ class _MusicImmersiveOverlayState extends State<MusicImmersiveOverlay> {
                     ),
                   ),
 
-                  // 底部的两个小圆圈指示器
-                  Positioned(
-                    bottom: 40,
-                    left: 0,
-                    right: 0,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        FocusIdentity(
-                          id: 'style_scrolling',
-                          autofocus: true, // 进入房间自动聚焦第一个圆圈
-                          onPressed: () => _setStyle(0),
-                          builder: (context, hasFocus) => Padding(
-                            padding: const EdgeInsets.all(8.0), // 扩大可点击/发光区域
-                            child: _buildStyleDot(0, hasFocus),
-                          ),
+                  // 底部的扁平化极简菜单
+                  if (showStyleMenu)
+                    Positioned(
+                      bottom: 50,
+                      left: 0,
+                      right: 0,
+                      child: Center(
+                        child: MusicImmersiveControlPanel(
+                          currentStyleIndex: _currentStyleIndex,
+                          onStyleSelect: _setStyle,
                         ),
-                        const SizedBox(width: 32),
-                        FocusIdentity(
-                          id: 'style_single_line',
-                          onPressed: () => _setStyle(1),
-                          builder: (context, hasFocus) => Padding(
-                            padding: const EdgeInsets.all(8.0),
-                            child: _buildStyleDot(1, hasFocus),
-                          ),
-                        ),
-                        const SizedBox(width: 32),
-                        FocusIdentity(
-                          id: 'style_mood',
-                          onPressed: () => _setStyle(2),
-                          builder: (context, hasFocus) => Padding(
-                            padding: const EdgeInsets.all(8.0),
-                            child: _buildStyleDot(2, hasFocus),
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
-                  ),
                 ],
-              ),
-            );
-          },
+              );
+            },
+          ),
         ),
       ),
     );

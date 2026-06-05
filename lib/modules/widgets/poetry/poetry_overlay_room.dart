@@ -17,7 +17,10 @@ class PoetryOverlayRoom extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const SuperFocusRoom(id: roomId, child: PoetryOverlayContent());
+    return const Material(
+      color: Colors.transparent,
+      child: SuperFocusRoom(id: roomId, child: PoetryOverlayContent()),
+    );
   }
 }
 
@@ -363,6 +366,7 @@ class _PoetryOverlayContentState extends State<PoetryOverlayContent>
                                       alpha: 0.08,
                                     ),
                                     height: 1,
+                                    decoration: TextDecoration.none,
                                   ),
                                 ),
                               ),
@@ -379,6 +383,7 @@ class _PoetryOverlayContentState extends State<PoetryOverlayContent>
                                       alpha: 0.08,
                                     ),
                                     height: 1,
+                                    decoration: TextDecoration.none,
                                   ),
                                 ),
                               ),

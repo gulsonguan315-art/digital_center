@@ -47,7 +47,10 @@ class _ImmersiveSingleLineStyleState extends State<ImmersiveSingleLineStyle> {
   void _syncActiveIndex() {
     if (widget.activeIndex < 0 || widget.activeIndex >= widget.lyrics.length) return;
     setState(() {
-      _history.add(AnimatedLineItem(widget.lyrics[widget.activeIndex], widget.activeIndex));
+      final exists = _history.any((item) => item.sequenceIndex == widget.activeIndex);
+      if (!exists) {
+        _history.add(AnimatedLineItem(widget.lyrics[widget.activeIndex], widget.activeIndex));
+      }
       _history.removeWhere((item) => widget.activeIndex - item.sequenceIndex > 4);
       _lastHandledIndex = widget.activeIndex;
     });

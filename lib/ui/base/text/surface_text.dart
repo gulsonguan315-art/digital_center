@@ -43,6 +43,8 @@ class SurfaceText extends StatelessWidget {
         style: baseStyle,
         shadow: chrome.innerShadows.first,
         baseColor: colors.textPrimary.withValues(alpha: 0.1),
+        maxLines: maxLines,
+        overflow: overflow,
       ),
       child: Text(
         text,
@@ -61,12 +63,16 @@ class _SurfaceTextPainter extends CustomPainter {
     required this.style,
     required this.shadow,
     required this.baseColor,
+    this.maxLines,
+    this.overflow,
   });
 
   final String text;
   final TextStyle style;
   final BoxShadow shadow;
   final Color baseColor;
+  final int? maxLines;
+  final TextOverflow? overflow;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -74,6 +80,8 @@ class _SurfaceTextPainter extends CustomPainter {
       text: TextSpan(text: text, style: style.copyWith(color: baseColor)),
       textDirection: TextDirection.ltr,
       textAlign: TextAlign.center,
+      maxLines: maxLines,
+      ellipsis: overflow == TextOverflow.ellipsis ? '\u2026' : null,
     )..layout(maxWidth: size.width);
 
     final pos = Offset(

@@ -67,6 +67,12 @@ class _ImmersiveMoodStyleState extends State<ImmersiveMoodStyle> {
       return;
     }
 
+    // 避免重复添加相同 sequenceIndex 引起的 Duplicate keys 异常
+    if (_history.any((item) => item.sequenceIndex == widget.activeIndex)) {
+      _lastHandledIndex = widget.activeIndex;
+      return;
+    }
+
     setState(() {
       final chunks = LyricsChunker.chunkLine(widget.lyrics[widget.activeIndex]);
       final random = math.Random();

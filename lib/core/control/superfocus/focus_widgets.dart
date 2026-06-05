@@ -4,6 +4,8 @@ import 'interaction_state.dart';
 import 'interaction_manager.dart';
 import 'focus_geometry.dart';
 import 'focus_report.dart';
+import '../device_manager/device_manager.dart';
+import '../../log/log_api.dart';
 
 typedef FocusShape = RoundedRectFocusGeometry;
 typedef FocusIdentity = SuperFocusItem;
@@ -299,6 +301,98 @@ class _SuperFocusItemState extends State<SuperFocusItem> {
           child: widget.builder(context, _hasFocus),
         ),
       ),
+    );
+  }
+}
+
+class InputInterceptor extends StatefulWidget {
+  final bool Function(InputSignal signal) onSignal;
+  final Widget child;
+
+  const InputInterceptor({
+    super.key,
+    required this.onSignal,
+    required this.child,
+  });
+
+  @override
+  State<InputInterceptor> createState() => _InputInterceptorState();
+}
+
+class _InputInterceptorState extends State<InputInterceptor> {
+  bool _isRegistered = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final isActive = RoomScope.of(context)?.isActive ?? true;
+    _syncRegistration(isActive);
+  }
+
+  void _syncRegistration(bool shouldRegister) {
+    if (shouldRegister && !_isRegistered) {
+      SuperInputManager.instance.registerInterceptor(_handleSignal);
+      _isRegistered = true;
+    } else if (!shouldRegister && _isRegistered) {
+      SuperInputManager.instance.unregisterInterceptor(_handleSignal);
+      _isRegistered = false;
+    }
+  }
+
+  @override
+  void dispose() {
+    _syncRegistration(false);
+    super.dispose();
+  }
+
+  bool _handleSignal(InputSignal signal) {
+    if (!mounted) return false;
+    final isActive = RoomScope.of(context)?.isActive ?? true;
+    if (!isActive) return false;
+    return widget.onSignal(signal);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return widget.child;
+  }
+}
+
+class SuperFocusAirNode extends StatefulWidget {
+  const SuperFocusAirNode({super.key});
+
+  @override
+  State<SuperFocusAirNode> createState() => _SuperFocusAirNodeState();
+}
+
+class _SuperFocusAirNodeState extends State<SuperFocusAirNode> {
+  @override
+  void dispose() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      SuperFocusManager.instance.showCursor();
+    });
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final room = RoomScope.of(context);
+    final id = room != null ? '${room.roomId}_air_node' : 'global_air_node';
+
+    return SuperFocusItem(
+      id: id,
+      builder: (context, hasFocus) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            if (hasFocus) {
+              SuperFocusManager.instance.hideCursor();
+            } else {
+              SuperFocusManager.instance.showCursor();
+            }
+          }
+        });
+        return const SizedBox.shrink();
+      },
     );
   }
 }
