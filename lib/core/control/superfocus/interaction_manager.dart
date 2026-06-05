@@ -69,7 +69,15 @@ class SuperInteractionManager {
     _controller.onNodeRegistered(id);
   }
 
-  void unregisterNode(String id) => state.nodeRegistry.remove(id);
+  void unregisterNode(String id, {FocusNode? node}) {
+    if (node != null) {
+      if (state.nodeRegistry[id]?.node == node) {
+        state.nodeRegistry.remove(id);
+      }
+    } else {
+      state.nodeRegistry.remove(id);
+    }
+  }
 
   // ===========================================================================
   // 5. 拦截器注册 (Interceptor API)

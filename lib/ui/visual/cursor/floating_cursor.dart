@@ -97,36 +97,91 @@ class _FloatingHighlightBoxState extends State<FloatingHighlightBox>
 
     Rect targetRect = newRect;
 
-    // 获取所在的视口，实现焦点框“撞边卡住”的效果
-    final viewport = RenderAbstractViewport.maybeOf(renderBox);
-    if (viewport is RenderBox) {
-      final viewportBox = viewport as RenderBox;
-      final viewportTransform = viewportBox.getTransformTo(null);
-      final viewportRect = MatrixUtils.transformRect(
-        viewportTransform,
-        Offset.zero & viewportBox.size,
-      );
+    // 向上遍历所有视口，依次应用“撞边卡住”逻辑
+    // 这解决了嵌套 Viewport（如 GridView 嵌套在 CustomScrollView 中）时，外层边界约束失效导致焦点飞出的问题。
+    RenderBox? currentBox = renderBox;
+    double totalDx = 0;
+    double totalDy = 0;
 
-      double dx = 0;
-      double dy = 0;
+    while (currentBox != null) {
+      final viewport = RenderAbstractViewport.maybeOf(currentBox);
+      if (viewport is RenderBox) {
+        final viewportBox = viewport as RenderBox;
+        final viewportTransform = viewportBox.getTransformTo(null);
+        final viewportRect = MatrixUtils.transformRect(
+          viewportTransform,
+          Offset.zero & viewportBox.size,
+        );
 
-      if (targetRect.height <= viewportRect.height) {
-        if (targetRect.top < viewportRect.top) {
-          dy = viewportRect.top - targetRect.top;
-        } else if (targetRect.bottom > viewportRect.bottom) {
-          dy = viewportRect.bottom - targetRect.bottom;
+        double dx = 0;
+        double dy = 0;
+
+        if (targetRect.height <= viewportRect.height) {
+          if (targetRect.top < viewportRect.top) {
+            dy = viewportRect.top - targetRect.top;
+          } else if (targetRect.bottom > viewportRect.bottom) {
+            dy = viewportRect.bottom - targetRect.bottom;
+          }
+        }
+
+        if (targetRect.width <= viewportRect.width) {
+          if (targetRect.left < viewportRect.left) {
+            dx = viewportRect.left - targetRect.left;
+          } else if (targetRect.right > viewportRect.right) {
+            dx = viewportRect.right - targetRect.right;
+          }
+        }
+
+        if (dx != 0 || dy != 0) {
+          targetRect = targetRect.shift(Offset(dx, dy));
+          totalDx += dx;
+          totalDy += dy;
+        }
+
+        // 继续往上找更外层的视口（如果有的话）
+        currentBox = viewportBox.parent as RenderBox?;
+      } else {
+        break;
+      }
+    }
+
+    // 自动推动外层滚动视图，实现“海报滚进来”的效果
+    if (totalDx != 0 || totalDy != 0) {
+      // 寻找能够响应滚动的最外层或有效 Scrollable
+      BuildContext? ctx = report.context;
+      ScrollableState? activeScrollable;
+      while (ctx != null) {
+        final s = Scrollable.maybeOf(ctx);
+        if (s != null) {
+          if (s.position.maxScrollExtent > s.position.minScrollExtent) {
+            activeScrollable = s;
+            break;
+          }
+          // 因为 Scrollable.maybeOf 找的是最近的，如果要找上一级，需要跨过当前 Scrollable
+          // Flutter 树遍历技巧：从当前 Scrollable 的 parent 继续往上找
+          ctx = _findParentContext(s.context);
+        } else {
+          break;
         }
       }
 
-      if (targetRect.width <= viewportRect.width) {
-        if (targetRect.left < viewportRect.left) {
-          dx = viewportRect.left - targetRect.left;
-        } else if (targetRect.right > viewportRect.right) {
-          dx = viewportRect.right - targetRect.right;
+      if (activeScrollable != null) {
+        final position = activeScrollable.position;
+        double newPixels = position.pixels;
+
+        // dy < 0 说明焦点框被向上挤压，说明实际元素在下方更深处，需要增加像素往下滚
+        if (totalDy != 0) {
+          newPixels -= totalDy * 0.15; // 平滑缓冲系数
+        }
+        if (totalDx != 0 && position.axis == Axis.horizontal) {
+          newPixels -= totalDx * 0.15;
+        }
+
+        if (newPixels != position.pixels) {
+          newPixels = newPixels.clamp(position.minScrollExtent, position.maxScrollExtent);
+          position.jumpTo(newPixels);
         }
       }
-
-      targetRect = targetRect.shift(Offset(dx, dy));
     }
 
     bool isChanged = false;
@@ -274,4 +329,13 @@ class _FocusOutlinePainter extends CustomPainter {
         oldDelegate.glowRadius != glowRadius ||
         oldDelegate.glowOpacity != glowOpacity;
   }
+}
+
+BuildContext? _findParentContext(BuildContext context) {
+  BuildContext? parent;
+  context.visitAncestorElements((element) {
+    parent = element;
+    return false; // 只访问第一个祖先然后停止
+  });
+  return parent;
 }

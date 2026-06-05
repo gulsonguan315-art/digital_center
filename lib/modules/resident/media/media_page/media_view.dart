@@ -35,14 +35,14 @@ class MediaCard extends StatelessWidget {
 
           final List<BoxShadow>? shadows = isFocused
               ? chrome.outerShadows
-                  .map(
-                    (e) => BoxShadow(
-                      color: e.color,
-                      offset: e.offset,
-                      blurRadius: e.blurRadius,
-                    ),
-                  )
-                  .toList()
+                    .map(
+                      (e) => BoxShadow(
+                        color: e.color,
+                        offset: e.offset,
+                        blurRadius: e.blurRadius,
+                      ),
+                    )
+                    .toList()
               : null;
 
           return GestureDetector(
@@ -89,7 +89,9 @@ class MediaCard extends StatelessWidget {
                                   borderRadius: BorderRadius.circular(4),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: Colors.black.withValues(alpha: 0.3),
+                                      color: Colors.black.withValues(
+                                        alpha: 0.3,
+                                      ),
                                       blurRadius: 4,
                                       offset: const Offset(0, 2),
                                     ),
@@ -237,19 +239,22 @@ class PlaceholderView extends StatelessWidget {
 // 🖥️ 影视中心主视图排版 (Media Page Layout)
 // =============================================================================
 
-class MediaPageView extends StatelessWidget {
+class MediaPageView extends StatefulWidget {
   final String category;
   final String? expandedBoxSetId;
   final Widget Function(
     BuildContext context,
-    int index,
+    MediaItem item,
     Widget Function(
       BuildContext context,
       bool hasFocus,
       VoidCallback onTap, {
       required MediaItem item,
-    }) builder,
-  ) gridItemSlot;
+    })
+    builder, {
+    VoidCallback? onTapOverride,
+  })
+  gridItemSlot;
 
   const MediaPageView({
     super.key,
@@ -259,9 +264,17 @@ class MediaPageView extends StatelessWidget {
   });
 
   @override
+  State<MediaPageView> createState() => _MediaPageViewState();
+}
+
+class _MediaPageViewState extends State<MediaPageView> {
+  final GlobalKey _expandKey = GlobalKey();
+
+  @override
   Widget build(BuildContext context) {
     final service = MediaService.instance;
-    final activeLabel = MediaModel.categoryLabels[category] ?? '影视中心 / Media';
+    final activeLabel =
+        MediaModel.categoryLabels[widget.category] ?? '影视中心 / Media';
 
     // 高度优先网格参数
     final double cardHeight = context.units(28);
@@ -327,160 +340,203 @@ class MediaPageView extends StatelessWidget {
                     );
                   }
 
-                      return LayoutBuilder(
-                        builder: (context, constraints) {
-                          final double rawCols =
-                              (constraints.maxWidth + gap) / (cardWidth + gap);
-                          final int cols = rawCols.floor().clamp(1, 100);
+                  return LayoutBuilder(
+                    builder: (context, constraints) {
+                      final double rawCols =
+                          (constraints.maxWidth + gap) / (cardWidth + gap);
+                      final int cols = rawCols.floor().clamp(1, 100);
 
-                          int expandedIndex = -1;
-                          if (expandedBoxSetId != null) {
-                            expandedIndex = items.indexWhere((e) => e.id == expandedBoxSetId);
-                          }
+                      int expandedIndex = -1;
+                      if (widget.expandedBoxSetId != null) {
+                        expandedIndex = items.indexWhere(
+                          (e) => e.id == widget.expandedBoxSetId,
+                        );
+                      }
 
-                          final gridDelegate = SliverGridDelegateWithFixedCrossAxisCount(
+                      final gridDelegate =
+                          SliverGridDelegateWithFixedCrossAxisCount(
                             crossAxisCount: cols,
                             crossAxisSpacing: gap,
                             mainAxisSpacing: gap,
                             childAspectRatio: aspectRatio,
                           );
 
-                          // 如果没有展开项，直接渲染完整 Grid
-                          if (expandedIndex == -1) {
-                            return CustomScrollView(
-                              slivers: [
-                                SliverGrid(
-                                  gridDelegate: gridDelegate,
-                                  delegate: SliverChildBuilderDelegate(
-                                    (context, index) {
-                                      return gridItemSlot(
-                                        context,
-                                        index,
-                                        (context, hasFocus, onTap, {required item}) {
-                                          return MediaCard(item: item, isFocused: hasFocus, onTap: onTap);
-                                        },
-                                      );
-                                    },
-                                    childCount: items.length,
+                      // 如果没有展开项，直接渲染完整 Grid
+                      if (expandedIndex == -1) {
+                        return CustomScrollView(
+                          slivers: [
+                            SliverGrid(
+                              gridDelegate: gridDelegate,
+                              delegate: SliverChildBuilderDelegate((
+                                context,
+                                index,
+                              ) {
+                                final item = items[index];
+                                return widget.gridItemSlot(context, item, (
+                                  context,
+                                  hasFocus,
+                                  onTap, {
+                                  required item,
+                                }) {
+                                  return MediaCard(
+                                    item: item,
+                                    isFocused: hasFocus,
+                                    onTap: onTap,
+                                  );
+                                });
+                              }, childCount: items.length),
+                            ),
+                            SliverPadding(
+                              padding: EdgeInsets.only(
+                                bottom: context.units(4),
+                              ),
+                            ),
+                          ],
+                        );
+                      }
+
+                      // 计算切断位置
+                      final int splitIndex =
+                          ((expandedIndex ~/ cols) + 1) * cols;
+                      final int topCount = splitIndex > items.length
+                          ? items.length
+                          : splitIndex;
+                      final int bottomCount = items.length - topCount;
+
+                      // 取出合集子项
+                      final children =
+                          service.boxSetChildrenCache[widget
+                              .expandedBoxSetId!] ??
+                          [];
+                      final bool isLoadingChildren = children.isEmpty;
+
+                      return CustomScrollView(
+                        slivers: [
+                          // ── 上半部分 ──
+                          if (topCount > 0)
+                            SliverGrid(
+                              gridDelegate: gridDelegate,
+                              delegate: SliverChildBuilderDelegate((
+                                context,
+                                index,
+                              ) {
+                                final item = items[index];
+                                return widget.gridItemSlot(context, item, (
+                                  context,
+                                  hasFocus,
+                                  onTap, {
+                                  required item,
+                                }) {
+                                  return MediaCard(
+                                    item: item,
+                                    isFocused: hasFocus,
+                                    onTap: onTap,
+                                  );
+                                });
+                              }, childCount: topCount),
+                            ),
+
+                          // ── 展开区域 (手风琴) ──
+                          SliverToBoxAdapter(
+                            child: AnimatedSize(
+                              duration: const Duration(milliseconds: 300),
+                              curve: Curves.easeOutCubic,
+                              alignment: Alignment.topCenter,
+                              onEnd: () {
+                                final ctx = _expandKey.currentContext;
+                                if (ctx != null) {
+                                  Scrollable.ensureVisible(
+                                    ctx,
+                                    duration: const Duration(milliseconds: 300),
+                                    curve: Curves.easeOutCubic,
+                                    alignment: 1.0, // 确保底部对齐，这样下边缘不会被裁掉
+                                  );
+                                }
+                              },
+                              child: Container(
+                                key: _expandKey,
+                                margin: EdgeInsets.symmetric(vertical: gap),
+                                padding: EdgeInsets.all(gap),
+                                decoration: BoxDecoration(
+                                  color: colors.surface.withValues(alpha: 0.85),
+                                  borderRadius: ctx.useTheme().shape.radius,
+                                  border: Border.all(
+                                    color: colors.accent.withValues(alpha: 0.4),
+                                    width: 1.5,
                                   ),
                                 ),
-                                SliverPadding(padding: EdgeInsets.only(bottom: context.units(4))),
-                              ],
-                            );
-                          }
-
-                          // 计算切断位置
-                          final int splitIndex = ((expandedIndex ~/ cols) + 1) * cols;
-                          final int topCount = splitIndex > items.length ? items.length : splitIndex;
-                          final int bottomCount = items.length - topCount;
-
-                          // 取出合集子项
-                          final children = service.boxSetChildrenCache[expandedBoxSetId!] ?? [];
-                          final bool isLoadingChildren = children.isEmpty;
-
-                          return CustomScrollView(
-                            slivers: [
-                              // ── 上半部分 ──
-                              if (topCount > 0)
-                                SliverGrid(
-                                  gridDelegate: gridDelegate,
-                                  delegate: SliverChildBuilderDelegate(
-                                    (context, index) {
-                                      return gridItemSlot(
-                                        context,
-                                        index,
-                                        (context, hasFocus, onTap, {required item}) {
-                                          return MediaCard(item: item, isFocused: hasFocus, onTap: onTap);
-                                        },
-                                      );
-                                    },
-                                    childCount: topCount,
-                                  ),
-                                ),
-
-                              // ── 展开区域 (手风琴) ──
-                              SliverToBoxAdapter(
-                                child: AnimatedSize(
-                                  duration: const Duration(milliseconds: 300),
-                                  curve: Curves.easeOutCubic,
-                                  alignment: Alignment.topCenter,
-                                  child: Container(
-                                    margin: EdgeInsets.symmetric(vertical: gap),
-                                    padding: EdgeInsets.all(gap),
-                                    decoration: BoxDecoration(
-                                      color: colors.surface.withValues(alpha: 0.85),
-                                      borderRadius: ctx.useTheme().shape.radius,
-                                      border: Border.all(
-                                        color: colors.accent.withValues(alpha: 0.4),
-                                        width: 1.5,
-                                      ),
-                                    ),
-                                    child: isLoadingChildren
-                                        ? SizedBox(
-                                            height: cardHeight,
-                                            child: const Center(child: CircularProgressIndicator()),
-                                          )
-                                        : SuperFocusRoom(
-                                            id: 'mediaExpand_$expandedBoxSetId',
-                                            child: GridView.builder(
-                                              shrinkWrap: true,
-                                              physics: const NeverScrollableScrollPhysics(),
-                                              gridDelegate: gridDelegate,
-                                              itemCount: children.length,
-                                              itemBuilder: (context, childIdx) {
-                                                final childItem = children[childIdx];
-                                                return ThemeIdentity(
-                                                  role: ThemeRole.card,
-                                                  child: Builder(builder: (c) {
-                                                    return FocusIdentity(
-                                                      id: childItem.id,
-                                                      onPressed: () {
-                                                        MediaCallback.onBoxSetChildTap(childItem, expandedBoxSetId!);
-                                                      },
-                                                      ensureVisibleEdge: true,
-                                                      focusGeometry: RoundedRectFocusGeometry(
-                                                        borderRadius: c.useTheme().shape.radius,
-                                                      ),
-                                                      builder: (c, hasFocus) => MediaCard(
-                                                        item: childItem,
-                                                        isFocused: hasFocus,
-                                                        onTap: () {
-                                                          MediaCallback.onBoxSetChildTap(childItem, expandedBoxSetId!);
-                                                        },
-                                                      ),
-                                                    );
-                                                  }),
+                                child: isLoadingChildren
+                                    ? SizedBox(
+                                        height: cardHeight,
+                                        child: const Center(
+                                          child: CircularProgressIndicator(),
+                                        ),
+                                      )
+                                    : SuperFocusRoom(
+                                        id: 'mediaExpand_${widget.expandedBoxSetId}',
+                                        child: GridView.builder(
+                                          shrinkWrap: true,
+                                          physics:
+                                              const NeverScrollableScrollPhysics(),
+                                          gridDelegate: gridDelegate,
+                                          itemCount: children.length,
+                                          itemBuilder: (context, childIdx) {
+                                            final childItem = children[childIdx];
+                                            return widget.gridItemSlot(
+                                              context,
+                                              childItem,
+                                              (context, hasFocus, onTap, {required item}) {
+                                                return MediaCard(
+                                                  item: item,
+                                                  isFocused: hasFocus,
+                                                  onTap: onTap,
                                                 );
                                               },
-                                            ),
-                                          ),
-                                  ),
-                                ),
+                                              onTapOverride: () {
+                                                MediaCallback.onBoxSetChildTap(
+                                                  childItem,
+                                                  widget.expandedBoxSetId!,
+                                                );
+                                              },
+                                            );
+                                          },
+                                        ),
+                                      ),
                               ),
+                            ),
+                          ),
 
-                              // ── 下半部分 ──
-                              if (bottomCount > 0)
-                                SliverGrid(
-                                  gridDelegate: gridDelegate,
-                                  delegate: SliverChildBuilderDelegate(
-                                    (context, index) {
-                                      final realIndex = topCount + index;
-                                      return gridItemSlot(
-                                        context,
-                                        realIndex,
-                                        (context, hasFocus, onTap, {required item}) {
-                                          return MediaCard(item: item, isFocused: hasFocus, onTap: onTap);
-                                        },
-                                      );
-                                    },
-                                    childCount: bottomCount,
-                                  ),
-                                ),
-                              SliverPadding(padding: EdgeInsets.only(bottom: context.units(4))),
-                            ],
-                          );
-                        },
+                          // ── 下半部分 ──
+                          if (bottomCount > 0)
+                            SliverGrid(
+                              gridDelegate: gridDelegate,
+                              delegate: SliverChildBuilderDelegate((
+                                context,
+                                index,
+                              ) {
+                                final realIndex = topCount + index;
+                                final item = items[realIndex];
+                                return widget.gridItemSlot(context, item, (
+                                  context,
+                                  hasFocus,
+                                  onTap, {
+                                  required item,
+                                }) {
+                                  return MediaCard(
+                                    item: item,
+                                    isFocused: hasFocus,
+                                    onTap: onTap,
+                                  );
+                                });
+                              }, childCount: bottomCount),
+                            ),
+                          SliverPadding(
+                            padding: EdgeInsets.only(bottom: context.units(4)),
+                          ),
+                        ],
                       );
+                    },
+                  );
                 },
               ),
             ),
@@ -510,8 +566,7 @@ class SkeletonGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final double rawCols =
-            (constraints.maxWidth + gap) / (cardWidth + gap);
+        final double rawCols = (constraints.maxWidth + gap) / (cardWidth + gap);
         final int cols = rawCols.floor().clamp(1, 100);
 
         return GridView.builder(

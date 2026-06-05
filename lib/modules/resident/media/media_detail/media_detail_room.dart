@@ -3,15 +3,16 @@ import '../../../../core/control/superfocus/focus_api.dart';
 import '../../../../core/engine/theme/theme_api.dart';
 
 class MediaDetailRoom extends StatelessWidget {
+  final String roomId;
   final String itemId;
 
-  const MediaDetailRoom({super.key, required this.itemId});
+  const MediaDetailRoom({super.key, required this.roomId, required this.itemId});
 
   @override
   Widget build(BuildContext context) {
     // 注册动态子房间
     return SuperFocusRoom(
-      id: 'mediaDetail_$itemId',
+      id: roomId,
       child: ThemeIdentity(
         role: ThemeRole.appBackground,
         child: Builder(

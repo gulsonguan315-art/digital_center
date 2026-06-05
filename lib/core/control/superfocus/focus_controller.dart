@@ -309,6 +309,10 @@ class FocusController extends BaseInteractionController with FocusTraceLogger {
   void onAction(String sourceRoom, String id, {bool asTerminalRoom = false}) {
     _actionDispatched = true;
     _lastActionSource = '[$sourceRoom:$id]';
+    final String actualNodeId = state.nodeRegistry.entries
+        .where((e) => e.value.node.hasPrimaryFocus && e.value.roomId == sourceRoom)
+        .firstOrNull?.key ?? id;
+
     final String? portalTarget = BuildingMap.resolvePortalDestination(
       sourceRoom,
       id,
@@ -338,6 +342,9 @@ class FocusController extends BaseInteractionController with FocusTraceLogger {
         sourceRoom,
         asTerminalRoom: asTerminalRoom,
       );
+      
+      // 动态更新入口节点：确保从子房间 Back 时能精准定位回原来的海报/节点
+      BuildingMap.updateEntryNode(sourceRoom, roomTarget, actualNodeId);
 
       // ✅ 关键：立即更新拓扑状态，让 UI 渲染出子房间内容
       onRoomEnter(roomTarget, printLog: false);

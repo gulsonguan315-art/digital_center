@@ -42,10 +42,12 @@ class _MediaRoomState extends State<MediaRoom> {
               }
 
               // 判断是否在详情页
-              final String? movieDetailId = topology.activeRoom?.startsWith('movieDetail_') == true 
+              final String? movieDetailId =
+                  topology.activeRoom?.startsWith('movieDetail_') == true
                   ? topology.activeRoom!.replaceFirst('movieDetail_', '')
                   : null;
-              final String? seriesDetailId = topology.activeRoom?.startsWith('seriesDetail_') == true 
+              final String? seriesDetailId =
+                  topology.activeRoom?.startsWith('seriesDetail_') == true
                   ? topology.activeRoom!.replaceFirst('seriesDetail_', '')
                   : null;
 
@@ -64,18 +66,17 @@ class _MediaRoomState extends State<MediaRoom> {
                 builder: (context, _) {
                   final service = MediaService.instance;
                   final activeCategory = service.selectedCategory;
-                  final items = service.items;
 
                   final gridView = MediaPageView(
                     key: const ValueKey('media_grid'),
                     category: activeCategory,
                     expandedBoxSetId: expandedBoxSetId,
-                    gridItemSlot: (context, index, innerBuilder) {
-                      if (index >= items.length) return const SizedBox.shrink();
-                      final item = items[index];
+                    gridItemSlot: (context, item, innerBuilder, {onTapOverride}) {
                       final focusId = item.id;
 
-                      void action() => MediaCallback.onMediaPosterTap(item, expandedBoxSetId);
+                      void action() => onTapOverride != null
+                          ? onTapOverride()
+                          : MediaCallback.onMediaPosterTap(item, expandedBoxSetId);
 
                       return ThemeIdentity(
                         role: ThemeRole.card,
@@ -124,9 +125,15 @@ class _MediaRoomState extends State<MediaRoom> {
                                 ),
                               );
                             },
-                            child: seriesDetailId != null 
-                                ? MediaDetailRoom(itemId: seriesDetailId) // 临时复用，后续可替换为 SeriesDetailRoom
-                                : MediaDetailRoom(itemId: movieDetailId!),
+                            child: seriesDetailId != null
+                                ? MediaDetailRoom(
+                                    roomId: 'seriesDetail_$seriesDetailId',
+                                    itemId: seriesDetailId,
+                                  ) // 临时复用，后续可替换为 SeriesDetailRoom
+                                : MediaDetailRoom(
+                                    roomId: 'movieDetail_$movieDetailId',
+                                    itemId: movieDetailId!,
+                                  ),
                           ),
                         ),
                     ],

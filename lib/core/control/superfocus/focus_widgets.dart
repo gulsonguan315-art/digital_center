@@ -201,10 +201,9 @@ class _SuperFocusItemState extends State<SuperFocusItem> {
   void didUpdateWidget(SuperFocusItem oldWidget) {
     super.didUpdateWidget(oldWidget);
 
-    // 【修复：ListView 复用元素导致旧 ID 残留】
     // 列表元素被复用时，id 会发生变化，必须注销旧 ID
     if (oldWidget.id != widget.id) {
-      SuperFocusManager.instance.unregisterNode(oldWidget.id);
+      SuperFocusManager.instance.unregisterNode(oldWidget.id, node: _focusNode);
       if (_registeredRoomId != null) {
         SuperFocusManager.instance.registerNode(
           widget.id,
@@ -231,7 +230,7 @@ class _SuperFocusItemState extends State<SuperFocusItem> {
 
   @override
   void dispose() {
-    SuperFocusManager.instance.unregisterNode(widget.id);
+    SuperFocusManager.instance.unregisterNode(widget.id, node: _focusNode);
     if (widget.focusNode == null) _focusNode.dispose();
     super.dispose();
   }
