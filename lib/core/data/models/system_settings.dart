@@ -4,7 +4,7 @@ class SystemSettings {
   final String visualStyle; // 'flat', 'glass', 'neumorphic'
   final String shapeStyle; // 'rightAngle', 'round', 'soft'
   final String customMode; // 'a', 'b', 'c'
-  final List<String> enabledLogGroups; // ['Focus', 'Network', 'UI', 'System']
+  final List<String> enabledLogGroups; // ['Focus', 'Network', 'UI', 'System', 'Music', 'Media']
   final double systemVolume;
 
   const SystemSettings({
@@ -22,7 +22,7 @@ class SystemSettings {
     visualStyle: 'neumorphic',
     shapeStyle: 'soft',
     customMode: 'a',
-    enabledLogGroups: ['Focus', 'Network', 'UI', 'System'],
+    enabledLogGroups: ['Focus', 'Network', 'UI', 'System', 'Music', 'Media'],
     systemVolume: 0.8,
   );
 
@@ -46,7 +46,7 @@ class SystemSettings {
       shapeStyle: (json['shapeStyle'] ?? 'soft') as String,
       customMode: (json['customMode'] ?? 'a') as String,
       enabledLogGroups: List<String>.from(
-        json['enabledLogGroups'] ?? ['Focus', 'Network', 'UI', 'System'],
+        json['enabledLogGroups'] ?? ['Focus', 'Network', 'UI', 'System', 'Music', 'Media'],
       ),
       systemVolume: (json['systemVolume'] as num?)?.toDouble() ?? 0.8,
     );

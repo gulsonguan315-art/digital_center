@@ -50,7 +50,7 @@ class MediaRepository {
 
   static const _categoryNameKeywords = <String, List<String>>{
     'ani': ['动漫', 'anime', '二次元'],
-    'doc': ['纪录片', 'documentary'],
+    'doc': ['纪录片', '记录片', 'documentary', 'doc'],
   };
 
   // ---------------------------------------------------------------------------
@@ -65,7 +65,7 @@ class MediaRepository {
     try {
       final ep = await _endpoints;
       if (ep.jellyfinBaseUrl.isEmpty || ep.jellyfinToken.isEmpty) {
-        Log.d(LogGroup.network, '⚠️ [Media] Jellyfin 配置未填写，跳过 Views 加载');
+        Log.d(LogGroup.media, '⚠️ [Media] Jellyfin 配置未填写，跳过 Views 加载');
         return;
       }
 
@@ -77,7 +77,7 @@ class MediaRepository {
           .timeout(const Duration(seconds: 8));
 
       if (resp.statusCode != 200) {
-        Log.d(LogGroup.network, '⚠️ [Media] Views 请求失败: ${resp.statusCode}');
+        Log.d(LogGroup.media, '⚠️ [Media] Views 请求失败: ${resp.statusCode}');
         return;
       }
 
@@ -97,7 +97,7 @@ class MediaRepository {
           if (type == entry.value && !_libraryMap.containsKey(entry.key)) {
             // tv / tvshows 只让第一个匹配的 Library 归入 tv，动漫另行按 name 匹配
             _libraryMap[entry.key] = id;
-            Log.d(LogGroup.network,
+            Log.d(LogGroup.media,
               '✅ [Media] 分类 ${entry.key} → Library "$name" ($id)');
           }
         }
@@ -112,7 +112,7 @@ class MediaRepository {
                 if (entry.key == 'ani' && _libraryMap['tv'] == id) {
                   _libraryMap.remove('tv');
                 }
-                Log.d(LogGroup.network,
+                Log.d(LogGroup.media,
                   '✅ [Media] 分类 ${entry.key} → Library "$name" ($id) [name匹配]');
                 break;
               }
@@ -130,15 +130,15 @@ class MediaRepository {
           final libId = _libraryMap['ani'];
           if (type == 'tvshows' && id != libId) {
             _libraryMap['tv'] = id;
-            Log.d(LogGroup.network, '✅ [Media] 重新绑定 tv Library: $id');
+            Log.d(LogGroup.media, '✅ [Media] 重新绑定 tv Library: $id');
             break;
           }
         }
       }
 
-      Log.d(LogGroup.network, '📋 [Media] 最终分类映射表: $_libraryMap');
+      Log.d(LogGroup.media, '📋 [Media] 最终分类映射表: $_libraryMap');
     } catch (e) {
-      Log.d(LogGroup.network, '⚠️ [Media] init() 异常: $e');
+      Log.d(LogGroup.media, '⚠️ [Media] init() 异常: $e');
     }
   }
 
@@ -149,16 +149,22 @@ class MediaRepository {
   /// 监听指定分类的条目列表（SWR Stream）。
   /// 每次调用立即推当前缓存，后台发起 Jellyfin 同步。
   Stream<List<MediaItem>> watchCategory(String category) {
+    Log.d(LogGroup.media, '👀 [Media] UI 请求监听分类: $category');
     // 重用已有 Stream（同一分类切入时不重建）
     if (!_controllers.containsKey(category) ||
         _controllers[category]!.isClosed) {
+      Log.d(LogGroup.media, '🏗️ [Media] 为分类 $category 创建新的 StreamController');
       _controllers[category] = StreamController<List<MediaItem>>.broadcast(
         onCancel: () {
+          Log.d(LogGroup.media, '🛑 [Media] 分类 $category 的 UI 订阅已取消，清理控制器');
           // 当所有订阅者取消时（切出该分类），关闭并清理控制器
           _controllers[category]?.close();
           _controllers.remove(category);
         },
       );
+      _emitAndSync(category);
+    } else {
+      Log.d(LogGroup.media, '♻️ [Media] 复用已有的 StreamController 用于分类: $category');
       _emitAndSync(category);
     }
     return _controllers[category]!.stream;
@@ -172,6 +178,41 @@ class MediaRepository {
     final tagParam = tag != null ? '&tag=$tag' : '';
     return '${ep.jellyfinBaseUrl}/Items/$itemId/Images/Primary'
         '?fillHeight=$height&quality=85$tagParam';
+  }
+
+  /// 获取合集 (BoxSet) 内部的子项列表
+  Future<List<MediaItem>> fetchBoxSetItems(String boxSetId) async {
+    try {
+      final ep = await _endpoints;
+      if (ep.jellyfinBaseUrl.isEmpty || ep.jellyfinToken.isEmpty) return [];
+
+      final url = Uri.parse(
+        '${ep.jellyfinBaseUrl}/Users/${ep.jellyfinUserId}/Items'
+        '?parentId=$boxSetId'
+        '&fields=Genres,ProductionYear,CommunityRating,ImageTags'
+        '&SortBy=SortName&SortOrder=Ascending'
+      );
+
+      final resp = await http
+          .get(url, headers: _headers(ep.jellyfinToken))
+          .timeout(const Duration(seconds: 10));
+
+      if (resp.statusCode != 200) {
+        Log.d(LogGroup.media, '⚠️ [Media] BoxSet Items 请求失败: ${resp.statusCode}');
+        return [];
+      }
+
+      final body = jsonDecode(utf8.decode(resp.bodyBytes)) as Map<String, dynamic>;
+      final raws = (body['Items'] as List<dynamic>?) ?? [];
+      
+      // 合集子项也共享父级的分类样式即可，这里传个 'mov' 或实际父级类型均可。
+      return raws
+          .map((e) => MediaItem.fromJellyfin(e as Map<String, dynamic>, 'mov'))
+          .toList();
+    } catch (e) {
+      Log.d(LogGroup.media, '⚠️ [Media] fetchBoxSetItems 异常: $e');
+      return [];
+    }
   }
 
   void dispose() {
@@ -189,18 +230,29 @@ class MediaRepository {
 
   /// 【SWR 核心】立即推缓存，后台同步 Jellyfin
   Future<void> _emitAndSync(String category) async {
+    Log.d(LogGroup.media, '🔍 [Media] 开始处理分类 [$category] 的数据读取...');
+    
+    // 【重要修复】broadcast stream 不会缓冲事件，如果同步 emit 必定会导致尚未 listen 的 UI 丢失该次数据。
+    // 这里强制让出当前执行栈，等待 UI 在本次 build 周期内完成 subscribe 后，再推送数据。
+    await Future.microtask(() {});
+
     // 1. 立即推内存缓存（如有）
     if (_memCache.containsKey(category)) {
+      Log.d(LogGroup.media, '⚡ [Media] 命中内存缓存 [$category]，推送到 UI (共 ${_memCache[category]!.length} 条)');
       _emit(category, _memCache[category]!);
       _syncInBackground(category); // 有内存缓存时仍后台同步，但 UI 已秒出
       return;
     }
 
     // 2. 读磁盘缓存并立即推送
+    Log.d(LogGroup.media, '💾 [Media] 未命中内存，尝试读取磁盘缓存 [$category]...');
     final diskCache = await _localStore.media.readCache(category);
     if (diskCache.isNotEmpty) {
+      Log.d(LogGroup.media, '📦 [Media] 读取磁盘缓存成功 [$category] (共 ${diskCache.length} 条)，推送至 UI');
       _memCache[category] = diskCache;
       _emit(category, diskCache);
+    } else {
+      Log.d(LogGroup.media, '📭 [Media] 磁盘缓存为空 [$category]');
     }
 
     // 3. 后台向 Jellyfin 同步（无论磁盘缓存是否命中都执行）
@@ -215,11 +267,11 @@ class MediaRepository {
 
       final libraryId = _libraryMap[category];
       if (libraryId == null) {
-        Log.d(LogGroup.network, '⚠️ [Media] 分类 $category 无对应 Library，跳过同步');
+        Log.d(LogGroup.media, '⚠️ [Media] 分类 $category 无对应 Library，跳过同步');
         return;
       }
 
-      Log.d(LogGroup.network, '🔄 [Media] 后台同步分类: $category');
+      Log.d(LogGroup.media, '🔄 [Media] 后台同步分类: $category');
 
       final includeType = _jellyfinItemType(category);
       final url = Uri.parse(
@@ -237,7 +289,7 @@ class MediaRepository {
           .timeout(const Duration(seconds: 15));
 
       if (resp.statusCode != 200) {
-        Log.d(LogGroup.network, '⚠️ [Media] Items 请求失败: ${resp.statusCode}');
+        Log.d(LogGroup.media, '⚠️ [Media] Items 请求失败: ${resp.statusCode}');
         return;
       }
 
@@ -248,22 +300,31 @@ class MediaRepository {
           .toList();
 
       // 对比变化：ID 集合不同视为有更新
-      final oldIds = (_memCache[category] ?? []).map((e) => e.id).toSet();
+      final oldList = _memCache[category] ?? [];
+      final oldIds = oldList.map((e) => e.id).toSet();
       final newIds = fresh.map((e) => e.id).toSet();
-      final hasChange = !setEquals(oldIds, newIds);
+      bool hasChange = !setEquals(oldIds, newIds);
+
+      // 兼容旧版本缓存升级：如果旧数据缺失 jellyfinType 字段，强制视为有变化以刷新本地缓存
+      if (!hasChange && oldList.isNotEmpty && fresh.isNotEmpty) {
+        if (oldList.any((e) => e.jellyfinType == null) && fresh.any((e) => e.jellyfinType != null)) {
+          hasChange = true;
+          Log.d(LogGroup.media, '🔄 [Media] 侦测到旧版本缓存缺失 jellyfinType，强制更新缓存以完成迁移');
+        }
+      }
 
       if (hasChange) {
-        Log.d(LogGroup.network,
+        Log.d(LogGroup.media,
           '🆕 [Media] $category 内容已更新 (旧: ${oldIds.length} 条 → 新: ${fresh.length} 条)');
         _memCache[category] = fresh;
         _emit(category, fresh);
         // 异步写盘，不阻塞 UI
         unawaited(_localStore.media.writeCache(category, fresh));
       } else {
-        Log.d(LogGroup.network, '✅ [Media] $category 内容无变化，保持缓存');
+        Log.d(LogGroup.media, '✅ [Media] $category 内容无变化，保持缓存');
       }
     } catch (e) {
-      Log.d(LogGroup.network, '⚠️ [Media] 后台同步异常 [$category]: $e');
+      Log.d(LogGroup.media, '⚠️ [Media] 后台同步异常 [$category]: $e');
       // 静默失败：UI 仍显示已有缓存，不中断体验
     }
   }
@@ -271,7 +332,10 @@ class MediaRepository {
   void _emit(String category, List<MediaItem> items) {
     final controller = _controllers[category];
     if (controller != null && !controller.isClosed) {
+      Log.d(LogGroup.media, '📺 [Media] 向 UI 推送 [$category] 数据 (共 ${items.length} 条)');
       controller.add(items);
+    } else {
+      Log.d(LogGroup.media, '❌ [Media] 无法推送 [$category] 数据: controller 为 null 或已关闭');
     }
   }
 
@@ -284,8 +348,9 @@ class MediaRepository {
   static String _jellyfinItemType(String category) {
     return switch (category) {
       'tv'  => 'Series',
-      'ani' => 'Series',
-      _     => 'Movie', // mov / doc
+      'ani' => 'Movie,Series', // 动漫可能包含剧场版(Movie)或番剧(Series)
+      'doc' => 'Movie,Series', // 纪录片可能被建为 Movie 或 Series 库
+      _     => 'Movie',        // mov
     };
   }
 

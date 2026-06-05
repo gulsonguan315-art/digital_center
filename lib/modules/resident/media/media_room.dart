@@ -41,9 +41,21 @@ class _MediaRoomState extends State<MediaRoom> {
               }
 
               // 判断是否在详情页
-              final String? detailId = topology.activeRoom?.startsWith('mediaDetail_') == true 
-                  ? topology.activeRoom!.replaceFirst('mediaDetail_', '')
+              final String? movieDetailId = topology.activeRoom?.startsWith('movieDetail_') == true 
+                  ? topology.activeRoom!.replaceFirst('movieDetail_', '')
                   : null;
+              final String? seriesDetailId = topology.activeRoom?.startsWith('seriesDetail_') == true 
+                  ? topology.activeRoom!.replaceFirst('seriesDetail_', '')
+                  : null;
+
+              // 判断是否有合集展开
+              String? expandedBoxSetId;
+              for (final path in topology.activePath) {
+                if (path.startsWith('mediaExpand_')) {
+                  expandedBoxSetId = path.replaceFirst('mediaExpand_', '');
+                  break;
+                }
+              }
 
               // 订阅 MediaService 状态（分类 / 条目列表 / 加载状态）
               return ListenableBuilder(
@@ -56,13 +68,26 @@ class _MediaRoomState extends State<MediaRoom> {
                   final gridView = MediaPageView(
                     key: const ValueKey('media_grid'),
                     category: activeCategory,
+                    expandedBoxSetId: expandedBoxSetId,
                     gridItemSlot: (context, index, innerBuilder) {
                       if (index >= items.length) return const SizedBox.shrink();
                       final item = items[index];
                       final focusId = item.id;
 
                       void action() {
-                        FocusAPI.dispatchAction(MediaModel.mediaPageId, 'mediaDetail_${item.id}', asTerminalRoom: true);
+                        if (item.jellyfinType == 'BoxSet') {
+                          if (expandedBoxSetId == item.id) {
+                            // 如果当前已经展开了该合集，再次点击时触发返回逻辑关闭子房间
+                            FocusAPI.dispatchBackCommand();
+                          } else {
+                            MediaService.instance.ensureBoxSetLoaded(item.id);
+                            FocusAPI.dispatchAction(MediaModel.mediaPageId, 'mediaExpand_${item.id}');
+                          }
+                        } else {
+                          final isSeries = item.jellyfinType == 'Series';
+                          final prefix = isSeries ? 'seriesDetail_' : 'movieDetail_';
+                          FocusAPI.dispatchAction(MediaModel.mediaPageId, '$prefix${item.id}', asTerminalRoom: true);
+                        }
                       }
 
                       return ThemeIdentity(
@@ -96,10 +121,10 @@ class _MediaRoomState extends State<MediaRoom> {
                       gridView,
 
                       // 顶层详情页覆盖
-                      if (detailId != null)
+                      if (movieDetailId != null || seriesDetailId != null)
                         Positioned.fill(
                           child: TweenAnimationBuilder<double>(
-                            key: ValueKey(detailId),
+                            key: ValueKey(movieDetailId ?? seriesDetailId),
                             tween: Tween(begin: 0.0, end: 1.0),
                             duration: const Duration(milliseconds: 350),
                             curve: Curves.easeOutCubic,
@@ -112,7 +137,9 @@ class _MediaRoomState extends State<MediaRoom> {
                                 ),
                               );
                             },
-                            child: MediaDetailRoom(itemId: detailId),
+                            child: seriesDetailId != null 
+                                ? MediaDetailRoom(itemId: seriesDetailId) // 临时复用，后续可替换为 SeriesDetailRoom
+                                : MediaDetailRoom(itemId: movieDetailId!),
                           ),
                         ),
                     ],

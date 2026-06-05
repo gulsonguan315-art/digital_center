@@ -4,6 +4,7 @@ import '../../../core/engine/theme/theme_api.dart';
 import '../../../core/layout/grid/grid_extensions.dart';
 import 'media_model.dart';
 import 'media_service.dart';
+import '../../../core/control/superfocus/focus_api.dart';
 
 /// 🖼️ 影视海报卡片组件 (Media Poster Card Component)
 class MediaCard extends StatelessWidget {
@@ -66,9 +67,44 @@ class MediaCard extends StatelessWidget {
                   children: [
                     // ── 海报图区域 ───────────────────────────────────────────────
                     Expanded(
-                      child: PosterImage(
-                        item: item,
-                        placeholder: colors.backgroundFocused,
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          PosterImage(
+                            item: item,
+                            placeholder: colors.backgroundFocused,
+                          ),
+                          if (item.jellyfinType == 'BoxSet')
+                            Positioned(
+                              top: context.units(0.8),
+                              right: context.units(0.8),
+                              child: Container(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: context.units(0.6),
+                                  vertical: context.units(0.3),
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.redAccent.shade700,
+                                  borderRadius: BorderRadius.circular(4),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withValues(alpha: 0.3),
+                                      blurRadius: 4,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                                child: Text(
+                                  '合集',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: context.units(0.9),
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
                     ),
                     // ── 元数据文字排版区 ─────────────────────────────────────────
@@ -202,6 +238,7 @@ class PlaceholderView extends StatelessWidget {
 
 class MediaPageView extends StatelessWidget {
   final String category;
+  final String? expandedBoxSetId;
   final Widget Function(
     BuildContext context,
     int index,
@@ -216,6 +253,7 @@ class MediaPageView extends StatelessWidget {
   const MediaPageView({
     super.key,
     required this.category,
+    this.expandedBoxSetId,
     required this.gridItemSlot,
   });
 
@@ -288,37 +326,164 @@ class MediaPageView extends StatelessWidget {
                     );
                   }
 
-                  return LayoutBuilder(
-                    builder: (context, constraints) {
-                      final double rawCols =
-                          (constraints.maxWidth + gap) / (cardWidth + gap);
-                      final int cols = rawCols.floor().clamp(1, 100);
+                      return LayoutBuilder(
+                        builder: (context, constraints) {
+                          final double rawCols =
+                              (constraints.maxWidth + gap) / (cardWidth + gap);
+                          final int cols = rawCols.floor().clamp(1, 100);
 
-                      return GridView.builder(
-                        padding: EdgeInsets.only(bottom: context.units(4)),
-                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: cols,
-                          crossAxisSpacing: gap,
-                          mainAxisSpacing: gap,
-                          childAspectRatio: aspectRatio,
-                        ),
-                        itemCount: items.length,
-                        itemBuilder: (context, index) {
-                          return gridItemSlot(
-                            context,
-                            index,
-                            (context, hasFocus, onTap, {required item}) {
-                              return MediaCard(
-                                item: item,
-                                isFocused: hasFocus,
-                                onTap: onTap,
-                              );
-                            },
+                          int expandedIndex = -1;
+                          if (expandedBoxSetId != null) {
+                            expandedIndex = items.indexWhere((e) => e.id == expandedBoxSetId);
+                          }
+
+                          final gridDelegate = SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: cols,
+                            crossAxisSpacing: gap,
+                            mainAxisSpacing: gap,
+                            childAspectRatio: aspectRatio,
+                          );
+
+                          // 如果没有展开项，直接渲染完整 Grid
+                          if (expandedIndex == -1) {
+                            return CustomScrollView(
+                              slivers: [
+                                SliverGrid(
+                                  gridDelegate: gridDelegate,
+                                  delegate: SliverChildBuilderDelegate(
+                                    (context, index) {
+                                      return gridItemSlot(
+                                        context,
+                                        index,
+                                        (context, hasFocus, onTap, {required item}) {
+                                          return MediaCard(item: item, isFocused: hasFocus, onTap: onTap);
+                                        },
+                                      );
+                                    },
+                                    childCount: items.length,
+                                  ),
+                                ),
+                                SliverPadding(padding: EdgeInsets.only(bottom: context.units(4))),
+                              ],
+                            );
+                          }
+
+                          // 计算切断位置
+                          final int splitIndex = ((expandedIndex ~/ cols) + 1) * cols;
+                          final int topCount = splitIndex > items.length ? items.length : splitIndex;
+                          final int bottomCount = items.length - topCount;
+
+                          // 取出合集子项
+                          final children = service.boxSetChildrenCache[expandedBoxSetId!] ?? [];
+                          final bool isLoadingChildren = children.isEmpty;
+
+                          return CustomScrollView(
+                            slivers: [
+                              // ── 上半部分 ──
+                              if (topCount > 0)
+                                SliverGrid(
+                                  gridDelegate: gridDelegate,
+                                  delegate: SliverChildBuilderDelegate(
+                                    (context, index) {
+                                      return gridItemSlot(
+                                        context,
+                                        index,
+                                        (context, hasFocus, onTap, {required item}) {
+                                          return MediaCard(item: item, isFocused: hasFocus, onTap: onTap);
+                                        },
+                                      );
+                                    },
+                                    childCount: topCount,
+                                  ),
+                                ),
+
+                              // ── 展开区域 (手风琴) ──
+                              SliverToBoxAdapter(
+                                child: AnimatedSize(
+                                  duration: const Duration(milliseconds: 300),
+                                  curve: Curves.easeOutCubic,
+                                  alignment: Alignment.topCenter,
+                                  child: Container(
+                                    margin: EdgeInsets.symmetric(vertical: gap),
+                                    padding: EdgeInsets.all(gap),
+                                    decoration: BoxDecoration(
+                                      color: colors.surface.withValues(alpha: 0.85),
+                                      borderRadius: ctx.useTheme().shape.radius,
+                                      border: Border.all(
+                                        color: colors.accent.withValues(alpha: 0.4),
+                                        width: 1.5,
+                                      ),
+                                    ),
+                                    child: isLoadingChildren
+                                        ? SizedBox(
+                                            height: cardHeight,
+                                            child: const Center(child: CircularProgressIndicator()),
+                                          )
+                                        : SuperFocusRoom(
+                                            id: 'mediaExpand_$expandedBoxSetId',
+                                            child: GridView.builder(
+                                              shrinkWrap: true,
+                                              physics: const NeverScrollableScrollPhysics(),
+                                              gridDelegate: gridDelegate,
+                                              itemCount: children.length,
+                                              itemBuilder: (context, childIdx) {
+                                                final childItem = children[childIdx];
+                                                return ThemeIdentity(
+                                                  role: ThemeRole.card,
+                                                  child: Builder(builder: (c) {
+                                                    return FocusIdentity(
+                                                      id: childItem.id,
+                                                      onPressed: () {
+                                                        final isSeries = childItem.jellyfinType == 'Series';
+                                                        final prefix = isSeries ? 'seriesDetail_' : 'movieDetail_';
+                                                        FocusAPI.dispatchAction('mediaExpand_$expandedBoxSetId', '$prefix${childItem.id}', asTerminalRoom: true);
+                                                      },
+                                                      ensureVisibleEdge: true,
+                                                      focusGeometry: RoundedRectFocusGeometry(
+                                                        borderRadius: c.useTheme().shape.radius,
+                                                      ),
+                                                      builder: (c, hasFocus) => MediaCard(
+                                                        item: childItem,
+                                                        isFocused: hasFocus,
+                                                        onTap: () {
+                                                          final isSeries = childItem.jellyfinType == 'Series';
+                                                          final prefix = isSeries ? 'seriesDetail_' : 'movieDetail_';
+                                                          FocusAPI.dispatchAction('mediaExpand_$expandedBoxSetId', '$prefix${childItem.id}', asTerminalRoom: true);
+                                                        },
+                                                      ),
+                                                    );
+                                                  }),
+                                                );
+                                              },
+                                            ),
+                                          ),
+                                  ),
+                                ),
+                              ),
+
+                              // ── 下半部分 ──
+                              if (bottomCount > 0)
+                                SliverGrid(
+                                  gridDelegate: gridDelegate,
+                                  delegate: SliverChildBuilderDelegate(
+                                    (context, index) {
+                                      final realIndex = topCount + index;
+                                      return gridItemSlot(
+                                        context,
+                                        realIndex,
+                                        (context, hasFocus, onTap, {required item}) {
+                                          return MediaCard(item: item, isFocused: hasFocus, onTap: onTap);
+                                        },
+                                      );
+                                    },
+                                    childCount: bottomCount,
+                                  ),
+                                ),
+                              SliverPadding(padding: EdgeInsets.only(bottom: context.units(4))),
+                            ],
                           );
                         },
                       );
-                    },
-                  );
                 },
               ),
             ),

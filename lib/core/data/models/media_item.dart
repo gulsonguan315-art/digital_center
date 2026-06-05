@@ -24,6 +24,9 @@ class MediaItem {
   /// 我们系统内部的分类标识 ('mov' | 'tv' | 'ani' | 'doc' | 'adt')
   final String category;
 
+  /// Jellyfin 原生类型 ('Movie', 'Series', 'BoxSet', 等)
+  final String? jellyfinType;
+
   const MediaItem({
     required this.id,
     required this.title,
@@ -32,6 +35,7 @@ class MediaItem {
     this.rating,
     this.genre,
     this.posterTag,
+    this.jellyfinType,
   });
 
   // ---------------------------------------------------------------------------
@@ -47,6 +51,7 @@ class MediaItem {
       rating:    (json['rating'] as num?)?.toDouble(),
       genre:     json['genre']    as String?,
       posterTag: json['posterTag'] as String?,
+      jellyfinType: json['jellyfinType'] as String?,
     );
   }
 
@@ -58,6 +63,7 @@ class MediaItem {
     if (rating   != null) 'rating':    rating,
     if (genre    != null) 'genre':     genre,
     if (posterTag != null) 'posterTag': posterTag,
+    if (jellyfinType != null) 'jellyfinType': jellyfinType,
   };
 
   // ---------------------------------------------------------------------------
@@ -83,6 +89,7 @@ class MediaItem {
       rating:    (json['CommunityRating'] as num?)?.toDouble(),
       genre:     genres?.isNotEmpty == true ? genres : null,
       posterTag: imageTags['Primary']     as String?,
+      jellyfinType: json['Type']          as String?,
     );
   }
 }

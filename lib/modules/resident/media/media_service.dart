@@ -25,6 +25,9 @@ class MediaService extends ChangeNotifier {
   MediaLoadState _loadState = MediaLoadState.idle;
   MediaLoadState get loadState => _loadState;
 
+  final Map<String, List<MediaItem>> _boxSetChildrenCache = {};
+  Map<String, List<MediaItem>> get boxSetChildrenCache => _boxSetChildrenCache;
+
   StreamSubscription<List<MediaItem>>? _subscription;
 
   // ---------------------------------------------------------------------------
@@ -68,6 +71,14 @@ class MediaService extends ChangeNotifier {
   /// 便捷方法：根据条目 id 获取海报图片 URL
   String posterUrl(String itemId, String? tag) =>
       MediaRepository.instance.posterUrl(itemId, tag);
+
+  /// 预加载并缓存 BoxSet 子项
+  Future<void> ensureBoxSetLoaded(String boxSetId) async {
+    if (_boxSetChildrenCache.containsKey(boxSetId)) return;
+    final items = await MediaRepository.instance.fetchBoxSetItems(boxSetId);
+    _boxSetChildrenCache[boxSetId] = items;
+    notifyListeners();
+  }
 
   @override
   void dispose() {
