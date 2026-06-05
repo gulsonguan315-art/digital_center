@@ -301,13 +301,6 @@ class MusicControlRoom extends StatelessWidget {
                 id: MusicModel.controlZoneId,
                 child: Builder(
                   builder: (context) {
-                    void routedAction(String id, VoidCallback action) {
-                      if (SuperInteractionManager.instance.isMouseMode) {
-                        SuperInteractionManager.instance.onPointerClick(id);
-                      } else {
-                        action();
-                      }
-                    }
                     return MusicControlView(
                       slots: {
                         'control_bar': MusicControlBar(
@@ -322,54 +315,47 @@ class MusicControlRoom extends StatelessWidget {
                           },
                           isPlaying: cb.service.playback.isPlaying,
                           playMode: cb.service.playback.playMode,
-                          playModeSlot: (builder, {focusGeometry}) => FocusIdentity(
+                          playModeSlot: (builder, {focusGeometry}) => FocusActionButton(
                             id: MusicModel.btnPlayModeId,
                             onPressed: cb.togglePlayMode,
                             focusGeometry: focusGeometry,
-                            builder: (ctx, hasFocus) =>
-                                builder(ctx, hasFocus, () => routedAction(MusicModel.btnPlayModeId, cb.togglePlayMode)),
+                            builder: (ctx, hasFocus, activate) => builder(ctx, hasFocus, activate),
                           ),
-                          fastRewindSlot: (builder, {focusGeometry}) => FocusIdentity(
+                          fastRewindSlot: (builder, {focusGeometry}) => FocusActionButton(
                             id: MusicModel.btnFastRewindId,
                             onPressed: cb.fastRewind,
                             focusGeometry: focusGeometry,
-                            builder: (ctx, hasFocus) =>
-                                builder(ctx, hasFocus, () => routedAction(MusicModel.btnFastRewindId, cb.fastRewind)),
+                            builder: (ctx, hasFocus, activate) => builder(ctx, hasFocus, activate),
                           ),
-                          prevSlot: (builder, {focusGeometry}) => FocusIdentity(
+                          prevSlot: (builder, {focusGeometry}) => FocusActionButton(
                             id: MusicModel.btnPrevId,
                             onPressed: cb.playPrevTrack,
                             focusGeometry: focusGeometry,
-                            builder: (ctx, hasFocus) =>
-                                builder(ctx, hasFocus, () => routedAction(MusicModel.btnPrevId, cb.playPrevTrack)),
+                            builder: (ctx, hasFocus, activate) => builder(ctx, hasFocus, activate),
                           ),
-                          playPauseSlot: (builder, {focusGeometry}) => FocusIdentity(
+                          playPauseSlot: (builder, {focusGeometry}) => FocusActionButton(
                             id: MusicModel.btnPlayId,
                             onPressed: cb.togglePlayPause,
                             focusGeometry: focusGeometry,
-                            builder: (ctx, hasFocus) =>
-                                builder(ctx, hasFocus, () => routedAction(MusicModel.btnPlayId, cb.togglePlayPause)),
+                            builder: (ctx, hasFocus, activate) => builder(ctx, hasFocus, activate),
                           ),
-                          nextSlot: (builder, {focusGeometry}) => FocusIdentity(
+                          nextSlot: (builder, {focusGeometry}) => FocusActionButton(
                             id: MusicModel.btnNextId,
                             onPressed: cb.playNextTrack,
                             focusGeometry: focusGeometry,
-                            builder: (ctx, hasFocus) =>
-                                builder(ctx, hasFocus, () => routedAction(MusicModel.btnNextId, cb.playNextTrack)),
+                            builder: (ctx, hasFocus, activate) => builder(ctx, hasFocus, activate),
                           ),
-                          fastForwardSlot: (builder, {focusGeometry}) => FocusIdentity(
+                          fastForwardSlot: (builder, {focusGeometry}) => FocusActionButton(
                             id: MusicModel.btnFastForwardId,
                             onPressed: cb.fastForward,
                             focusGeometry: focusGeometry,
-                            builder: (ctx, hasFocus) =>
-                                builder(ctx, hasFocus, () => routedAction(MusicModel.btnFastForwardId, cb.fastForward)),
+                            builder: (ctx, hasFocus, activate) => builder(ctx, hasFocus, activate),
                           ),
-                          recacheSlot: (builder, {focusGeometry}) => FocusIdentity(
+                          recacheSlot: (builder, {focusGeometry}) => FocusActionButton(
                             id: MusicModel.btnRecacheId,
                             onPressed: cb.reCacheCurrentTrack,
                             focusGeometry: focusGeometry,
-                            builder: (ctx, hasFocus) =>
-                                builder(ctx, hasFocus, () => routedAction(MusicModel.btnRecacheId, cb.reCacheCurrentTrack)),
+                            builder: (ctx, hasFocus, activate) => builder(ctx, hasFocus, activate),
                           ),
                           fullscreenSlot: (builder, {focusGeometry}) {
                             void action() {
@@ -394,12 +380,11 @@ class MusicControlRoom extends StatelessWidget {
                                 ),
                               );
                             }
-                            return FocusIdentity(
+                            return FocusActionButton(
                               id: MusicModel.btnFullscreenId,
                               onPressed: action,
                               focusGeometry: focusGeometry,
-                              builder: (ctx, hasFocus) =>
-                                  builder(ctx, hasFocus, () => routedAction(MusicModel.btnFullscreenId, action)),
+                              builder: (ctx, hasFocus, activate) => builder(ctx, hasFocus, activate),
                             );
                           },
                         ),

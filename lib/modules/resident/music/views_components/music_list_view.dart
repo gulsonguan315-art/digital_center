@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/data/models/music_data.dart';
-import '../../../../core/data/repositories/music_repository.dart';
+import '../../../../core/data/repositories/music_cache_manager.dart';
 import '../../../../core/control/superfocus/focus_api.dart';
 
 typedef TrackSlotBuilder = Widget Function(
@@ -166,7 +166,7 @@ class MusicTrackRow extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                if (MusicRepository.instance.isTrackCached(track)) ...[
+                if (MusicCacheManager.instance.isTrackCached(track)) ...[
                   const SizedBox(width: 6),
                   Icon(
                     Icons.offline_pin_rounded,

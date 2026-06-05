@@ -14,6 +14,7 @@ import 'repositories/dashboard_repository.dart';
 import 'repositories/poetry_repository.dart';
 import 'repositories/settings_repository.dart';
 import 'repositories/music_repository.dart';
+import 'repositories/music_cache_manager.dart';
 import 'repositories/weather_repository.dart';
 import 'models/weather_data.dart';
 import '../engine/audio/app_audio_service.dart';
@@ -33,6 +34,7 @@ class DataManager {
       _localStore,
       _remoteClient,
     );
+    MusicCacheManager.instance = MusicCacheManager(_localStore);
     MusicRepository.instance = MusicRepository(_localStore);
     WeatherRepository.instance = WeatherRepository(_localStore);
   }
@@ -182,6 +184,7 @@ class DataManager {
   void dispose() {
     if (_isDisposed) return;
     _isDisposed = true;
+    MusicCacheManager.instance.dispose();
     MusicRepository.instance.dispose();
     PoetryRepository.instance.dispose();
     _localStore.dispose();

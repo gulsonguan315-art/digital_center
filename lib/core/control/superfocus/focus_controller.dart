@@ -366,5 +366,21 @@ class FocusController extends BaseInteractionController with FocusTraceLogger {
   void onPointerEnter(String targetId) {}
 
   @override
-  void onPointerClick(String targetId) {}
+  void onPointerClick(String targetId) {
+    // 焦点模式下的指针点击事件：让点击节点直接请求焦点以同步焦点位置，并触发对应逻辑
+    final info = state.nodeRegistry[targetId];
+    if (info != null) {
+      if (info.node.canRequestFocus) {
+        info.node.requestFocus();
+      }
+      onRoomEnter(info.roomId, printLog: false);
+
+      _actionDispatched = false;
+      info.onPressed?.call();
+
+      if (!_actionDispatched) {
+        onAction(info.roomId, targetId);
+      }
+    }
+  }
 }

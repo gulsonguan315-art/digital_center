@@ -6,7 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:crypto/crypto.dart';
 import 'music_playback_controller.dart';
 import '../../../../core/data/data_manager.dart';
-import '../../../../core/data/repositories/music_repository.dart';
+import '../../../../core/data/repositories/music_cache_manager.dart';
 
 /// Top-level function for background isolate JSON parsing
 List<List<double>> _parseEqDataInBackground(String content) {
@@ -24,8 +24,8 @@ class MusicVisualizerController {
   List<List<double>>? _currentEqData;
   String? _loadedTrackId;
   
-  List<double> _targetHeights = List.generate(8, (_) => 0.0);
-  List<double> _currentHeights = List.generate(8, (_) => 0.0);
+  final List<double> _targetHeights = List.generate(8, (_) => 0.0);
+  final List<double> _currentHeights = List.generate(8, (_) => 0.0);
 
   StreamSubscription<String>? _eqSub;
 
@@ -47,7 +47,7 @@ class MusicVisualizerController {
     _smoothPosMs = 0.0;
     _lastTickTime = null;
     
-    _eqSub = MusicRepository.instance.onEqGenerated.listen((cacheKey) {
+    _eqSub = MusicCacheManager.instance.onEqGenerated.listen((cacheKey) {
       final track = playback.currentTrack;
       if (track != null) {
         final currentCacheKey = _makeMd5('${track.path}_${track.size}');

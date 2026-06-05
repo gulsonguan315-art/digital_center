@@ -113,6 +113,16 @@ class SuperInteractionManager {
   
   void onPointerClick(String targetId) => _controller.onPointerClick(targetId);
 
+  /// 激活特定节点，在当前交互模式下统一分发，如果节点未注册则运行 fallback。
+  void activateNode(String id, {VoidCallback? fallback}) {
+    final info = state.nodeRegistry[id];
+    if (info != null) {
+      onPointerClick(id);
+    } else {
+      fallback?.call();
+    }
+  }
+
   void onRoomEnter(String roomId) => _controller.onRoomEnter(roomId);
 
   void onAction(String sourceRoom, String id, {bool asTerminalRoom = false}) {

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:superfocus/core/data/repositories/music_repository.dart';
+import 'package:superfocus/core/data/repositories/music_cache_manager.dart';
 
 import '../../../core/data/models/music_data.dart';
 import '../../../core/data/models/music_config.dart';
@@ -110,7 +110,7 @@ class MusicCallback extends ChangeNotifier {
   Future<void> reCacheCurrentTrack() async {
     final track = service.playback.currentTrack;
     if (track == null) return;
-    await MusicRepository.instance.clearTrackCache(track);
+    await MusicCacheManager.instance.clearTrackCache(track);
     // 强制使用网络重新拉取并播放
     await service.playback.selectTrack(
       track,

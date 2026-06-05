@@ -316,12 +316,8 @@ class _PoetryOverlayContentState extends State<PoetryOverlayContent>
               children: [
                 // 1. 全屏高斯模糊与暗色背景平滑过渡
                 Positioned.fill(
-                  child: GestureDetector(
-                    onTap: () {
-                      if (SuperInteractionManager.instance.isMouseMode) {
-                        _saveAndExit();
-                      }
-                    },
+                  child: MouseDismissRegion(
+                    onDismiss: _saveAndExit,
                     child: BackdropFilter(
                       filter: ImageFilter.blur(
                         sigmaX: _blurAnimation.value,

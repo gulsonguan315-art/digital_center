@@ -6,7 +6,7 @@ import 'focus_widgets.dart';
 
 // 1. 【暴露组件】
 export 'focus_widgets.dart'
-    show SuperFocusRoom, FocusIdentity, FocusShape, FocusTopologyScope;
+    show SuperFocusRoom, FocusIdentity, FocusShape, FocusTopologyScope, FocusActionButton, MouseDismissRegion;
 
 // 2. 【暴露模型】
 export 'interaction_state.dart' show FocusTopology;

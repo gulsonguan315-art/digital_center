@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
-import '../../../core/data/repositories/music_repository.dart';
+import '../../../core/data/repositories/music_cache_manager.dart';
 import 'controllers/music_lyrics_controller.dart';
 import 'controllers/music_visualizer_controller.dart';
 import 'controllers/music_playlist_controller.dart';
@@ -36,7 +36,7 @@ class MusicService extends ChangeNotifier {
     visualizer.startTicker(playback);
 
     // 监听本地缓存成功事件，刷新播放列表 UI 状态
-    _cacheSub = MusicRepository.instance.onTrackCached.listen((_) {
+    _cacheSub = MusicCacheManager.instance.onTrackCached.listen((_) {
       notifyListeners();
     });
   }

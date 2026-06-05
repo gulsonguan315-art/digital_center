@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../../../core/data/repositories/music_repository.dart';
+import '../../../../core/data/repositories/music_cache_manager.dart';
 import '../../../../core/data/models/music_data.dart';
 import '../../../../core/data/models/music_config.dart';
 import '../../../../core/engine/audio/app_audio_service.dart';
@@ -134,7 +135,7 @@ class MusicPlaybackController {
       final wasLocalCache = triedUrl != null && !triedUrl.startsWith('http');
       if (wasLocalCache) {
         debugPrint('Local cache failed to play, clearing cache and retrying online...');
-        await MusicRepository.instance.clearTrackCache(track);
+        await MusicCacheManager.instance.clearTrackCache(track);
         try {
           final onlineUrl = await MusicRepository.instance.getAudioPathOrUrl(track, forceOnline: true);
           if (autoplay) {

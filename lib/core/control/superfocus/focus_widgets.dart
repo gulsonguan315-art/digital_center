@@ -1,11 +1,9 @@
 import 'package:flutter/widgets.dart';
-import 'package:flutter/services.dart';
 import 'interaction_state.dart';
 import 'interaction_manager.dart';
 import 'focus_geometry.dart';
 import 'focus_report.dart';
 import '../device_manager/device_manager.dart';
-import '../../log/log_api.dart';
 
 typedef FocusShape = RoundedRectFocusGeometry;
 typedef FocusIdentity = SuperFocusItem;
@@ -210,7 +208,8 @@ class _SuperFocusItemState extends State<SuperFocusItem> {
           onPressed: widget.onPressed,
         );
       }
-    } else if (oldWidget.onPressed != widget.onPressed && _registeredRoomId != null) {
+    } else if (oldWidget.onPressed != widget.onPressed &&
+        _registeredRoomId != null) {
       // 【修复：Stale Closure】父组件 setState 可能传入全新的 onPressed 闭包
       SuperFocusManager.instance.registerNode(
         widget.id,
@@ -264,14 +263,13 @@ class _SuperFocusItemState extends State<SuperFocusItem> {
   Widget build(BuildContext context) {
     final isMouseMode = SuperInteractionManager.instance.isMouseMode;
     return MouseRegion(
-      onEnter: (_) => SuperInteractionManager.instance.onPointerEnter(widget.id),
+      onEnter: (_) =>
+          SuperInteractionManager.instance.onPointerEnter(widget.id),
       cursor: isMouseMode ? SystemMouseCursors.click : MouseCursor.defer,
       child: GestureDetector(
         behavior: HitTestBehavior.translucent,
         onTap: () {
-          if (isMouseMode) {
-            SuperInteractionManager.instance.onPointerClick(widget.id);
-          }
+          SuperInteractionManager.instance.onPointerClick(widget.id);
         },
         child: Focus(
           focusNode: _focusNode,
@@ -281,11 +279,11 @@ class _SuperFocusItemState extends State<SuperFocusItem> {
             setState(() => _hasFocus = focus);
             if (focus) {
               if (isMouseMode) {
-                 // 补丁 2: 鼠标模式下切断确保居中以及强制游标上报
-                 if (_focusNode.hasPrimaryFocus) {
-                     _focusNode.unfocus();
-                 }
-                 return;
+                // 补丁 2: 鼠标模式下切断确保居中以及强制游标上报
+                if (_focusNode.hasPrimaryFocus) {
+                  _focusNode.unfocus();
+                }
+                return;
               }
               if (widget.ensureVisibleCentered) {
                 Scrollable.ensureVisible(
@@ -393,6 +391,70 @@ class _SuperFocusAirNodeState extends State<SuperFocusAirNode> {
         });
         return const SizedBox.shrink();
       },
+    );
+  }
+}
+
+/// 统一的焦点/鼠标动作按钮组件 (Unified Focus Action Button Component)
+class FocusActionButton extends StatelessWidget {
+  final String id;
+  final VoidCallback onPressed;
+  final FocusGeometry? focusGeometry;
+  final Widget Function(
+    BuildContext context,
+    bool hasFocus,
+    VoidCallback activate,
+  )
+  builder;
+
+  const FocusActionButton({
+    super.key,
+    required this.id,
+    required this.onPressed,
+    required this.builder,
+    this.focusGeometry,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return FocusIdentity(
+      id: id,
+      onPressed: onPressed,
+      focusGeometry: focusGeometry,
+      builder: (context, hasFocus) {
+        return ExcludeFocus(
+          child: builder(context, hasFocus, () {
+            SuperInteractionManager.instance.activateNode(
+              id,
+              fallback: onPressed,
+            );
+          }),
+        );
+      },
+    );
+  }
+}
+
+/// 鼠标模式背景点击关闭区域 (Mouse Dismiss Region)
+class MouseDismissRegion extends StatelessWidget {
+  final VoidCallback onDismiss;
+  final Widget child;
+
+  const MouseDismissRegion({
+    super.key,
+    required this.onDismiss,
+    required this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        if (SuperInteractionManager.instance.isMouseMode) {
+          onDismiss();
+        }
+      },
+      child: child,
     );
   }
 }
