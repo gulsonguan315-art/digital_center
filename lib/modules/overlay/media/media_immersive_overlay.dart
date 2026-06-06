@@ -10,6 +10,7 @@ import '../../../core/control/device_manager/device_manager.dart';
 import '../../../core/layout/grid/grid.dart';
 
 import '../../../../core/engine/theme/theme_api.dart';
+import '../../resident/media/media_service.dart';
 
 import 'core/media_engine_controller.dart';
 import 'core/media_seek_controller.dart';
@@ -32,23 +33,37 @@ class _MediaImmersiveOverlayState extends State<MediaImmersiveOverlay> {
 
   late final MediaEngineController _engineController;
   late final MediaSeekController _seekController;
+  late String _currentItemId;
+
+  late StreamSubscription<bool> _completedSub;
 
   @override
   void initState() {
     super.initState();
+    _currentItemId = widget.itemId;
     _engineController = MediaEngineController(
       interactionStreamController: _interactionStreamController,
     );
-    _engineController.init(widget.itemId);
+    _engineController.init(_currentItemId);
 
     _seekController = MediaSeekController(
       _engineController.player,
       _interactionStreamController,
     );
+
+    _completedSub = _engineController.player.stream.completed.listen((completed) async {
+      if (completed && mounted) {
+        final success = await _switchEpisode(1);
+        if (!success && mounted) {
+          FocusAPI.dispatchBackCommand();
+        }
+      }
+    });
   }
 
   @override
   void dispose() {
+    _completedSub.cancel();
     _seekController.dispose();
     _engineController.dispose();
     _interactionStreamController.close();
@@ -96,18 +111,65 @@ class _MediaImmersiveOverlayState extends State<MediaImmersiveOverlay> {
           // 暂停播放，并触发拓扑跳转，显示自定义的焦点弹窗
           _seekController.wasPlayingBeforeSeek =
               _engineController.player.state.playing;
-          if (_seekController.wasPlayingBeforeSeek)
+          if (_seekController.wasPlayingBeforeSeek) {
             _engineController.player.pause();
+          }
           FocusAPI.dispatchAction('media_overlay', 'media_home_trigger');
+          return true;
+        case InputSignal.up:
+          _switchEpisode(-1);
+          return true;
+        case InputSignal.down:
+          _switchEpisode(1);
           return true;
         case InputSignal.volumeUp:
         case InputSignal.volumeDown:
         case InputSignal.back:
           return false; // 放行给全局处理（回退或调整全局音量）
-        default:
-          return true; // 空气节点吞噬其他一切操作，防止焦点逃逸
       }
     }
+  }
+
+  Future<bool> _switchEpisode(int direction) async {
+    final details = await MediaService.instance.fetchItemDetails(_currentItemId);
+    if (details == null) return false;
+    
+    // 如果不是剧集，则属于“不支持切集”的类型，一律报错误提醒
+    if (details['Type'] != 'Episode') {
+      _interactionStreamController.add(direction > 0 ? 'error_next_episode' : 'error_prev_episode');
+      return false;
+    }
+    
+    final seriesId = details['SeriesId'] as String?;
+    final seasonId = details['SeasonId'] as String?;
+    if (seriesId == null || seasonId == null) {
+      _interactionStreamController.add(direction > 0 ? 'error_next_episode' : 'error_prev_episode');
+      return false;
+    }
+    
+    final episodes = await MediaService.instance.fetchEpisodes(seriesId, seasonId);
+    final currentIndex = episodes.indexWhere((ep) => ep['Id'] == _currentItemId);
+    if (currentIndex == -1) {
+      _interactionStreamController.add(direction > 0 ? 'error_next_episode' : 'error_prev_episode');
+      return false;
+    }
+    
+    final targetIndex = currentIndex + direction;
+    if (targetIndex >= 0 && targetIndex < episodes.length) {
+      final nextId = episodes[targetIndex]['Id'] as String?;
+      if (nextId != null) {
+        setState(() {
+          _currentItemId = nextId;
+        });
+        _engineController.playItem(nextId);
+        _interactionStreamController.add(direction > 0 ? 'next_episode' : 'prev_episode');
+        return true;
+      }
+    }
+    
+    // 到了第一集再按上一集，或者最后一集再按下一集（暂不跨季切）
+    _interactionStreamController.add(direction > 0 ? 'error_next_episode' : 'error_prev_episode');
+    return false;
   }
 
   @override
@@ -161,9 +223,7 @@ class _MediaImmersiveOverlayState extends State<MediaImmersiveOverlay> {
                               _engineController.player.play();
                             }
                           } else {
-                            if (Navigator.canPop(context)) {
-                              Navigator.of(context).pop();
-                            }
+                            FocusAPI.dispatchBackCommand();
                           }
                         },
                         child: Container(color: Colors.transparent),
@@ -173,6 +233,7 @@ class _MediaImmersiveOverlayState extends State<MediaImmersiveOverlay> {
                     // 抽离出的 HUD (暂停提醒、进度条、顶部时间)
                     MediaImmersiveHud(
                       player: _engineController.player,
+                      itemId: _currentItemId,
                       interactionStream: _interactionStreamController.stream,
                       virtualPositionNotifier:
                           _seekController.virtualPositionNotifier,
@@ -205,8 +266,9 @@ class _MediaImmersiveOverlayState extends State<MediaImmersiveOverlay> {
                           color: Colors.black.withValues(alpha: 0.6),
                           child: MediaHomeConfirmDialog(
                             onCancel: () {
-                              if (_seekController.wasPlayingBeforeSeek)
+                              if (_seekController.wasPlayingBeforeSeek) {
                                 _engineController.player.play();
+                              }
                             },
                             onConfirm:
                                 () {}, // FocusAPI.dispatchHomeCommand() 已经在 Dialog 里调用了

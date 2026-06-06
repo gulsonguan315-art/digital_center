@@ -107,6 +107,9 @@ class HeroMetadataView extends StatelessWidget {
                 autofocus: true,
                 isPrimary: true,
                 onPressed: () {
+                  final targetItemId = controller.playItemId;
+                  if (targetItemId == null) return;
+
                   FocusAPI.dispatchAction(roomId, 'media_overlay');
                   Navigator.of(context).push(
                     PageRouteBuilder(
@@ -123,7 +126,7 @@ class HeroMetadataView extends StatelessWidget {
                               reverseCurve: Curves.easeInCubic,
                             ),
                           ),
-                          child: MediaImmersiveOverlay(itemId: itemId),
+                          child: MediaImmersiveOverlay(itemId: targetItemId),
                         ),
                       ),
                     ),

@@ -27,6 +27,11 @@ class MediaEngineController {
     AppAudioService.instance.addListener(_onGlobalVolumeChanged);
   }
 
+  void playItem(String itemId) {
+    final url = MediaService.instance.streamUrl(itemId);
+    player.open(Media(url));
+  }
+
   void _onGlobalVolumeChanged() {
     final vol = AppAudioService.instance.volume * 100.0;
     player.setVolume(vol);

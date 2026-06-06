@@ -8,6 +8,7 @@ class MediaDetailController extends ChangeNotifier {
   bool isLoading = true;
   bool isError = false;
 
+  String? firstEpisodeId;
   List<Map<String, dynamic>> processedPeople = [];
 
   MediaDetailController(this.itemId) {
@@ -23,6 +24,9 @@ class MediaDetailController extends ChangeNotifier {
       if (details != null) {
         _rawDetails = details;
         _processPeople();
+        if (type == 'Series') {
+          await _fetchFirstEpisode();
+        }
       } else {
         isError = true;
       }
@@ -31,6 +35,23 @@ class MediaDetailController extends ChangeNotifier {
     } finally {
       isLoading = false;
       notifyListeners();
+    }
+  }
+
+  Future<void> _fetchFirstEpisode() async {
+    try {
+      final seasons = await MediaService.instance.fetchSeasons(itemId);
+      if (seasons.isNotEmpty) {
+        final firstSeasonId = seasons.first['Id'] as String?;
+        if (firstSeasonId != null) {
+          final episodes = await MediaService.instance.fetchEpisodes(itemId, firstSeasonId);
+          if (episodes.isNotEmpty) {
+            firstEpisodeId = episodes.first['Id'] as String?;
+          }
+        }
+      }
+    } catch (_) {
+      // Ignore errors for first episode fetching
     }
   }
 
@@ -68,6 +89,8 @@ class MediaDetailController extends ChangeNotifier {
   }
 
   String get type => _rawDetails?['Type'] as String? ?? '';
+
+  String? get playItemId => type == 'Series' ? firstEpisodeId : itemId;
 
   // 算法抽离：过滤无头像人员、去重、优先级排序、截断前 15 人
   void _processPeople() {

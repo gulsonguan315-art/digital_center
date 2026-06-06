@@ -3,6 +3,7 @@ import '../../../../core/engine/theme/theme_api.dart';
 import '../../../../core/layout/grid/grid.dart';
 import '../media_service.dart';
 import '../../../../core/control/superfocus/focus_api.dart';
+import '../../../../core/control/superfocus/focus_widgets.dart';
 import '../../../overlay/media/media_immersive_overlay.dart';
 
 class SeriesDetailView extends StatefulWidget {
@@ -198,6 +199,8 @@ class _SeriesDetailViewState extends State<SeriesDetailView> {
             alignment: FocusAlignment.keepVisible,
             onPressed: () {
               if (id != null) {
+                final roomId = RoomScope.of(context)?.roomId ?? '';
+                FocusAPI.dispatchAction(roomId, 'media_overlay');
                 Navigator.of(context).push(
                   PageRouteBuilder(
                     opaque: true, // 阻止底层渲染
@@ -405,6 +408,8 @@ class _SeriesDetailViewState extends State<SeriesDetailView> {
                       alignment: FocusAlignment.keepVisible,
                       onPressed: () {
                         if (id != null) {
+                          final roomId = RoomScope.of(context)?.roomId ?? '';
+                          FocusAPI.dispatchAction(roomId, 'media_overlay');
                           Navigator.of(context).push(
                             PageRouteBuilder(
                               opaque: true, // 阻止底层渲染
