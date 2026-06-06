@@ -145,6 +145,19 @@ class FocusController extends BaseInteractionController with FocusTraceLogger {
   }
 
   @override
+  void onHome() {
+    cancelNavigation();
+    state.portalStack.clear();
+    BuildingMap.clearDynamicCache();
+    
+    const targetRoom = 'sidebar';
+    logRoomAction(currentRoomId ?? '未知', 'Home', targetRoom);
+    onRoomEnter(targetRoom, printLog: true);
+    intentionRoomId.value = targetRoom;
+    _executeSearch(targetRoom);
+  }
+
+  @override
   void onBack() {
     if (intentionRoomId.value != null) {
       cancelNavigation();

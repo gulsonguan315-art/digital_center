@@ -33,6 +33,12 @@ class MouseController extends BaseInteractionController {
   }
 
   @override
+  void onHome() {
+    _topologyGC();
+    onRoomEnter('sidebar');
+  }
+
+  @override
   void onBack() {
     // 鼠标模式下支持 ESC/返回 退出 Overlay 页面（沿拓扑路径回退）
     final path = state.topologyNotifier.value.activePath;

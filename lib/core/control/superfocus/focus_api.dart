@@ -67,6 +67,11 @@ abstract class FocusAPI {
   static void dispatchBackCommand() {
     SuperFocusManager.instance.onBackCommand();
   }
+
+  /// 【主页指令】回到初始状态
+  static void dispatchHomeCommand() {
+    SuperFocusManager.instance.onHomeCommand();
+  }
 }
 
 /// 4. 【暴露状态】极其优雅的 BuildContext 扩展

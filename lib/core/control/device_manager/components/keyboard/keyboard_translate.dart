@@ -31,6 +31,9 @@ abstract final class KeyboardTranslate {
       LogicalKeyboardKey.escape => InputSignal.back,
       LogicalKeyboardKey.backspace => InputSignal.back,
 
+      // ── 主页键 ──────────────────────────────────────────────────────────
+      LogicalKeyboardKey.home => InputSignal.home,
+
       // ── 菜单键 ──────────────────────────────────────────────────────────
       LogicalKeyboardKey.keyM => InputSignal.menu,
 

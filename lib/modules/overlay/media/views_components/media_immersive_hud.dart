@@ -40,6 +40,10 @@ class _MediaImmersiveHudState extends State<MediaImmersiveHud> {
 
   Timer? _playIconTimer;
   Timer? _seekHudTimer;
+  Timer? _volumeHudTimer;
+
+  bool _showVolumeHudTemporary = false;
+  String _volumeText = '';
 
   @override
   void initState() {
@@ -79,7 +83,11 @@ class _MediaImmersiveHudState extends State<MediaImmersiveHud> {
 
     if (widget.interactionStream != null) {
       _interactionSub = widget.interactionStream!.listen((msg) {
-        _triggerSeekHud(msg);
+        if (msg.startsWith('音量')) {
+          _triggerVolumeHud(msg);
+        } else {
+          _triggerSeekHud(msg);
+        }
       });
     }
 
@@ -119,6 +127,23 @@ class _MediaImmersiveHudState extends State<MediaImmersiveHud> {
     });
   }
 
+  void _triggerVolumeHud(String msg) {
+    if (!mounted) return;
+    setState(() {
+      _showVolumeHudTemporary = true;
+      _volumeText = msg;
+    });
+    _volumeHudTimer?.cancel();
+    _volumeHudTimer = Timer(const Duration(seconds: 2), () {
+      if (mounted) {
+        setState(() {
+          _showVolumeHudTemporary = false;
+          _volumeText = '';
+        });
+      }
+    });
+  }
+
   @override
   void dispose() {
     widget.virtualPositionNotifier?.removeListener(_onVirtualPositionChanged);
@@ -128,6 +153,7 @@ class _MediaImmersiveHudState extends State<MediaImmersiveHud> {
     _interactionSub?.cancel();
     _playIconTimer?.cancel();
     _seekHudTimer?.cancel();
+    _volumeHudTimer?.cancel();
     super.dispose();
   }
 
@@ -400,6 +426,41 @@ class _MediaImmersiveHudState extends State<MediaImmersiveHud> {
                 ),
               ),
             ),
+            
+            // 独立音量提示 HUD (顶部居中或右侧)
+            if (_showVolumeHudTemporary)
+              Positioned(
+                top: grid.units(6),
+                right: grid.pageInset,
+                child: AnimatedOpacity(
+                  opacity: _showVolumeHudTemporary ? 1.0 : 0.0,
+                  duration: const Duration(milliseconds: 200),
+                  child: Container(
+                    padding: EdgeInsets.symmetric(horizontal: grid.units(3), vertical: grid.units(1.5)),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.6),
+                      borderRadius: BorderRadius.circular(grid.units(4)),
+                      border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.volume_up_rounded, color: Colors.white, size: grid.units(3)),
+                        SizedBox(width: grid.units(1)),
+                        Text(
+                          _volumeText,
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: grid.units(2.2),
+                            fontWeight: FontWeight.bold,
+                            decoration: TextDecoration.none,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
           ],
         ),
       ),

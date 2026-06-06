@@ -32,8 +32,10 @@ class BuildingMapData {
       '*music=>musicPage',
       '+book',
       '*setting=>settingPage',
-      '*exit',
+      '*exit=>exitPage',
     ],
+
+    'exitPage': ['*btn_update', '*btn_exit_app'],
 
     'media': [
       '*mov=>mediaPage',
@@ -44,8 +46,9 @@ class BuildingMapData {
     ],
 
     'mediaPage': ['*', '/*', '*media_btn_play=>media_overlay'],
-    'media_overlay': ['*media_overlay_air_node=>media_menu'],
+    'media_overlay': ['*media_overlay_air_node=>media_menu', '*media_home_trigger=>media_home_confirm'],
     'media_menu': ['*media_menu_speed', '*media_menu_skip', '*media_menu_subtitle', '*media_menu_audio'],
+    'media_home_confirm': ['*media_home_cancel', '*media_home_ok'],
     'book': ['*科幻', '*人文=>testPage'],
 
     // ── [2] 音乐模块 (Music) ──────────────────────────────────────────────────

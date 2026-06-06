@@ -81,15 +81,19 @@ install(FILES "${FLUTTER_ICU_DATA_FILE}" DESTINATION "${INSTALL_BUNDLE_DATA_DIR}
 install(FILES "${FLUTTER_LIBRARY}" DESTINATION "${INSTALL_BUNDLE_LIB_DIR}"
   COMPONENT Runtime)
 
-# 复制自定义的完整版 libmpv-2.dll 到输出目录（供 media_kit 调用）
-install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/../third_party/libmpv-2.dll" DESTINATION "${INSTALL_BUNDLE_LIB_DIR}"
-  COMPONENT Runtime)
-
 if(PLUGIN_BUNDLED_LIBRARIES)
   install(FILES "${PLUGIN_BUNDLED_LIBRARIES}"
     DESTINATION "${INSTALL_BUNDLE_LIB_DIR}"
     COMPONENT Runtime)
 endif()
+
+# 强制使用第三方的 libmpv-2.dll（放到 PLUGIN_BUNDLED_LIBRARIES 之后，确保能覆盖掉插件自带的阉割版）
+install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/../third_party/libmpv-2.dll" DESTINATION "${INSTALL_BUNDLE_LIB_DIR}"
+  COMPONENT Runtime)
+
+# 将整个 third_party 目录（包含 py 脚本等环境文件）一并打包进输出目录
+install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/../third_party" DESTINATION "${INSTALL_BUNDLE_LIB_DIR}"
+  COMPONENT Runtime)
 
 # Copy the native assets provided by the build.dart from all packages.
 set(NATIVE_ASSETS_DIR "${PROJECT_BUILD_DIR}native_assets/windows/")

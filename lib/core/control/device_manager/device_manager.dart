@@ -4,6 +4,9 @@ import '../superfocus/focus_api.dart';
 import '../../engine/audio/app_audio_service.dart';
 import '../../log/log_api.dart';
 import 'components/keyboard/keyboard_source.dart';
+import 'components/remote/remote_source.dart';
+
+import 'components/remote/remote_system_key_bridge.dart';
 
 export 'components/keyboard/keyboard_source.dart';
 export 'components/gamepad/gamepad_source.dart';
@@ -34,6 +37,9 @@ enum InputSignal {
 
   /// 返回/取消
   back,
+
+  /// 回到主页
+  home,
 
   /// 呼出控制菜单
   menu,
@@ -103,11 +109,15 @@ class SuperInputManager {
     _interceptors.remove(interceptor);
   }
 
-  /// 初始化并启动默认输入源（键盘）
+  /// 初始化并启动默认输入源（键盘与遥控器）
   void init() {
     if (_initialized) return;
     _initialized = true;
     addSource(KeyboardInputSource());
+    addSource(RemoteInputSource());
+    
+    // 初始化系统全局音量键桥接（解决 Windows 音量键被系统吃掉的问题）
+    RemoteSystemKeyBridge.instance.init(_handleSignal);
   }
 
   /// 挂载一个新的输入设备
@@ -155,6 +165,8 @@ class SuperInputManager {
         FocusAPI.dispatchConfirm();
       case InputSignal.back:
         FocusAPI.dispatchBackCommand();
+      case InputSignal.home:
+        FocusAPI.dispatchHomeCommand();
       case InputSignal.menu:
         // menu 信号由局部拦截器消费；若未拦截则在此处忽略
         break;

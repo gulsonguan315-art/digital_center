@@ -43,7 +43,7 @@ class RemoteInputSource implements InputSource, KeyEventHandler {
   /// 由 [SuperInputManager.handleRootKeyEvent] 调用。
   @override
   KeyEventResult handleKey(FocusNode node, KeyEvent event) {
-    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    if (event is! KeyDownEvent && event is! KeyRepeatEvent) return KeyEventResult.ignored;
     final signal = RemoteTranslate.translate(event.logicalKey);
     if (signal == null) return KeyEventResult.ignored;
     _onSignal?.call(signal);

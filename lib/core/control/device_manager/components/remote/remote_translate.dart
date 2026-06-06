@@ -28,11 +28,19 @@ abstract final class RemoteTranslate {
       // ── 返回键 ──────────────────────────────────────────────────────────
       LogicalKeyboardKey.goBack => InputSignal.back,
       LogicalKeyboardKey.escape => InputSignal.back,
+      LogicalKeyboardKey.browserBack => InputSignal.back,
 
-      // ── 平台特定遥控键 ───────────────────────────────────────────────────
-      // TODO: 根据目标平台（AndroidTV / 机顶盒）补充专用遥控键映射。
-      // 参考 Android KeyEvent.KEYCODE_DPAD_* 系列。
-      // LogicalKeyboardKey.tvContentsMenu => InputSignal.back,
+      // ── 主页键 ──────────────────────────────────────────────────────────
+      LogicalKeyboardKey.home => InputSignal.home,
+
+      // ── 菜单键 ──────────────────────────────────────────────────────────
+      LogicalKeyboardKey.contextMenu => InputSignal.menu,
+      LogicalKeyboardKey.keyM => InputSignal.menu,
+
+      // ── 平台特定/媒体键 ──────────────────────────────────────────────────
+      LogicalKeyboardKey.mediaPlayPause => InputSignal.confirm,
+      LogicalKeyboardKey.numpadAdd => InputSignal.volumeUp,
+      LogicalKeyboardKey.numpadSubtract => InputSignal.volumeDown,
 
       // ── 未映射 ──────────────────────────────────────────────────────────
       _ => null,

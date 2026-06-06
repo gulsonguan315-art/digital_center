@@ -87,8 +87,13 @@ class ApiEndpoints {
 class UserSettings {
   final ApiEndpoints api;
   final String interactionMode;
+  final bool immersiveMode;
 
-  const UserSettings({required this.api, this.interactionMode = 'focus'});
+  const UserSettings({
+    required this.api, 
+    this.interactionMode = 'focus',
+    this.immersiveMode = false,
+  });
 
   factory UserSettings.fromJson(Map<String, dynamic> json) {
     return UserSettings(
@@ -96,17 +101,21 @@ class UserSettings {
           ? ApiEndpoints.fromJson(json['api'] as Map<String, dynamic>)
           : ApiEndpoints.defaultEndpoints,
       interactionMode: json['interactionMode'] as String? ?? 'focus',
+      immersiveMode: json['immersiveMode'] as bool? ?? false,
     );
   }
 
   Map<String, dynamic> toJson() => {
     '_help_interactionMode': '【交互模式配置】支持 "focus" (遥控器纯焦点模式) 或 "mouse" (纯鼠标点击模式)',
     'interactionMode': interactionMode,
+    '_help_immersiveMode': '【沉浸模式】true代表最大化无边框置顶，false代表普通窗口',
+    'immersiveMode': immersiveMode,
     'api': api.toJson(),
   };
 
   static const UserSettings defaultSettings = UserSettings(
     api: ApiEndpoints.defaultEndpoints,
     interactionMode: 'focus',
+    immersiveMode: false,
   );
 }

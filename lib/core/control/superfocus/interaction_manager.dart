@@ -132,6 +132,10 @@ class SuperInteractionManager {
     _controller.onBack();
   }
 
+  void onHomeCommand() {
+    _controller.onHome();
+  }
+
   // 兼容旧接口
   void onBack(BuildContext context) => onBackCommand();
 

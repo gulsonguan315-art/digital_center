@@ -134,6 +134,7 @@ bool Win32Window::Create(const std::wstring& title,
   UINT dpi = FlutterDesktopGetDpiForMonitor(monitor);
   double scale_factor = dpi / 96.0;
 
+  // Restore to default (WS_OVERLAPPEDWINDOW), give control to Dart
   HWND window = CreateWindow(
       window_class, title.c_str(), WS_OVERLAPPEDWINDOW,
       Scale(origin.x, scale_factor), Scale(origin.y, scale_factor),
@@ -150,7 +151,8 @@ bool Win32Window::Create(const std::wstring& title,
 }
 
 bool Win32Window::Show() {
-  return ShowWindow(window_handle_, SW_SHOWNORMAL);
+  // Start hidden to avoid flicker, let Dart handle the window visibility and styles
+  return ShowWindow(window_handle_, SW_HIDE);
 }
 
 // static

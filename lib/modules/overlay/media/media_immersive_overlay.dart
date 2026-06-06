@@ -9,8 +9,11 @@ import '../../../core/control/superfocus/interaction_manager.dart';
 import '../../../core/control/device_manager/device_manager.dart';
 import '../../../core/layout/grid/grid.dart';
 import '../../resident/media/media_service.dart';
-
+import '../../../../core/engine/audio/app_audio_service.dart';
 import '../../../../core/engine/theme/theme_api.dart';
+
+import '../../../ui/base/surface/dashboard_card.dart';
+import '../../../ui/base/text/surface_text.dart';
 import 'views_components/media_immersive_control_panel.dart';
 import 'views_components/media_immersive_hud.dart';
 
@@ -42,13 +45,23 @@ class _MediaImmersiveOverlayState extends State<MediaImmersiveOverlay> {
   void initState() {
     super.initState();
     _player = Player();
+    _player.setVolume(AppAudioService.instance.volume * 100.0);
     _controller = VideoController(_player);
     final url = MediaService.instance.streamUrl(widget.itemId);
     _player.open(Media(url));
+
+    AppAudioService.instance.addListener(_onGlobalVolumeChanged);
+  }
+
+  void _onGlobalVolumeChanged() {
+    final vol = AppAudioService.instance.volume * 100.0;
+    _player.setVolume(vol);
+    _interactionStreamController.add('音量: ${vol.toInt()}%');
   }
 
   @override
   void dispose() {
+    AppAudioService.instance.removeListener(_onGlobalVolumeChanged);
     _seekDebounceTimer?.cancel();
     _interactionStreamController.close();
     _virtualPositionNotifier.dispose();
@@ -110,13 +123,17 @@ class _MediaImmersiveOverlayState extends State<MediaImmersiveOverlay> {
 
   bool _handleLocalInput(InputSignal signal) {
     final showMenu = SuperFocusManager.instance.state.checkIsActive('media_menu');
+    final showHomeConfirm = SuperFocusManager.instance.state.checkIsActive('media_home_confirm');
 
-    if (showMenu) {
+    if (showMenu || showHomeConfirm) {
       if (signal == InputSignal.menu || signal == InputSignal.back) {
         FocusAPI.dispatchBackCommand();
+        if (showHomeConfirm && !_player.state.playing && _wasPlayingBeforeSeek) {
+           _player.play(); // 如果弹窗取消，恢复播放
+        }
         return true;
       }
-      return false; // 允许菜单项间正常使用方向键与确认键
+      return false; // 允许菜单项/弹窗内正常使用方向键与确认键
     } else {
       switch (signal) {
         case InputSignal.menu:
@@ -135,12 +152,118 @@ class _MediaImmersiveOverlayState extends State<MediaImmersiveOverlay> {
           // 右键快进 10 秒 / 长按 30 秒
           _seekRelative(InputSignal.right);
           return true;
+        case InputSignal.home:
+          // 暂停播放，并触发拓扑跳转，显示自定义的焦点弹窗
+          _wasPlayingBeforeSeek = _player.state.playing;
+          if (_wasPlayingBeforeSeek) _player.pause();
+          FocusAPI.dispatchAction('media_overlay', 'media_home_trigger');
+          return true;
+        case InputSignal.volumeUp:
+        case InputSignal.volumeDown:
         case InputSignal.back:
-          return false; // 放行以回退路由
+          return false; // 放行给全局处理（回退或调整全局音量）
         default:
           return true; // 空气节点吞噬其他一切操作，防止焦点逃逸
       }
     }
+  }
+
+  Widget _buildHomeConfirmDialog(BuildContext context) {
+    return Center(
+      child: SuperFocusRoom(
+        id: 'media_home_confirm',
+        child: Container(
+          width: 400,
+          padding: const EdgeInsets.all(32.0),
+          decoration: BoxDecoration(
+            color: Colors.grey[900],
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.white24, width: 1),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                '确认返回主页？',
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                  decoration: TextDecoration.none,
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                '这将会结束当前的视频播放',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.white70,
+                  decoration: TextDecoration.none,
+                ),
+              ),
+              const SizedBox(height: 32),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  FocusIdentity(
+                    id: 'media_home_cancel',
+                    onPressed: () {
+                      FocusAPI.dispatchBackCommand();
+                      if (_wasPlayingBeforeSeek) _player.play();
+                    },
+                    builder: (ctx, hasFocus) => _buildConfirmButton(
+                      title: '取消',
+                      hasFocus: hasFocus,
+                      isPrimary: false,
+                    ),
+                  ),
+                  FocusIdentity(
+                    id: 'media_home_ok',
+                    onPressed: () {
+                      FocusAPI.dispatchHomeCommand();
+                    },
+                    builder: (ctx, hasFocus) => _buildConfirmButton(
+                      title: '确认返回',
+                      hasFocus: hasFocus,
+                      isPrimary: true,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildConfirmButton({
+    required String title,
+    required bool hasFocus,
+    required bool isPrimary,
+  }) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+      decoration: BoxDecoration(
+        color: hasFocus 
+            ? (isPrimary ? Colors.redAccent : Colors.white24) 
+            : (isPrimary ? Colors.redAccent.withValues(alpha: 0.8) : Colors.transparent),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: hasFocus ? Colors.white : Colors.transparent,
+          width: 2,
+        ),
+      ),
+      child: Text(
+        title,
+        style: TextStyle(
+          color: hasFocus || isPrimary ? Colors.white : Colors.white70,
+          fontWeight: FontWeight.bold,
+          decoration: TextDecoration.none,
+        ),
+      ),
+    );
   }
 
   @override
@@ -181,7 +304,7 @@ class _MediaImmersiveOverlayState extends State<MediaImmersiveOverlay> {
                     child: GestureDetector(
                       behavior: HitTestBehavior.translucent,
                       onTap: () {
-                        if (showMenu) {
+                        if (showMenu || roomContext.useIsActive('media_home_confirm')) {
                           FocusAPI.dispatchBackCommand();
                         } else {
                           if (Navigator.canPop(context)) {
@@ -215,6 +338,15 @@ class _MediaImmersiveOverlayState extends State<MediaImmersiveOverlay> {
                         padding: EdgeInsets.only(left: GridContext.fromViewport(MediaQuery.sizeOf(context)).pageInset),
                         alignment: Alignment.centerLeft,
                         child: const MediaImmersiveControlPanel(),
+                      ),
+                    ),
+                    
+                  // 居中显示的退出确认弹窗
+                  if (roomContext.useIsActive('media_home_confirm'))
+                    Positioned.fill(
+                      child: Container(
+                        color: Colors.black.withValues(alpha: 0.6),
+                        child: _buildHomeConfirmDialog(context),
                       ),
                     ),
                 ],

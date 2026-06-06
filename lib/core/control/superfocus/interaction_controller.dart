@@ -21,6 +21,9 @@ abstract class BaseInteractionController {
   /// 【返回意图】处理返回/取消意图
   void onBack();
 
+  /// 【主页意图】直接重置应用到初始状态
+  void onHome();
+
   /// 【指针悬停】处理鼠标悬停事件（鼠标专属）
   void onPointerEnter(String targetId);
 

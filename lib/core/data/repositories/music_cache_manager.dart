@@ -144,7 +144,9 @@ class MusicCacheManager {
     );
     if (eqFile.existsSync()) return;
 
-    final exePath = 'third_party/generate_eq.exe';
+    // 使用绝对路径，防止因为 Windows Shell 替换启动时工作目录 (C:\Windows\System32) 错误导致找不到第三方依赖
+    final String appDir = File(Platform.resolvedExecutable).parent.path;
+    final String exePath = '$appDir\\third_party\\generate_eq.exe';
 
     // 确保父目录存在
     if (!eqFile.parent.existsSync()) {

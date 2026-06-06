@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:window_manager/window_manager.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'core/control/superfocus/interaction_manager.dart';
 import 'core/control/device_manager/device_manager.dart';
@@ -17,6 +18,7 @@ import 'package:media_kit/media_kit.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   MediaKit.ensureInitialized();
+  await windowManager.ensureInitialized();
   await initializeDateFormatting('zh_CN', null);
   
   // 0. 初始化大管家并阻塞等待加载偏好（避免冷启动主题闪烁）
@@ -28,13 +30,37 @@ void main() async {
   // 1. 初始化舞台调度中心 (招商登记)
   StageInitializer.init();
   
-  // 1.5 初始化双模交互系统
+  // 1.5 读取用户配置，并立即保存一次（确保新字段如 immersiveMode 被写入文件）
   final userSettings = await DataManager.instance.getUserSettings();
+  await DataManager.instance.saveUserSettings(userSettings);
+
+  // 根据配置设定窗口形态 (C++ 层启动时已屏蔽显示，等待这里施加最终形态)
+  WindowOptions windowOptions = userSettings.immersiveMode
+      ? const WindowOptions(
+          fullScreen: true,
+          alwaysOnTop: true,
+        )
+      : const WindowOptions(
+          size: Size(1280, 720),
+          alwaysOnTop: false,
+        );
+
+  // waitUntilReadyToShow 会等待 Flutter 渲染出第一帧。
+  // 我们已经移除了 C++ 层的强制显示，现在由 Dart 独占窗口控制权。
+  windowManager.waitUntilReadyToShow(windowOptions, () async {
+    await windowManager.show();
+    await windowManager.focus();
+    if (!userSettings.immersiveMode) {
+      await windowManager.center(); // 等窗口真正 show 出来后再居中，防止坐标系计算错误
+    }
+  });
+
+  // 初始化双模交互系统
   SuperInteractionManager.instance.init(mode: userSettings.interactionMode);
   
   // 2. 启动设备管理模块，接管所有物理输入信号
   SuperInputManager.instance.init();
-  runApp(const MyApp());
+  runApp(MyApp(immersiveMode: userSettings.immersiveMode));
 }
 
 /// 🔋 临终落锁刷盘生命周期监控器 (App Teardown Lifecycle Observer)
@@ -50,7 +76,8 @@ class _AppLifecycleObserver extends WidgetsBindingObserver {
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final bool immersiveMode;
+  const MyApp({super.key, required this.immersiveMode});
 
   @override
   Widget build(BuildContext context) {
@@ -76,7 +103,7 @@ class MyApp extends StatelessWidget {
             final gridContext = GridContext.fromViewport(viewportSize);
             final gridTokens = GridTokens.fromContext(gridContext);
 
-            return Focus(
+            Widget appBody = Focus(
               debugLabel: 'GlobalDeviceInputGuard',
               descendantsAreFocusable: true,
               autofocus: true,
@@ -95,6 +122,17 @@ class MyApp extends StatelessWidget {
                 ),
               ),
             );
+
+            // 如果是沉浸模式，说明通常是在无桌面/Kiosk环境下运行（如数字大屏），
+            // 将整个 APP 强制设为无鼠标指针状态，避免屏幕中间一直有个鼠标。
+            if (immersiveMode) {
+              appBody = MouseRegion(
+                cursor: SystemMouseCursors.none,
+                child: appBody,
+              );
+            }
+
+            return appBody;
           },
           home: const BuildingPage(),
         );
