@@ -40,11 +40,26 @@ class PortalEntry {
   });
 }
 
+/// 下一次焦点跳转的动画配置
+class FocusTransitionConfig {
+  final FocusTransitionMode mode;
+  final Duration? delay;
+
+  const FocusTransitionConfig(this.mode, {this.delay});
+}
+
+/// 房间的全局配置缓存
+class RoomInfo {
+  final FocusTransitionConfig? transitionConfig;
+  const RoomInfo({this.transitionConfig});
+}
+
 /// 焦点系统的 RAM (智能存储单元)
 /// 负责：存储原始数据、维护通知器、提供状态翻译逻辑
 class InteractionState {
   // --- 静态存储 (数据表) ---
   final Map<String, FocusNodeInfo> nodeRegistry = {};
+  final Map<String, RoomInfo> roomRegistry = {};
   final List<PortalEntry> portalStack = [];
 
   // --- 核心状态通知器 (寄存器) ---
@@ -53,6 +68,9 @@ class InteractionState {
   );
   final ValueNotifier<FocusReport?> cursorReportNotifier = ValueNotifier(null);
   final ValueNotifier<bool> cursorHiddenNotifier = ValueNotifier(false);
+
+  // --- 一次性状态寄存器 ---
+  FocusTransitionConfig? nextTransition;
 
   // --- 翻译逻辑 (Translation Logic) ---
 

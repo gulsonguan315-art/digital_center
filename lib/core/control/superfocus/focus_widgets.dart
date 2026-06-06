@@ -1,10 +1,14 @@
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
+import 'package:flutter/services.dart';
 import 'interaction_state.dart';
 import 'interaction_manager.dart';
 import 'focus_geometry.dart';
 import 'focus_report.dart';
+import 'auto_scroll_dispatcher.dart';
+import 'building_map.dart';
 import '../device_manager/device_manager.dart';
+import 'focus_alignment.dart';
 
 typedef FocusShape = RoundedRectFocusGeometry;
 typedef FocusIdentity = SuperFocusItem;
@@ -58,8 +62,14 @@ class FocusTopologyScope extends InheritedWidget {
 class SuperFocusRoom extends StatefulWidget {
   final String id;
   final Widget child;
+  final FocusTransitionConfig? transitionConfig;
 
-  const SuperFocusRoom({super.key, required this.id, required this.child});
+  const SuperFocusRoom({
+    super.key,
+    required this.id,
+    required this.child,
+    this.transitionConfig,
+  });
 
   @override
   State<SuperFocusRoom> createState() => _SuperFocusRoomState();
@@ -73,6 +83,21 @@ class _SuperFocusRoomState extends State<SuperFocusRoom> {
   void initState() {
     super.initState();
     _isZone = SuperFocusManager.instance.isZone(widget.id);
+    SuperFocusManager.instance.registerRoom(widget.id, transitionConfig: widget.transitionConfig);
+  }
+
+  @override
+  void didUpdateWidget(SuperFocusRoom oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.id != oldWidget.id || widget.transitionConfig != oldWidget.transitionConfig) {
+      SuperFocusManager.instance.registerRoom(widget.id, transitionConfig: widget.transitionConfig);
+    }
+  }
+
+  @override
+  void dispose() {
+    SuperFocusManager.instance.unregisterRoom(widget.id);
+    super.dispose();
   }
 
   @override
@@ -99,7 +124,15 @@ class _SuperFocusRoomState extends State<SuperFocusRoom> {
                 if (hasFocus) {
                   // 异步上报，彻底解决 Build 周期内的重绘死循环
                   Future.microtask(() {
-                    SuperFocusManager.instance.onRoomEnter(widget.id);
+                    final primaryContext = FocusManager.instance.primaryFocus?.context;
+                    if (primaryContext != null) {
+                      final closestRoomId = RoomScope.of(primaryContext)?.roomId;
+                      // 只有当最深层的房间就是自己时，才上报。
+                      // 防止嵌套房间（如 MediaDetailRoom 嵌套在 MediaRoom 中）在恢复焦点时父房间覆盖子房间。
+                      if (closestRoomId == widget.id) {
+                        SuperFocusManager.instance.onRoomEnter(widget.id);
+                      }
+                    }
                   });
                 }
               },
@@ -136,6 +169,26 @@ class SuperFocusGroup extends StatelessWidget {
   }
 }
 
+/// 焦点簇（Focus Cluster）
+/// 将一组连续的焦点项（如水平的 ListView/Row）包裹在这个组件中，
+/// 它会在焦点引擎进行几何方向扫描时，形成一道物理隔离结界，优先让焦点在簇内流转，
+/// 从而完美解决诸如“水平滚动列表右移时，因为高度视差错误跳跃到上方其它元素”的魔性问题。
+class FocusCluster extends StatelessWidget {
+  final Widget child;
+
+  const FocusCluster({super.key, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return Focus(
+      canRequestFocus: false,
+      skipTraversal: true,
+      debugLabel: 'FocusCluster',
+      child: child,
+    );
+  }
+}
+
 /// 焦点原子项 - UI "三步走"之第三步
 class SuperFocusItem extends StatefulWidget {
   final String id;
@@ -145,10 +198,7 @@ class SuperFocusItem extends StatefulWidget {
   final FocusNode? focusNode;
   final FocusGeometry? focusGeometry;
   final GlobalKey? visualBoundsKey;
-  final bool ensureVisibleCentered;
-  /// 边缘露出模式：滚动刺好把整个卡片露出，然后小幅回弹给一点呼吸空间。
-  /// 适用于矩阵/列表等多行列局场景，不会跳到屏幕中心。
-  final bool ensureVisibleEdge;
+  final FocusAlignment alignment;
 
   const SuperFocusItem({
     super.key,
@@ -159,8 +209,7 @@ class SuperFocusItem extends StatefulWidget {
     this.focusNode,
     this.focusGeometry,
     this.visualBoundsKey,
-    this.ensureVisibleCentered = false,
-    this.ensureVisibleEdge = false,
+    this.alignment = FocusAlignment.keepVisible,
   });
 
   @override
@@ -248,6 +297,8 @@ class _SuperFocusItemState extends State<SuperFocusItem> {
       final offset = renderBox.localToGlobal(Offset.zero);
       final size = renderBox.size;
 
+      final config = SuperFocusManager.instance.consumeNextTransition();
+
       SuperFocusManager.instance.reportCursor(
         FocusReport(
           rect: offset & size,
@@ -258,6 +309,8 @@ class _SuperFocusItemState extends State<SuperFocusItem> {
               ),
           isFocused: _hasFocus,
           context: context,
+          transitionMode: config?.mode ?? FocusTransitionMode.slide,
+          teleportDelay: config?.delay,
         ),
       );
     });
@@ -289,17 +342,9 @@ class _SuperFocusItemState extends State<SuperFocusItem> {
                 }
                 return;
               }
-              if (widget.ensureVisibleCentered) {
-                Scrollable.ensureVisible(
-                  context,
-                  alignment: 0.5,
-                  duration: const Duration(milliseconds: 200),
-                  curve: Curves.easeInOut,
-                );
-              } else if (widget.ensureVisibleEdge) {
-                _ensureVisibleEdge(context);
-              }
               _reportFocus();
+              // ！！！核心修复 3：确保所有常规方向键移动都会触发自定义滚动引擎 ！！！
+              AutoScrollDispatcher.ensureVisible(context, alignment: widget.alignment);
             }
           },
           child: widget.builder(context, _hasFocus),
@@ -308,69 +353,6 @@ class _SuperFocusItemState extends State<SuperFocusItem> {
     );
   }
 
-  // ---------------------------------------------------------------------------
-  // 边缘露出 + 小幅回弹滚动逻辑
-  // ---------------------------------------------------------------------------
-
-  /// 两阶段滚动：第一阶段滚到刷好边缘屡出，第二阶段回弹一小步给呼吸空间。
-  /// 不会趪空出画面，不会跳屏幕中心。
-  void _ensureVisibleEdge(BuildContext ctx) {
-    final renderObject = ctx.findRenderObject();
-    if (renderObject == null) return;
-
-    final scrollable = Scrollable.maybeOf(ctx);
-    if (scrollable == null) return;
-
-    final position = scrollable.position;
-    final viewport = RenderAbstractViewport.of(renderObject);
-
-    // 滚动到到位后的呼吸边距 (dp)
-    const double breathingRoom = 16.0;
-
-    final double currentOffset = position.pixels;
-
-    // 将项目飞头对齐视口飞头所需的滚动量（leading = top）
-    final double leadTarget =
-        viewport.getOffsetToReveal(renderObject, 0.0).offset;
-    // 将项目飞尾对齐视口飞尾所需的滚动量（trailing = bottom）
-    final double trailTarget =
-        viewport.getOffsetToReveal(renderObject, 1.0).offset;
-
-    double? snapTo;   // 第一阶段：刷好边缘，整个卡片刚好入画
-    double? settleTo; // 第二阶段：回弹到有呼吸空间的位置
-
-    if (currentOffset < trailTarget - 1) {
-      // 卡片在视口下方：封面尾部对齐视口尾部
-      snapTo   = trailTarget;
-      settleTo = trailTarget + breathingRoom; // 向上多滚一些，卡片离尾部留白
-    } else if (currentOffset > leadTarget + 1) {
-      // 卡片在视口上方：封面顶部对齐视口顶部
-      snapTo   = leadTarget;
-      settleTo = leadTarget - breathingRoom; // 向下多滚一些，卡片离顶部留白
-    }
-
-    if (snapTo == null || settleTo == null) return; // 已经全部可见无需滚动
-
-    snapTo   = snapTo  .clamp(position.minScrollExtent, position.maxScrollExtent);
-    settleTo = settleTo.clamp(position.minScrollExtent, position.maxScrollExtent);
-
-    // 第一阶段：快速滚到屡出弹算边缘
-    position
-        .animateTo(
-          snapTo,
-          duration: const Duration(milliseconds: 220),
-          curve: Curves.easeOut,
-        )
-        .then((_) {
-          if (!mounted || !_focusNode.hasPrimaryFocus) return;
-          // 第二阶段：回弹到有呼吸空间的落点
-          position.animateTo(
-            settleTo!,
-            duration: const Duration(milliseconds: 160),
-            curve: Curves.easeOut,
-          );
-        });
-  }
 }
 
 class InputInterceptor extends StatefulWidget {

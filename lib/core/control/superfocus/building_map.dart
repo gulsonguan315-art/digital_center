@@ -186,8 +186,9 @@ class BuildingMap {
       return buttonId;
     }
 
-    // 动态匹配：如果当前房间支持动态子房间 (/*)
-    if (items.contains(FocusSyntax.dynamicRoom)) {
+    // 动态匹配：如果当前房间支持动态子房间 (/*)，且不是终端房间
+    if (items.contains(FocusSyntax.dynamicRoom) &&
+        !_terminalRoomsCache.contains(currentRoomId)) {
       return buttonId;
     }
 

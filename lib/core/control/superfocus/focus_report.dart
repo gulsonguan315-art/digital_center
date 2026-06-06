@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
 import 'focus_geometry.dart';
 
+enum FocusTransitionMode {
+  slide,
+  teleport,
+}
+
 class FocusReport {
   final Rect rect;
   final FocusGeometry geometry;
@@ -8,6 +13,8 @@ class FocusReport {
   final bool isPressed;
   final bool isProcessing;
   final BuildContext? context;
+  final FocusTransitionMode transitionMode;
+  final Duration? teleportDelay;
 
   const FocusReport({
     required this.rect,
@@ -16,6 +23,8 @@ class FocusReport {
     this.isPressed = false,
     this.isProcessing = false,
     this.context,
+    this.transitionMode = FocusTransitionMode.slide,
+    this.teleportDelay,
   });
 
   @override
@@ -27,9 +36,11 @@ class FocusReport {
           isFocused == other.isFocused &&
           isPressed == other.isPressed &&
           isProcessing == other.isProcessing &&
-          context == other.context;
+          context == other.context &&
+          transitionMode == other.transitionMode &&
+          teleportDelay == other.teleportDelay;
 
   @override
   int get hashCode =>
-      Object.hash(rect, geometry, isFocused, isPressed, isProcessing, context);
+      Object.hash(rect, geometry, isFocused, isPressed, isProcessing, context, transitionMode, teleportDelay);
 }

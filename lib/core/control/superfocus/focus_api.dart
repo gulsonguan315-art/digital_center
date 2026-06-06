@@ -3,13 +3,23 @@ library focus_api;
 import 'package:flutter/material.dart';
 import 'interaction_manager.dart';
 import 'focus_widgets.dart';
+import 'focus_report.dart';
 
 // 1. 【暴露组件】
 export 'focus_widgets.dart'
-    show SuperFocusRoom, FocusIdentity, FocusShape, FocusTopologyScope, FocusActionButton, MouseDismissRegion;
+    show
+        SuperFocusRoom,
+        FocusIdentity,
+        FocusCluster,
+        FocusShape,
+        FocusTopologyScope,
+        FocusActionButton,
+        MouseDismissRegion;
 
 // 2. 【暴露模型】
 export 'interaction_state.dart' show FocusTopology;
+export 'focus_report.dart' show FocusTransitionMode;
+export 'focus_alignment.dart' show FocusAlignment;
 export 'focus_geometry.dart'
     show FocusGeometry, RoundedRectFocusGeometry, SidebarTileFocusGeometry;
 
@@ -17,8 +27,21 @@ export 'focus_geometry.dart'
 abstract class FocusAPI {
   /// 发送焦点动作意图
   /// [asTerminalRoom] - 如果进入的是一个死胡同/预览房间，设置为 true 可阻断动态子房间继承
-  static void dispatchAction(String currentRoom, String id, {bool asTerminalRoom = false}) {
-    SuperFocusManager.instance.onAction(currentRoom, id, asTerminalRoom: asTerminalRoom);
+  static void dispatchAction(
+    String currentRoom,
+    String id, {
+    bool asTerminalRoom = false,
+  }) {
+    SuperFocusManager.instance.onAction(
+      currentRoom,
+      id,
+      asTerminalRoom: asTerminalRoom,
+    );
+  }
+
+  /// 声明下一次焦点跳转所使用的过渡动画模式
+  static void requestNextTransition(FocusTransitionMode mode, {Duration? delay}) {
+    SuperFocusManager.instance.requestNextTransition(mode, delay: delay);
   }
 
   /// 手动请求返回

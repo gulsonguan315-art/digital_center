@@ -1,9 +1,11 @@
 import 'package:flutter/widgets.dart';
+import 'package:superfocus/core/control/superfocus/interaction_manager.dart';
 import 'interaction_controller.dart';
 import 'interaction_state.dart';
 import 'scoped_2d_scanner.dart';
 import 'building_map.dart';
 import '../../log/log_api.dart';
+import 'auto_scroll_dispatcher.dart';
 
 mixin FocusTraceLogger {
   void logCancel(String? target) {
@@ -67,6 +69,9 @@ mixin FocusTraceLogger {
 class FocusController extends BaseInteractionController with FocusTraceLogger {
   // --- 兼容性代理 (指向 RAM 中的寄存器) ---
   String? get currentRoomId => state.currentRoomId;
+
+  // 记录实际焦点所在的房间（与 topology 的 activeRoom 区分，因为 activeRoom 会在动作分发时提前更新以驱动 UI）
+  String? _landedRoomId;
 
   // --- CPU 内部临时状态 ---
   String? _lastActionSource;
@@ -300,18 +305,49 @@ class FocusController extends BaseInteractionController with FocusTraceLogger {
     String targetId,
     String tag,
   ) {
+    final oldRoom = _landedRoomId;
+    final newRoom = info.roomId;
+
+    if (oldRoom != newRoom) {
+      final oldConfig = oldRoom != null
+          ? state.roomRegistry[oldRoom]?.transitionConfig
+          : null;
+      final newConfig = state.roomRegistry[newRoom]?.transitionConfig;
+
+      final configToUse = newConfig ?? oldConfig;
+      if (configToUse != null) {
+        SuperFocusManager.instance.requestNextTransition(
+          configToUse.mode,
+          delay: configToUse.delay,
+        );
+      }
+    }
+    
+    _landedRoomId = newRoom;
+
     logLanding(_lastActionSource, info.roomId, nodeId, tag);
     onRoomEnter(info.roomId, printLog: false);
     intentionRoomId.value = null;
     info.node.requestFocus();
+
+    // 触发平滑滚动引擎
+    if (info.node.context != null) {
+      AutoScrollDispatcher.ensureVisible(info.node.context!);
+    }
   }
 
   void onAction(String sourceRoom, String id, {bool asTerminalRoom = false}) {
     _actionDispatched = true;
     _lastActionSource = '[$sourceRoom:$id]';
-    final String actualNodeId = state.nodeRegistry.entries
-        .where((e) => e.value.node.hasPrimaryFocus && e.value.roomId == sourceRoom)
-        .firstOrNull?.key ?? id;
+    final String actualNodeId =
+        state.nodeRegistry.entries
+            .where(
+              (e) =>
+                  e.value.node.hasPrimaryFocus && e.value.roomId == sourceRoom,
+            )
+            .firstOrNull
+            ?.key ??
+        id;
 
     final String? portalTarget = BuildingMap.resolvePortalDestination(
       sourceRoom,
@@ -342,7 +378,7 @@ class FocusController extends BaseInteractionController with FocusTraceLogger {
         sourceRoom,
         asTerminalRoom: asTerminalRoom,
       );
-      
+
       // 动态更新入口节点：确保从子房间 Back 时能精准定位回原来的海报/节点
       BuildingMap.updateEntryNode(sourceRoom, roomTarget, actualNodeId);
 

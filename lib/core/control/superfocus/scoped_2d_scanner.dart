@@ -45,14 +45,17 @@ class Scoped2dScanner extends FocusTraversalPolicy {
     }).toList();
 
     if (candidates.isEmpty) return null;
-    return _chooseBestCandidate(currentNode.rect, candidates, direction);
+    return _chooseBestCandidate(currentNode, candidates, direction);
   }
 
   FocusNode? _chooseBestCandidate(
-    Rect source,
+    FocusNode currentNode,
     List<FocusNode> candidates,
     TraversalDirection direction,
   ) {
+    final Rect source = currentNode.rect;
+    final FocusNode? currentCluster = _getClusterNode(currentNode);
+
     FocusNode? best;
     double minScore = double.infinity;
 
@@ -75,6 +78,16 @@ class Scoped2dScanner extends FocusTraversalPolicy {
       // 完美平衡 "正方向稍远" 与 "偏离轴线但更近" 之间的竞争
       double score = 13.0 * majorAxis * majorAxis + minorAxis * minorAxis;
 
+      // ！！！ 核心引力机制 ！！！
+      // （性能保障：如果当前焦点不在任何 Cluster 中，此段逻辑会被直接跳过，零性能损耗）
+      // 如果候选节点和当前节点位于同一个 FocusCluster 中，
+      // 我们将其距离得分缩小 10000 倍，这等同于在空间上把它们“拉得很近”，优先被选中。
+      if (currentCluster != null) {
+        if (_getClusterNode(node) == currentCluster) {
+          score /= 10000.0;
+        }
+      }
+
       // 引入中心点距离作为打破平局（同在一条线上）的次要条件
       if (score == minScore) {
         final dCenter = (target.center - source.center).distanceSquared;
@@ -94,6 +107,15 @@ class Scoped2dScanner extends FocusTraversalPolicy {
     if (max1 < min2) return min2 - max1;
     if (max2 < min1) return min1 - max2;
     return 0.0;
+  }
+
+  FocusNode? _getClusterNode(FocusNode node) {
+    FocusNode? parent = node.parent;
+    while (parent != null && parent != node.nearestScope) {
+      if (parent.debugLabel == 'FocusCluster') return parent;
+      parent = parent.parent;
+    }
+    return null;
   }
 
   @override

@@ -59,6 +59,16 @@ class SuperInteractionManager {
   void showCursor() => state.cursorHiddenNotifier.value = false;
   void clearCursor() => state.cursorReportNotifier.value = null;
 
+  void requestNextTransition(FocusTransitionMode mode, {Duration? delay}) {
+    state.nextTransition = FocusTransitionConfig(mode, delay: delay);
+  }
+
+  FocusTransitionConfig? consumeNextTransition() {
+    final config = state.nextTransition;
+    state.nextTransition = null;
+    return config;
+  }
+
   void registerNode(
     String id,
     FocusNode node,
@@ -77,6 +87,14 @@ class SuperInteractionManager {
     } else {
       state.nodeRegistry.remove(id);
     }
+  }
+
+  void registerRoom(String id, {FocusTransitionConfig? transitionConfig}) {
+    state.roomRegistry[id] = RoomInfo(transitionConfig: transitionConfig);
+  }
+
+  void unregisterRoom(String id) {
+    state.roomRegistry.remove(id);
   }
 
   // ===========================================================================

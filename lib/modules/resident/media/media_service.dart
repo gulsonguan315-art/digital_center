@@ -25,6 +25,9 @@ class MediaService extends ChangeNotifier {
   MediaLoadState _loadState = MediaLoadState.idle;
   MediaLoadState get loadState => _loadState;
 
+  Rect? lastHeroRect;
+  MediaItem? lastHeroItem;
+
   final Map<String, List<MediaItem>> _boxSetChildrenCache = {};
   Map<String, List<MediaItem>> get boxSetChildrenCache => _boxSetChildrenCache;
 
@@ -71,6 +74,33 @@ class MediaService extends ChangeNotifier {
   /// 便捷方法：根据条目 id 获取海报图片 URL
   String posterUrl(String itemId, String? tag) =>
       MediaRepository.instance.posterUrl(itemId, tag);
+
+  /// 根据条目 id 获取背景图片 URL
+  String backdropUrl(String itemId, String? tag) =>
+      MediaRepository.instance.backdropUrl(itemId, tag);
+
+  /// 根据条目 id 获取 Logo 图片 URL
+  String logoUrl(String itemId, String? tag) =>
+      MediaRepository.instance.logoUrl(itemId, tag);
+
+  /// 获取直接串流播放 URL
+  String streamUrl(String itemId) =>
+      MediaRepository.instance.streamUrl(itemId);
+
+  /// 详情页：在线拉取详情数据（不走缓存）
+  Future<Map<String, dynamic>?> fetchItemDetails(String itemId) async {
+    return await MediaRepository.instance.fetchItemDetails(itemId);
+  }
+
+  /// 获取剧集季数
+  Future<List<Map<String, dynamic>>> fetchSeasons(String seriesId) async {
+    return await MediaRepository.instance.fetchSeasons(seriesId);
+  }
+
+  /// 获取剧集某季的单集
+  Future<List<Map<String, dynamic>>> fetchEpisodes(String seriesId, String seasonId) async {
+    return await MediaRepository.instance.fetchEpisodes(seriesId, seasonId);
+  }
 
   /// 预加载并缓存 BoxSet 子项
   Future<void> ensureBoxSetLoaded(String boxSetId) async {

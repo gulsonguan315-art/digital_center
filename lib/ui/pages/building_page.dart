@@ -21,15 +21,19 @@ class BuildingPage extends StatelessWidget {
 
           return Container(
             color: material.colors.surface,
-            child: const Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
+            child: Stack(
               children: [
-                // 侧边栏：内部自带 Room 和监听
-                SidebarRoom(),
-                
-                // 舞台区：由商管系统 (StageView) 内部自动调度
-                Expanded(
+                // 舞台区：由商管系统 (StageView) 内部自动调度，在底层铺满全屏
+                const Positioned.fill(
                   child: StageView(),
+                ),
+                
+                // 侧边栏：内部自带 Room 和监听，在顶层悬浮覆盖
+                const Positioned(
+                  left: 0,
+                  top: 0,
+                  bottom: 0,
+                  child: SidebarRoom(),
                 ),
               ],
             ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../layout/grid/grid_extensions.dart';
+import '../../modules/resident/sidebar/sidebar_metrics.dart';
 import 'stage_metrics.dart';
 
 /// 舞台物理外壳 (纯 UI 容器)
@@ -20,9 +21,12 @@ class StagePhysicalFrame extends StatelessWidget {
       children: [
         Positioned.fill(
           child: Padding(
-            padding: EdgeInsets.symmetric(
-              horizontal: context.units(StageMetrics.paddingHorizontalU),
-              vertical: context.units(StageMetrics.paddingVerticalU),
+            // 全局拦截区：自动为所有普通房间留出左侧 Sidebar 的空间
+            padding: EdgeInsets.only(
+              left: context.units(StageMetrics.paddingHorizontalU + SidebarMetrics.widthU),
+              right: context.units(StageMetrics.paddingHorizontalU),
+              top: context.units(StageMetrics.paddingVerticalU),
+              bottom: context.units(StageMetrics.paddingVerticalU),
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(

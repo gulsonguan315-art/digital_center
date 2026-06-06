@@ -180,6 +180,58 @@ class MediaRepository {
         '?fillHeight=$height&quality=85$tagParam';
   }
 
+  /// 构造指定条目的背景图片 URL (Backdrop)。
+  String backdropUrl(String itemId, String? tag, {int maxWidth = 1920}) {
+    final ep = _cachedEndpoints;
+    if (ep == null || ep.jellyfinBaseUrl.isEmpty) return '';
+    final tagParam = tag != null ? '&tag=$tag' : '';
+    return '${ep.jellyfinBaseUrl}/Items/$itemId/Images/Backdrop'
+        '?maxWidth=$maxWidth&quality=85$tagParam';
+  }
+
+  /// 构造指定条目的 Logo 图片 URL。
+  String logoUrl(String itemId, String? tag, {int maxWidth = 800}) {
+    final ep = _cachedEndpoints;
+    if (ep == null || ep.jellyfinBaseUrl.isEmpty) return '';
+    final tagParam = tag != null ? '&tag=$tag' : '';
+    return '${ep.jellyfinBaseUrl}/Items/$itemId/Images/Logo'
+        '?maxWidth=$maxWidth&quality=85$tagParam';
+  }
+
+  /// 构造视频的直接串流播放 URL
+  String streamUrl(String itemId) {
+    final ep = _cachedEndpoints;
+    if (ep == null || ep.jellyfinBaseUrl.isEmpty) return '';
+    return '${ep.jellyfinBaseUrl}/Videos/$itemId/stream?Static=true&mediaSourceId=$itemId&api_key=${ep.jellyfinToken}';
+  }
+
+  /// 获取单个条目的详细数据（用于详情页，不使用缓存）
+  Future<Map<String, dynamic>?> fetchItemDetails(String itemId) async {
+    try {
+      final ep = await _endpoints;
+      if (ep.jellyfinBaseUrl.isEmpty || ep.jellyfinToken.isEmpty) return null;
+
+      final url = Uri.parse(
+        '${ep.jellyfinBaseUrl}/Users/${ep.jellyfinUserId}/Items/$itemId'
+        '?fields=Overview,Genres,ProductionYear,CommunityRating,ImageTags,People'
+      );
+
+      final resp = await http
+          .get(url, headers: _headers(ep.jellyfinToken))
+          .timeout(const Duration(seconds: 10));
+
+      if (resp.statusCode != 200) {
+        Log.d(LogGroup.media, '⚠️ [Media] Item Details 请求失败: ${resp.statusCode}');
+        return null;
+      }
+
+      return jsonDecode(utf8.decode(resp.bodyBytes)) as Map<String, dynamic>;
+    } catch (e) {
+      Log.d(LogGroup.media, '⚠️ [Media] fetchItemDetails 异常: $e');
+      return null;
+    }
+  }
+
   /// 获取合集 (BoxSet) 内部的子项列表
   Future<List<MediaItem>> fetchBoxSetItems(String boxSetId) async {
     try {
@@ -211,6 +263,67 @@ class MediaRepository {
           .toList();
     } catch (e) {
       Log.d(LogGroup.media, '⚠️ [Media] fetchBoxSetItems 异常: $e');
+      return [];
+    }
+  }
+
+  /// 获取剧集的季数列表
+  Future<List<Map<String, dynamic>>> fetchSeasons(String seriesId) async {
+    try {
+      final ep = await _endpoints;
+      if (ep.jellyfinBaseUrl.isEmpty || ep.jellyfinToken.isEmpty) return [];
+
+      final url = Uri.parse(
+        '${ep.jellyfinBaseUrl}/Shows/$seriesId/Seasons'
+        '?userId=${ep.jellyfinUserId}'
+        '&fields=ImageTags'
+      );
+
+      final resp = await http
+          .get(url, headers: _headers(ep.jellyfinToken))
+          .timeout(const Duration(seconds: 10));
+
+      if (resp.statusCode != 200) {
+        Log.d(LogGroup.media, '⚠️ [Media] fetchSeasons 请求失败: ${resp.statusCode}');
+        return [];
+      }
+
+      final body = jsonDecode(utf8.decode(resp.bodyBytes)) as Map<String, dynamic>;
+      final items = (body['Items'] as List<dynamic>?) ?? [];
+      return items.map((e) => e as Map<String, dynamic>).toList();
+    } catch (e) {
+      Log.d(LogGroup.media, '⚠️ [Media] fetchSeasons 异常: $e');
+      return [];
+    }
+  }
+
+  /// 获取剧集某季的单集列表
+  Future<List<Map<String, dynamic>>> fetchEpisodes(String seriesId, String seasonId) async {
+    try {
+      final ep = await _endpoints;
+      if (ep.jellyfinBaseUrl.isEmpty || ep.jellyfinToken.isEmpty) return [];
+
+      final url = Uri.parse(
+        '${ep.jellyfinBaseUrl}/Shows/$seriesId/Episodes'
+        '?seasonId=$seasonId'
+        '&userId=${ep.jellyfinUserId}'
+        '&fields=Overview,ImageTags,RunTimeTicks'
+      );
+
+      final resp = await http
+          .get(url, headers: _headers(ep.jellyfinToken))
+          .timeout(const Duration(seconds: 10));
+
+      if (resp.statusCode != 200) {
+        Log.d(LogGroup.media, '⚠️ [Media] fetchEpisodes 请求失败: ${resp.statusCode}');
+        return [];
+      }
+
+      final body = jsonDecode(utf8.decode(resp.bodyBytes)) as Map<String, dynamic>;
+      final items = (body['Items'] as List<dynamic>?) ?? [];
+      return items.map((e) => e as Map<String, dynamic>).toList();
+    } catch (e) {
+      Log.d(LogGroup.media, '⚠️ [Media] fetchEpisodes 异常: $e');
       return [];
     }
   }

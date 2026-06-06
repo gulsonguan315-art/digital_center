@@ -186,7 +186,7 @@ class MusicListRoom extends StatelessWidget {
                     return FocusIdentity(
                       id: 'track_row_${track.id}',
                       focusGeometry: focusGeometry,
-                      ensureVisibleCentered: true,
+                      alignment: FocusAlignment.center,
                       onPressed: action,
                       builder: (ctx, hasFocus) => innerBuilder(
                         ctx, hasFocus, action,

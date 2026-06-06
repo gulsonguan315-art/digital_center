@@ -1,241 +1,14 @@
 import 'package:flutter/material.dart';
 import '../../../../core/data/models/media_item.dart';
+import '../../../../core/control/superfocus/focus_scroll_policy.dart';
 import '../../../../core/engine/theme/theme_api.dart';
 import '../../../../core/layout/grid/grid_extensions.dart';
-import '../media_model.dart';
+
 import '../media_service.dart';
-import 'media_callback.dart';
-import '../../../../core/control/superfocus/focus_api.dart';
+import '../../../../ui/base/poster_card.dart';
+import 'components/skeleton_grid.dart';
+import 'components/box_set_accordion.dart';
 
-/// 🖼️ 影视海报卡片组件 (Media Poster Card Component)
-class MediaCard extends StatelessWidget {
-  final MediaItem item;
-  final bool isFocused;
-  final VoidCallback onTap;
-
-  const MediaCard({
-    super.key,
-    required this.item,
-    required this.isFocused,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final layer = isFocused ? ThemeLayer.above : ThemeLayer.base;
-
-    return ThemeIdentity(
-      role: ThemeRole.card,
-      layer: layer,
-      child: Builder(
-        builder: (context) {
-          final material = context.useTheme();
-          final colors = material.colors;
-          final chrome = material.visual;
-
-          final List<BoxShadow>? shadows = isFocused
-              ? chrome.outerShadows
-                    .map(
-                      (e) => BoxShadow(
-                        color: e.color,
-                        offset: e.offset,
-                        blurRadius: e.blurRadius,
-                      ),
-                    )
-                    .toList()
-              : null;
-
-          return GestureDetector(
-            onTap: onTap,
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              decoration: BoxDecoration(
-                color: colors.surface,
-                borderRadius: material.shape.radius,
-                border: Border.all(
-                  color: isFocused ? colors.accent : colors.border,
-                  width: isFocused ? 2.0 : 1.5,
-                ),
-                boxShadow: shadows,
-              ),
-              clipBehavior: Clip.antiAlias,
-              child: AnimatedScale(
-                scale: isFocused ? 1.05 : 1.0,
-                duration: const Duration(milliseconds: 200),
-                curve: Curves.easeOutCubic,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    // ── 海报图区域 ───────────────────────────────────────────────
-                    Expanded(
-                      child: Stack(
-                        fit: StackFit.expand,
-                        children: [
-                          PosterImage(
-                            item: item,
-                            placeholder: colors.backgroundFocused,
-                          ),
-                          if (item.jellyfinType == 'BoxSet')
-                            Positioned(
-                              top: context.units(0.8),
-                              right: context.units(0.8),
-                              child: Container(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: context.units(0.6),
-                                  vertical: context.units(0.3),
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.redAccent.shade700,
-                                  borderRadius: BorderRadius.circular(4),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withValues(
-                                        alpha: 0.3,
-                                      ),
-                                      blurRadius: 4,
-                                      offset: const Offset(0, 2),
-                                    ),
-                                  ],
-                                ),
-                                child: Text(
-                                  '合集',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: context.units(0.9),
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                    // ── 元数据文字排版区 ─────────────────────────────────────────
-                    Padding(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: context.units(1.1),
-                        vertical: context.units(0.9),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            item.title,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              color: colors.textPrimary,
-                              fontSize: context.units(1.2),
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          SizedBox(height: context.units(0.4)),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  _subtitle(item),
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    color: colors.textSecondary,
-                                    fontSize: context.units(1.0),
-                                  ),
-                                ),
-                              ),
-                              if (item.rating != null)
-                                Container(
-                                  padding: EdgeInsets.symmetric(
-                                    horizontal: context.units(0.4),
-                                    vertical: context.units(0.1),
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: colors.accent.withValues(alpha: 0.1),
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
-                                  child: Text(
-                                    '★ ${item.rating!.toStringAsFixed(1)}',
-                                    style: TextStyle(
-                                      color: colors.accent,
-                                      fontSize: context.units(0.9),
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  String _subtitle(MediaItem item) {
-    final parts = <String>[];
-    if (item.year != null) parts.add(item.year.toString());
-    if (item.genre != null) parts.add(item.genre!.split(' / ').first);
-    return parts.join(' • ');
-  }
-}
-
-/// 海报图片组件：优先 Image.network，无海报 Tag 时显示占位色块
-class PosterImage extends StatelessWidget {
-  final MediaItem item;
-  final Color placeholder;
-
-  const PosterImage({super.key, required this.item, required this.placeholder});
-
-  @override
-  Widget build(BuildContext context) {
-    final url = item.posterTag != null
-        ? MediaService.instance.posterUrl(item.id, item.posterTag)
-        : '';
-
-    if (url.isEmpty) {
-      return PlaceholderView(color: placeholder);
-    }
-
-    return Image.network(
-      url,
-      fit: BoxFit.cover,
-      loadingBuilder: (_, child, progress) {
-        if (progress == null) return child;
-        return PlaceholderView(color: placeholder);
-      },
-      errorBuilder: (_, e, s) => PlaceholderView(color: placeholder),
-    );
-  }
-}
-
-/// 无海报时的占位色块（使用主题 surfaceVariant 色）
-class PlaceholderView extends StatelessWidget {
-  final Color color;
-  const PlaceholderView({super.key, required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      color: color,
-      child: Center(
-        child: Icon(
-          Icons.movie_outlined,
-          size: context.units(4.0),
-          color: Colors.white.withValues(alpha: 0.25),
-        ),
-      ),
-    );
-  }
-}
-
-// =============================================================================
 // 🖥️ 影视中心主视图排版 (Media Page Layout)
 // =============================================================================
 
@@ -270,18 +43,16 @@ class MediaPageView extends StatefulWidget {
 class _MediaPageViewState extends State<MediaPageView> {
   final GlobalKey _expandKey = GlobalKey();
 
+  String _subtitle(MediaItem item) {
+    final parts = <String>[];
+    if (item.year != null) parts.add(item.year.toString());
+    if (item.genre != null) parts.add(item.genre!.split(' / ').first);
+    return parts.join(' • ');
+  }
+
   @override
   Widget build(BuildContext context) {
     final service = MediaService.instance;
-    final activeLabel =
-        MediaModel.categoryLabels[widget.category] ?? '影视中心 / Media';
-
-    // 高度优先网格参数
-    final double cardHeight = context.units(28);
-    final double aspectRatio = 0.72;
-    final double cardWidth = cardHeight * aspectRatio;
-    final double gap = context.units(2);
-
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: Padding(
@@ -292,23 +63,6 @@ class _MediaPageViewState extends State<MediaPageView> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ── 头部标题 ────────────────────────────────────────────────────
-            Builder(
-              builder: (ctx) {
-                final colors = ctx.useTheme().colors;
-                return Text(
-                  activeLabel,
-                  style: TextStyle(
-                    color: colors.textPrimary,
-                    fontSize: ctx.units(3.5),
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 1.0,
-                  ),
-                );
-              },
-            ),
-            SizedBox(height: context.units(2)),
-
             // ── 海报网格 ─────────────────────────────────────────────────────
             Expanded(
               child: Builder(
@@ -319,12 +73,18 @@ class _MediaPageViewState extends State<MediaPageView> {
 
                   // 加载中 + 空列表 → 显示骨架屏
                   if (state == MediaLoadState.loading && items.isEmpty) {
-                    return SkeletonGrid(
-                      cardWidth: cardWidth,
-                      cardHeight: cardHeight,
-                      gap: gap,
-                      aspectRatio: aspectRatio,
-                    );
+                    return LayoutBuilder(builder: (context, constraints) {
+                      final double gap = context.units(2);
+                      final double cardHeight = (constraints.maxHeight - 3 * gap) / 2.5;
+                      final double aspectRatio = 0.72;
+                      final double cardWidth = cardHeight * aspectRatio;
+                      return SkeletonGrid(
+                        cardWidth: cardWidth,
+                        cardHeight: cardHeight,
+                        gap: gap,
+                        aspectRatio: aspectRatio,
+                      );
+                    });
                   }
 
                   // 加载完成但空列表 → 提示
@@ -342,16 +102,26 @@ class _MediaPageViewState extends State<MediaPageView> {
 
                   return LayoutBuilder(
                     builder: (context, constraints) {
-                      final double rawCols =
-                          (constraints.maxWidth + gap) / (cardWidth + gap);
-                      final int cols = rawCols.floor().clamp(1, 100);
-
                       int expandedIndex = -1;
                       if (widget.expandedBoxSetId != null) {
                         expandedIndex = items.indexWhere(
                           (e) => e.id == widget.expandedBoxSetId,
                         );
                       }
+
+                      // 用户需求：一列正好显示 2.5 张海报，顶部 0.25，底部 0.25
+                      // 完美公式：屏幕总高度 = 0.25张 + 间距 + 1张 + 间距 + 1张 + 间距 + 0.25张
+                      // H = 2.5 * C + 3 * Gap
+                      final double gap = context.units(2);
+                      final double cardHeight = (constraints.maxHeight - 3 * gap) / 2.5;
+                      final double aspectRatio = 0.72;
+                      final double cardWidth = cardHeight * aspectRatio;
+
+                      final double rawCols =
+                          (constraints.maxWidth + gap) / (cardWidth + gap);
+                      final int cols = rawCols.floor().clamp(1, 100);
+
+                      final double verticalPadding = cardHeight * 0.25 + gap;
 
                       final gridDelegate =
                           SliverGridDelegateWithFixedCrossAxisCount(
@@ -361,179 +131,113 @@ class _MediaPageViewState extends State<MediaPageView> {
                             childAspectRatio: aspectRatio,
                           );
 
-                      // 如果没有展开项，直接渲染完整 Grid
-                      if (expandedIndex == -1) {
-                        return CustomScrollView(
-                          slivers: [
-                            SliverGrid(
-                              gridDelegate: gridDelegate,
-                              delegate: SliverChildBuilderDelegate((
-                                context,
-                                index,
-                              ) {
-                                final item = items[index];
-                                return widget.gridItemSlot(context, item, (
-                                  context,
-                                  hasFocus,
-                                  onTap, {
-                                  required item,
-                                }) {
-                                  return MediaCard(
-                                    item: item,
-                                    isFocused: hasFocus,
-                                    onTap: onTap,
-                                  );
-                                });
-                              }, childCount: items.length),
-                            ),
-                            SliverPadding(
-                              padding: EdgeInsets.only(
-                                bottom: context.units(4),
-                              ),
-                            ),
-                          ],
-                        );
-                      }
-
                       // 计算切断位置
-                      final int splitIndex =
-                          ((expandedIndex ~/ cols) + 1) * cols;
+                      final int splitIndex = expandedIndex == -1
+                          ? items.length
+                          : ((expandedIndex ~/ cols) + 1) * cols;
                       final int topCount = splitIndex > items.length
                           ? items.length
                           : splitIndex;
                       final int bottomCount = items.length - topCount;
 
                       // 取出合集子项
-                      final children =
-                          service.boxSetChildrenCache[widget
-                              .expandedBoxSetId!] ??
-                          [];
+                      final List<MediaItem> children = widget.expandedBoxSetId != null
+                          ? (service.boxSetChildrenCache[widget.expandedBoxSetId!] ?? <MediaItem>[])
+                          : <MediaItem>[];
                       final bool isLoadingChildren = children.isEmpty;
 
-                      return CustomScrollView(
-                        slivers: [
-                          // ── 上半部分 ──
-                          if (topCount > 0)
-                            SliverGrid(
-                              gridDelegate: gridDelegate,
-                              delegate: SliverChildBuilderDelegate((
-                                context,
-                                index,
-                              ) {
-                                final item = items[index];
-                                return widget.gridItemSlot(context, item, (
+                      return FocusScrollPolicy(
+                        boundary: FocusScrollBoundary(
+                          left: 0.0,
+                          right: 0.0,
+                          top: verticalPadding,
+                          bottom: verticalPadding,
+                        ),
+                        child: CustomScrollView(
+                          cacheExtent: 1000.0,
+                          slivers: [
+                            SliverPadding(
+                              padding: EdgeInsets.only(top: verticalPadding),
+                              sliver: SliverGrid(
+                                gridDelegate: gridDelegate,
+                                delegate: SliverChildBuilderDelegate((
                                   context,
-                                  hasFocus,
-                                  onTap, {
-                                  required item,
-                                }) {
-                                  return MediaCard(
-                                    item: item,
-                                    isFocused: hasFocus,
-                                    onTap: onTap,
-                                  );
-                                });
-                              }, childCount: topCount),
-                            ),
-
-                          // ── 展开区域 (手风琴) ──
-                          SliverToBoxAdapter(
-                            child: AnimatedSize(
-                              duration: const Duration(milliseconds: 300),
-                              curve: Curves.easeOutCubic,
-                              alignment: Alignment.topCenter,
-                              onEnd: () {
-                                final ctx = _expandKey.currentContext;
-                                if (ctx != null) {
-                                  Scrollable.ensureVisible(
-                                    ctx,
-                                    duration: const Duration(milliseconds: 300),
-                                    curve: Curves.easeOutCubic,
-                                    alignment: 1.0, // 确保底部对齐，这样下边缘不会被裁掉
-                                  );
-                                }
-                              },
-                              child: Container(
-                                key: _expandKey,
-                                margin: EdgeInsets.symmetric(vertical: gap),
-                                padding: EdgeInsets.all(gap),
-                                decoration: BoxDecoration(
-                                  color: colors.surface.withValues(alpha: 0.85),
-                                  borderRadius: ctx.useTheme().shape.radius,
-                                  border: Border.all(
-                                    color: colors.accent.withValues(alpha: 0.4),
-                                    width: 1.5,
-                                  ),
-                                ),
-                                child: isLoadingChildren
-                                    ? SizedBox(
-                                        height: cardHeight,
-                                        child: const Center(
-                                          child: CircularProgressIndicator(),
-                                        ),
-                                      )
-                                    : SuperFocusRoom(
-                                        id: 'mediaExpand_${widget.expandedBoxSetId}',
-                                        child: GridView.builder(
-                                          shrinkWrap: true,
-                                          physics:
-                                              const NeverScrollableScrollPhysics(),
-                                          gridDelegate: gridDelegate,
-                                          itemCount: children.length,
-                                          itemBuilder: (context, childIdx) {
-                                            final childItem = children[childIdx];
-                                            return widget.gridItemSlot(
-                                              context,
-                                              childItem,
-                                              (context, hasFocus, onTap, {required item}) {
-                                                return MediaCard(
-                                                  item: item,
-                                                  isFocused: hasFocus,
-                                                  onTap: onTap,
-                                                );
-                                              },
-                                              onTapOverride: () {
-                                                MediaCallback.onBoxSetChildTap(
-                                                  childItem,
-                                                  widget.expandedBoxSetId!,
-                                                );
-                                              },
-                                            );
-                                          },
-                                        ),
-                                      ),
+                                  index,
+                                ) {
+                                  final item = items[index];
+                                  return widget.gridItemSlot(context, item, (
+                                    context,
+                                    hasFocus,
+                                    onTap, {
+                                    required item,
+                                  }) {
+                                    return PosterCard(
+                                      title: item.title,
+                                      subtitle: _subtitle(item),
+                                      imageUrl: item.posterTag != null
+                                        ? MediaService.instance.posterUrl(item.id, item.posterTag)
+                                        : null,
+                                      badgeText: item.jellyfinType == 'BoxSet' ? '合集' : null,
+                                      cornerText: item.rating != null ? '★ ${item.rating!.toStringAsFixed(1)}' : null,
+                                      isFocused: hasFocus,
+                                      onTap: onTap,
+                                    );
+                                  });
+                                }, childCount: topCount),
                               ),
                             ),
-                          ),
 
-                          // ── 下半部分 ──
-                          if (bottomCount > 0)
-                            SliverGrid(
-                              gridDelegate: gridDelegate,
-                              delegate: SliverChildBuilderDelegate((
-                                context,
-                                index,
-                              ) {
-                                final realIndex = topCount + index;
-                                final item = items[realIndex];
-                                return widget.gridItemSlot(context, item, (
-                                  context,
-                                  hasFocus,
-                                  onTap, {
-                                  required item,
-                                }) {
-                                  return MediaCard(
-                                    item: item,
-                                    isFocused: hasFocus,
-                                    onTap: onTap,
-                                  );
-                                });
-                              }, childCount: bottomCount),
+                            // ── 展开区域 (手风琴) ──
+                            SliverToBoxAdapter(
+                              child: BoxSetAccordionPanel(
+                                isExpanded: expandedIndex != -1,
+                                expandKey: _expandKey,
+                                gap: gap,
+                                cardHeight: cardHeight,
+                                boxSetId: widget.expandedBoxSetId,
+                                children: children,
+                                isLoadingChildren: isLoadingChildren,
+                                gridDelegate: gridDelegate,
+                                cols: cols,
+                                gridItemSlot: widget.gridItemSlot,
+                              ),
                             ),
-                          SliverPadding(
-                            padding: EdgeInsets.only(bottom: context.units(4)),
-                          ),
-                        ],
+
+                            // ── 下半部分 ──
+                            if (bottomCount > 0)
+                              SliverGrid(
+                                gridDelegate: gridDelegate,
+                                delegate: SliverChildBuilderDelegate((
+                                  context,
+                                  index,
+                                ) {
+                                  final realIndex = topCount + index;
+                                  final item = items[realIndex];
+                                  return widget.gridItemSlot(context, item, (
+                                    context,
+                                    hasFocus,
+                                    onTap, {
+                                    required item,
+                                  }) {
+                                    return PosterCard(
+                                      title: item.title,
+                                      subtitle: _subtitle(item),
+                                      imageUrl: item.posterTag != null
+                                        ? MediaService.instance.posterUrl(item.id, item.posterTag)
+                                        : null,
+                                      badgeText: item.jellyfinType == 'BoxSet' ? '合集' : null,
+                                      cornerText: item.rating != null ? '★ ${item.rating!.toStringAsFixed(1)}' : null,
+                                      isFocused: hasFocus,
+                                      onTap: onTap,
+                                    );
+                                  });
+                                }, childCount: bottomCount),
+                              ),
+                            SliverPadding(
+                              padding: EdgeInsets.only(bottom: verticalPadding),
+                            ),
+                          ],
+                        ),
                       );
                     },
                   );
@@ -547,52 +251,3 @@ class _MediaPageViewState extends State<MediaPageView> {
   }
 }
 
-/// 骨架屏：加载中时显示灰色占位卡片
-class SkeletonGrid extends StatelessWidget {
-  final double cardWidth;
-  final double cardHeight;
-  final double gap;
-  final double aspectRatio;
-
-  const SkeletonGrid({
-    super.key,
-    required this.cardWidth,
-    required this.cardHeight,
-    required this.gap,
-    required this.aspectRatio,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final double rawCols = (constraints.maxWidth + gap) / (cardWidth + gap);
-        final int cols = rawCols.floor().clamp(1, 100);
-
-        return GridView.builder(
-          padding: EdgeInsets.only(bottom: context.units(4)),
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: cols,
-            crossAxisSpacing: gap,
-            mainAxisSpacing: gap,
-            childAspectRatio: aspectRatio,
-          ),
-          itemCount: cols * 3, // 显示约 3 行骨架
-          itemBuilder: (context, index) {
-            return Builder(
-              builder: (ctx) {
-                final colors = ctx.useTheme().colors;
-                return Container(
-                  decoration: BoxDecoration(
-                    color: colors.backgroundFocused.withValues(alpha: 0.5),
-                    borderRadius: ctx.useTheme().shape.radius,
-                  ),
-                );
-              },
-            );
-          },
-        );
-      },
-    );
-  }
-}

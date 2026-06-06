@@ -43,7 +43,9 @@ class BuildingMapData {
       '*adt=>mediaPage',
     ],
 
-    'mediaPage': ['*', '/*'],
+    'mediaPage': ['*', '/*', '*media_btn_play=>media_overlay'],
+    'media_overlay': ['*media_overlay_air_node=>media_menu'],
+    'media_menu': ['*media_menu_speed', '*media_menu_skip', '*media_menu_subtitle', '*media_menu_audio'],
     'book': ['*科幻', '*人文=>testPage'],
 
     // ── [2] 音乐模块 (Music) ──────────────────────────────────────────────────

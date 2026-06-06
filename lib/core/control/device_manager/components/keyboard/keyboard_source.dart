@@ -33,7 +33,7 @@ class KeyboardInputSource implements InputSource, KeyEventHandler {
   /// 根节点 Focus.onKeyEvent 的嚴饰入口，由 [SuperInputManager.handleRootKeyEvent] 调用。
   @override
   KeyEventResult handleKey(FocusNode node, KeyEvent event) {
-    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    if (event is! KeyDownEvent && event is! KeyRepeatEvent) return KeyEventResult.ignored;
 
     // 🛡️ 核心安全修复：如果当前焦点在文本输入框（TextField/EditableText）中，禁止全局快捷键拦截退格、回车及方向键，确保原生打字与删除正常
     final primaryFocus = FocusManager.instance.primaryFocus;

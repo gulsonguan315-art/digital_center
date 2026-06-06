@@ -55,7 +55,8 @@ class _SidebarRoomState extends State<SidebarRoom> {
                     (_isItemActive(context, SidebarModel.exitId) ? SidebarModel.exitId : null));
                 
                 final String autofocusId = effectiveActiveId ?? SidebarModel.dashboardId;
-                final bool isCollapsed = topology.activeRoom?.startsWith('mediaDetail_') == true;
+                final bool isCollapsed = topology.activeRoom?.startsWith('movieDetail_') == true || 
+                                         topology.activeRoom?.startsWith('seriesDetail_') == true;
 
                 return widget.child ?? SidebarView(
                   activeId: effectiveActiveId,

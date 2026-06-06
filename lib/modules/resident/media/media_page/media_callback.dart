@@ -32,6 +32,7 @@ class MediaCallback {
   static void _routeToDetail(String sourceRoomId, MediaItem item) {
     final isSeries = item.jellyfinType == 'Series';
     final prefix = isSeries ? 'seriesDetail_' : 'movieDetail_';
+
     FocusAPI.dispatchAction(sourceRoomId, '$prefix${item.id}', asTerminalRoom: true);
   }
 }

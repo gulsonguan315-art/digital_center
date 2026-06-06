@@ -3,9 +3,12 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/scheduler.dart';
+import 'dart:math' as math;
+import '../../../core/control/superfocus/focus_scroll_policy.dart';
 import '../../../core/control/superfocus/interaction_manager.dart';
 import '../../../core/engine/theme/theme_api.dart';
 import '../../../core/control/superfocus/focus_geometry.dart';
+import '../../../core/control/superfocus/focus_report.dart';
 
 class FloatingHighlightBox extends StatefulWidget {
   const FloatingHighlightBox({super.key});
@@ -13,6 +16,8 @@ class FloatingHighlightBox extends StatefulWidget {
   @override
   State<FloatingHighlightBox> createState() => _FloatingHighlightBoxState();
 }
+
+enum _TeleportState { idle, waiting, fadingIn }
 
 class _FloatingHighlightBoxState extends State<FloatingHighlightBox>
     with SingleTickerProviderStateMixin {
@@ -22,6 +27,7 @@ class _FloatingHighlightBoxState extends State<FloatingHighlightBox>
   BuildContext? _currentTrackingContext;
   bool _isTransitioning = false;
   Timer? _transitionTimer;
+  _TeleportState _teleportState = _TeleportState.idle;
 
   @override
   void initState() {
@@ -52,13 +58,33 @@ class _FloatingHighlightBoxState extends State<FloatingHighlightBox>
     final report = SuperFocusManager.instance.cursorReportNotifier.value;
     if (report?.context != _currentTrackingContext) {
       _currentTrackingContext = report?.context;
-      _isTransitioning = true;
-      _transitionTimer?.cancel();
-      _transitionTimer = Timer(const Duration(milliseconds: 300), () {
-        if (mounted) {
-          setState(() => _isTransitioning = false);
-        }
-      });
+      
+      if (report?.transitionMode == FocusTransitionMode.teleport) {
+        _teleportState = _TeleportState.waiting;
+        final delay = report?.teleportDelay ?? const Duration(milliseconds: 200);
+        
+        _transitionTimer?.cancel();
+        _transitionTimer = Timer(delay, () {
+          if (mounted) {
+            setState(() => _teleportState = _TeleportState.fadingIn);
+            
+            // 渐显完成后恢复闲置状态
+            Timer(const Duration(milliseconds: 200), () {
+              if (mounted) {
+                setState(() => _teleportState = _TeleportState.idle);
+              }
+            });
+          }
+        });
+      } else {
+        _isTransitioning = true;
+        _transitionTimer?.cancel();
+        _transitionTimer = Timer(const Duration(milliseconds: 300), () {
+          if (mounted) {
+            setState(() => _isTransitioning = false);
+          }
+        });
+      }
     }
 
     if (mounted) {
@@ -70,6 +96,11 @@ class _FloatingHighlightBoxState extends State<FloatingHighlightBox>
 
   void _onTick(Duration elapsed) {
     if (!mounted) return;
+
+    // 瞬移模式的 waiting 阶段，冻结追踪旧位置
+    if (_teleportState == _TeleportState.waiting) {
+      return;
+    }
 
     final report = SuperFocusManager.instance.cursorReportNotifier.value;
     if (report == null || report.context == null) {
@@ -97,91 +128,55 @@ class _FloatingHighlightBoxState extends State<FloatingHighlightBox>
 
     Rect targetRect = newRect;
 
-    // 向上遍历所有视口，依次应用“撞边卡住”逻辑
-    // 这解决了嵌套 Viewport（如 GridView 嵌套在 CustomScrollView 中）时，外层边界约束失效导致焦点飞出的问题。
-    RenderBox? currentBox = renderBox;
-    double totalDx = 0;
-    double totalDy = 0;
+    // ！！！核心魔法 2：空气墙钳制 (Visual Clamp) ！！！
+    final viewport = RenderAbstractViewport.maybeOf(renderBox);
+    if (viewport is RenderBox) {
+      final viewportBox = viewport as RenderBox;
+      final viewportTransform = viewportBox.getTransformTo(null);
+      final viewportRect = MatrixUtils.transformRect(
+        viewportTransform,
+        Offset.zero & viewportBox.size,
+      );
 
-    while (currentBox != null) {
-      final viewport = RenderAbstractViewport.maybeOf(currentBox);
-      if (viewport is RenderBox) {
-        final viewportBox = viewport as RenderBox;
-        final viewportTransform = viewportBox.getTransformTo(null);
-        final viewportRect = MatrixUtils.transformRect(
-          viewportTransform,
-          Offset.zero & viewportBox.size,
-        );
+      // 从上下文中无依赖地读取滚动策略
+      final policyWidget = FocusScrollPolicy.read(report.context!);
+      final EdgeInsets insets = policyWidget?.boundary.asEdgeInsets ?? EdgeInsets.zero;
 
-        double dx = 0;
-        double dy = 0;
+      // 将 policy 的 insets 转换为针对该视口的内缩
+      final Rect safeRect = Rect.fromLTRB(
+        viewportRect.left + insets.left,
+        viewportRect.top + insets.top,
+        viewportRect.right - insets.right,
+        viewportRect.bottom - insets.bottom,
+      );
 
-        if (targetRect.height <= viewportRect.height) {
-          if (targetRect.top < viewportRect.top) {
-            dy = viewportRect.top - targetRect.top;
-          } else if (targetRect.bottom > viewportRect.bottom) {
-            dy = viewportRect.bottom - targetRect.bottom;
-          }
-        }
-
-        if (targetRect.width <= viewportRect.width) {
-          if (targetRect.left < viewportRect.left) {
-            dx = viewportRect.left - targetRect.left;
-          } else if (targetRect.right > viewportRect.right) {
-            dx = viewportRect.right - targetRect.right;
-          }
-        }
-
-        if (dx != 0 || dy != 0) {
-          targetRect = targetRect.shift(Offset(dx, dy));
-          totalDx += dx;
-          totalDy += dy;
-        }
-
-        // 继续往上找更外层的视口（如果有的话）
-        currentBox = viewportBox.parent as RenderBox?;
-      } else {
-        break;
-      }
-    }
-
-    // 自动推动外层滚动视图，实现“海报滚进来”的效果
-    if (totalDx != 0 || totalDy != 0) {
-      // 寻找能够响应滚动的最外层或有效 Scrollable
-      BuildContext? ctx = report.context;
-      ScrollableState? activeScrollable;
-      while (ctx != null) {
-        final s = Scrollable.maybeOf(ctx);
-        if (s != null) {
-          if (s.position.maxScrollExtent > s.position.minScrollExtent) {
-            activeScrollable = s;
-            break;
-          }
-          // 因为 Scrollable.maybeOf 找的是最近的，如果要找上一级，需要跨过当前 Scrollable
-          // Flutter 树遍历技巧：从当前 Scrollable 的 parent 继续往上找
-          ctx = _findParentContext(s.context);
-        } else {
-          break;
-        }
+      Axis? scrollAxis;
+      if (viewport is RenderViewportBase) {
+        scrollAxis = axisDirectionToAxis((viewport as RenderViewportBase).axisDirection);
       }
 
-      if (activeScrollable != null) {
-        final position = activeScrollable.position;
-        double newPixels = position.pixels;
+      // 确保 clamp 的 max 永远大于等于 min，防止超大组件反向吞噬报错
+      double maxLeft = math.max(safeRect.left, safeRect.right - targetRect.width);
+      double maxTop = math.max(safeRect.top, safeRect.bottom - targetRect.height);
 
-        // dy < 0 说明焦点框被向上挤压，说明实际元素在下方更深处，需要增加像素往下滚
-        if (totalDy != 0) {
-          newPixels -= totalDy * 0.15; // 平滑缓冲系数
-        }
-        if (totalDx != 0 && position.axis == Axis.horizontal) {
-          newPixels -= totalDx * 0.15;
-        }
+      // ！！！核心优化：只在能够滚动的轴上施加空气墙钳制！！！
+      // 如果某轴不可滚动（比如垂直瀑布流的横向），钳制会导致游标脱离卡片物理位置
+      double clampedLeft = targetRect.left;
+      double clampedTop = targetRect.top;
 
-        if (newPixels != position.pixels) {
-          newPixels = newPixels.clamp(position.minScrollExtent, position.maxScrollExtent);
-          position.jumpTo(newPixels);
-        }
+      if (scrollAxis == null || scrollAxis == Axis.horizontal) {
+        clampedLeft = targetRect.left.clamp(safeRect.left, maxLeft);
       }
+      if (scrollAxis == null || scrollAxis == Axis.vertical) {
+        clampedTop = targetRect.top.clamp(safeRect.top, maxTop);
+      }
+
+      targetRect = Rect.fromLTWH(
+        clampedLeft, 
+        clampedTop, 
+        targetRect.width, 
+        targetRect.height
+      );
     }
 
     bool isChanged = false;
@@ -217,15 +212,20 @@ class _FloatingHighlightBoxState extends State<FloatingHighlightBox>
         report.isFocused &&
         _liveRect != null;
 
-    if (isActuallyHidden) return const SizedBox.shrink();
+    final isTeleportVisible = _teleportState != _TeleportState.waiting;
 
-    final opacity = isVisible ? 1.0 : 0.0;
+    final opacity = (isVisible && isTeleportVisible) ? 1.0 : 0.0;
     final osDpr = View.of(context).devicePixelRatio;
     final visualScale = 1.0 / osDpr;
     final targetRect = _liveRect ?? _lastValidRect ?? Rect.zero;
-    final duration = _isTransitioning
+
+    final duration = (_isTransitioning && _teleportState == _TeleportState.idle)
         ? const Duration(milliseconds: 300)
         : Duration.zero;
+
+    final opacityDuration = _teleportState == _TeleportState.waiting
+        ? Duration.zero
+        : const Duration(milliseconds: 200);
 
     return ThemeIdentity(
       role: ThemeRole.appBackground,
@@ -244,7 +244,7 @@ class _FloatingHighlightBoxState extends State<FloatingHighlightBox>
                   width: targetRect.width,
                   height: targetRect.height,
                   child: AnimatedOpacity(
-                    duration: const Duration(milliseconds: 200),
+                    duration: opacityDuration,
                     opacity: opacity,
                     child: CustomPaint(
                       painter: _FocusOutlinePainter(
