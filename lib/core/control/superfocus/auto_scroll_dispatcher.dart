@@ -70,7 +70,7 @@ class AutoScrollDispatcher {
 
       // ！！！核心修复 2：冒泡遍历，让多层嵌套的 ScrollView 一层层网上滚 ！！！
       // 必须取 viewport.parent，否则下一次 maybeOf 会立刻找到自己，导致视口错乱！
-      targetObject = (viewport as RenderObject).parent as RenderObject?;
+      targetObject = viewport.parent;
       currentContext = scrollable.context;
       scrollable = Scrollable.maybeOf(currentContext);
     }

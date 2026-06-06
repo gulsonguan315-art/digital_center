@@ -45,7 +45,7 @@ class BuildingMapData {
       '*adt=>mediaPage',
     ],
 
-    'mediaPage': ['*', '/*', '*media_btn_play=>media_overlay'],
+    'mediaPage': ['*', '/*', '->media_overlay'],
     'media_overlay': ['*media_overlay_air_node=>media_menu', '*media_home_trigger=>media_home_confirm'],
     'media_menu': ['*media_menu_speed', '*media_menu_skip', '*media_menu_subtitle', '*media_menu_audio'],
     'media_home_confirm': ['*media_home_cancel', '*media_home_ok'],

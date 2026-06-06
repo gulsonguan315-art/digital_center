@@ -4,10 +4,10 @@ import '../../../../core/control/superfocus/focus_api.dart';
 import '../../../../core/engine/theme/theme_api.dart';
 import '../../../../core/control/superfocus/focus_scroll_policy.dart';
 import '../../../../core/layout/grid/grid.dart';
-import '../media_service.dart';
+import 'core/media_detail_controller.dart';
+import 'views_components/hero_metadata_view.dart';
 import 'movie_detail_view.dart';
 import 'series_detail_view.dart';
-import '../../../overlay/media/media_immersive_overlay.dart';
 
 class MediaDetailRoom extends StatefulWidget {
   final String roomId;
@@ -24,34 +24,24 @@ class MediaDetailRoom extends StatefulWidget {
 }
 
 class _MediaDetailRoomState extends State<MediaDetailRoom> {
-  Map<String, dynamic>? _details;
-  bool _isLoading = true;
-  bool _isError = false;
+  late MediaDetailController _controller;
 
   @override
   void initState() {
     super.initState();
-    _fetchDetails();
+    _controller = MediaDetailController(widget.itemId);
+    _controller.addListener(_onControllerUpdate);
   }
 
-  Future<void> _fetchDetails() async {
-    final details = await MediaService.instance.fetchItemDetails(widget.itemId);
-    if (mounted) {
-      setState(() {
-        _details = details;
-        _isLoading = false;
-        _isError = details == null;
-      });
-    }
+  void _onControllerUpdate() {
+    if (mounted) setState(() {});
   }
 
-  String? get _backdropTag {
-    if (_details == null) return null;
-    final tags = _details!['BackdropImageTags'] as List<dynamic>?;
-    if (tags != null && tags.isNotEmpty) {
-      return tags.first.toString();
-    }
-    return null;
+  @override
+  void dispose() {
+    _controller.removeListener(_onControllerUpdate);
+    _controller.dispose();
+    super.dispose();
   }
 
   @override
@@ -70,14 +60,14 @@ class _MediaDetailRoomState extends State<MediaDetailRoom> {
             final material = context.useTheme();
             final grid = GridContext.fromViewport(MediaQuery.sizeOf(context));
 
-            if (_isLoading) {
+            if (_controller.isLoading) {
               return Container(
                 color: material.colors.surface,
                 child: const Center(child: CircularProgressIndicator()),
               );
             }
 
-            if (_isError || _details == null) {
+            if (_controller.isError || _controller.rawDetails == null) {
               return Container(
                 color: material.colors.surface,
                 child: Center(
@@ -89,26 +79,7 @@ class _MediaDetailRoomState extends State<MediaDetailRoom> {
               );
             }
 
-            final title = _details!['Name'] as String? ?? 'Unknown';
-            final year = _details!['ProductionYear'] as int?;
-            final rating = (_details!['CommunityRating'] as num?)?.toDouble();
-            final overview = _details!['Overview'] as String? ?? '';
-            final genres = (_details!['Genres'] as List<dynamic>?)?.join(' / ');
-            final runTimeTicks = _details!['RunTimeTicks'] as int?;
-            String? runtimeStr;
-            if (runTimeTicks != null) {
-              final mins = runTimeTicks ~/ 60000000; // Ticks to minutes
-              runtimeStr = '${mins ~/ 60}h ${mins % 60}m';
-            }
-
-            final backdropUrl = MediaService.instance.backdropUrl(
-              widget.itemId,
-              _backdropTag,
-            );
-
-            final imageTags = _details!['ImageTags'] as Map<String, dynamic>? ?? {};
-            final logoTag = imageTags['Logo'] as String?;
-            final logoUrl = logoTag != null ? MediaService.instance.logoUrl(widget.itemId, logoTag) : '';
+            final backdropUrl = _controller.backdropUrl;
 
             return Container(
               color: material.colors.surface,
@@ -121,8 +92,7 @@ class _MediaDetailRoomState extends State<MediaDetailRoom> {
                         backdropUrl,
                         fit: BoxFit.cover,
                         alignment: Alignment.topCenter,
-                        errorBuilder: (context, error, stackTrace) =>
-                            const SizedBox.shrink(),
+                        errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
                       ),
                     ),
 
@@ -174,252 +144,41 @@ class _MediaDetailRoomState extends State<MediaDetailRoom> {
                       child: CustomScrollView(
                         cacheExtent: 1000.0,
                         slivers: [
-                        // 第一屏：Hero Section (与物理屏幕等高)
-                        SliverToBoxAdapter(
-                          child: SizedBox(
-                            height: MediaQuery.sizeOf(context).height,
-                            child: Stack(
-                              clipBehavior: Clip.none,
-                              children: [
-                                Positioned(
-                                  left: grid.pageInset + context.units(8.0), // 补偿负边距，同时避开折叠侧边栏(5.6U)和焦点环(17px)
-                                  bottom: grid.units(10) + context.units(8.0), // 补偿负边距
-                                  width: grid.viewportWidth * 0.5, // 占据半屏宽度
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      // 标题或 Logo
-                                      if (logoUrl.isNotEmpty)
-                                        Image.network(
-                                          logoUrl,
-                                          height: grid.units(12), // 苹果风格的 Logo 通常较大
-                                          fit: BoxFit.contain,
-                                          alignment: Alignment.centerLeft,
-                                          errorBuilder: (context, error, stackTrace) => Text(
-                                            title,
-                                            style: TextStyle(
-                                              fontSize: grid.units(6),
-                                              fontWeight: FontWeight.w900,
-                                              color: material.colors.textPrimary,
-                                              height: 1.1,
-                                              letterSpacing: -0.5,
-                                            ),
-                                          ),
-                                        )
-                                      else
-                                        Text(
-                                          title,
-                                          style: TextStyle(
-                                            fontSize: grid.units(6),
-                                            fontWeight: FontWeight.w900,
-                                            color: material.colors.textPrimary,
-                                            height: 1.1,
-                                            letterSpacing: -0.5,
-                                          ),
-                                        ),
-                                      SizedBox(height: grid.units(2)),
-
-                                      // 元数据行
-                                      DefaultTextStyle(
-                                        style: TextStyle(
-                                          fontSize: grid.units(2.2),
-                                          color: material.colors.textSecondary,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                        child: Wrap(
-                                          spacing: grid.units(1.5),
-                                          crossAxisAlignment: WrapCrossAlignment.center,
-                                          children: [
-                                            if (year != null) Text(year.toString()),
-                                            if (year != null) const _Dot(),
-                                            if (rating != null)
-                                              Text('★ ${rating.toStringAsFixed(1)}'),
-                                            if (rating != null) const _Dot(),
-                                            if (runtimeStr != null) Text(runtimeStr),
-                                            if (runtimeStr != null) const _Dot(),
-                                            if (genres != null && genres.isNotEmpty)
-                                              Text(genres),
-                                          ],
-                                        ),
-                                      ),
-
-                                      SizedBox(height: grid.units(3)),
-
-                                      // 剧情简介
-                                      if (overview.isNotEmpty)
-                                        SizedBox(
-                                          width: grid.viewportWidth * 0.45, // 简介文本略窄，提升阅读体验
-                                          child: Text(
-                                            overview,
-                                            maxLines: 4,
-                                            overflow: TextOverflow.ellipsis,
-                                            style: TextStyle(
-                                              fontSize: grid.units(1.8),
-                                              color: material.colors.textSecondary,
-                                              height: 1.5,
-                                            ),
-                                          ),
-                                        ),
-
-                                      SizedBox(height: grid.units(4)),
-
-                                      // 操作按钮组
-                                      Row(
-                                        children: [
-                                          _buildActionButton(
-                                            context: context,
-                                            grid: grid,
-                                            id: 'media_btn_play',
-                                            icon: Icons.play_arrow_rounded,
-                                            label: '播放',
-                                            autofocus: true,
-                                            isPrimary: true,
-                                            onPressed: () {
-                                              Navigator.of(context).push(
-                                                PageRouteBuilder(
-                                                  opaque: true, // 阻止底层渲染
-                                                  transitionDuration: const Duration(milliseconds: 400),
-                                                  reverseTransitionDuration: const Duration(milliseconds: 300),
-                                                  pageBuilder: (ctx, anim1, anim2) => FadeTransition(
-                                                    opacity: anim1,
-                                                    child: ScaleTransition(
-                                                      scale: Tween<double>(begin: 0.9, end: 1.0).animate(
-                                                        CurvedAnimation(
-                                                          parent: anim1,
-                                                          curve: Curves.easeOutCubic,
-                                                          reverseCurve: Curves.easeInCubic,
-                                                        ),
-                                                      ),
-                                                      child: MediaImmersiveOverlay(itemId: widget.itemId),
-                                                    ),
-                                                  ),
-                                                ),
-                                              );
-                                            },
-                                          ),
-                                          SizedBox(width: grid.units(2)),
-                                          _buildActionButton(
-                                            context: context,
-                                            grid: grid,
-                                            id: 'btn_trailer',
-                                            icon: Icons.movie_creation_outlined,
-                                            label: '预告片',
-                                            onPressed: () {
-                                              // TODO: 预告片逻辑
-                                            },
-                                          ),
-                                        ],
-                                      ),
-                                    ],
+                          // 第一屏：Hero Section (与物理屏幕等高)
+                          SliverToBoxAdapter(
+                            child: SizedBox(
+                              height: MediaQuery.sizeOf(context).height,
+                              child: Stack(
+                                clipBehavior: Clip.none,
+                                children: [
+                                  HeroMetadataView(
+                                    controller: _controller,
+                                    roomId: widget.roomId,
+                                    itemId: widget.itemId,
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
                           ),
-                        ),
-                        
-                        // 第二屏及以下：动态内容区
-                        SliverToBoxAdapter(
-                          child: _details!['Type'] == 'Series'
-                              ? SeriesDetailView(seriesId: widget.itemId, details: _details!)
-                              : MovieDetailView(details: _details!),
-                        ),
-                        
-                        // 底部留白
-                        SliverToBoxAdapter(child: SizedBox(height: grid.units(10))),
-                      ],
+                          
+                          // 第二屏及以下：动态内容区
+                          SliverToBoxAdapter(
+                            child: _controller.type == 'Series'
+                                ? SeriesDetailView(seriesId: widget.itemId, details: _controller.rawDetails!)
+                                : MovieDetailView(controller: _controller),
+                          ),
+                          
+                          // 底部留白
+                          SliverToBoxAdapter(child: SizedBox(height: grid.units(10))),
+                        ],
+                      ),
                     ),
-                  ),
-                ), // End Positioned.fill
-              ],
-            ),
-          );
-        },
-        ),
-      ),
-    );
-  }
-
-  Widget _buildActionButton({
-    required BuildContext context,
-    required GridContext grid,
-    required String id,
-    required IconData icon,
-    required String label,
-    required VoidCallback onPressed,
-    bool autofocus = false,
-    bool isPrimary = false,
-  }) {
-    final material = context.useTheme();
-    final radius = BorderRadius.circular(grid.units(4));
-
-    return FocusIdentity(
-      id: id,
-      autofocus: autofocus,
-      alignment: FocusAlignment.viewportStart,
-      onPressed: onPressed,
-      focusGeometry: RoundedRectFocusGeometry(borderRadius: radius),
-      builder: (context, hasFocus) {
-        // 核心交互动画状态
-        final bgColor = isPrimary
-            ? material.colors.textPrimary
-            : material.colors.surface.withValues(alpha: 0.5);
-        final textColor = isPrimary
-            ? material.colors.surface
-            : material.colors.textPrimary;
-
-        return AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          curve: Curves.easeOutCubic,
-          padding: EdgeInsets.symmetric(
-            horizontal: grid.units(4),
-            vertical: grid.units(1.5),
-          ),
-          decoration: BoxDecoration(
-            color: bgColor,
-            borderRadius: radius,
-            border: Border.all(
-              color: isPrimary
-                  ? Colors.transparent
-                  : material.colors.border.withValues(alpha: 0.5),
-              width: 1,
-            ),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, color: textColor, size: grid.units(3.5)),
-              SizedBox(width: grid.units(1)),
-              Text(
-                label,
-                style: TextStyle(
-                  color: textColor,
-                  fontSize: grid.units(2.2),
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1.0,
-                ),
+                  ), // End Positioned.fill
+                ],
               ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-}
-
-class _Dot extends StatelessWidget {
-  const _Dot();
-
-  @override
-  Widget build(BuildContext context) {
-    final grid = GridContext.fromViewport(MediaQuery.sizeOf(context));
-    return Container(
-      width: grid.units(0.6),
-      height: grid.units(0.6),
-      decoration: BoxDecoration(
-        color: context.useTheme().colors.textSecondary.withValues(alpha: 0.5),
-        shape: BoxShape.circle,
+            );
+          },
+        ),
       ),
     );
   }

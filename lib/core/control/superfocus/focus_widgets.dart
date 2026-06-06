@@ -1,12 +1,9 @@
-import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
-import 'package:flutter/services.dart';
 import 'interaction_state.dart';
 import 'interaction_manager.dart';
 import 'focus_geometry.dart';
 import 'focus_report.dart';
 import 'auto_scroll_dispatcher.dart';
-import 'building_map.dart';
 import '../device_manager/device_manager.dart';
 import 'focus_alignment.dart';
 
@@ -83,14 +80,21 @@ class _SuperFocusRoomState extends State<SuperFocusRoom> {
   void initState() {
     super.initState();
     _isZone = SuperFocusManager.instance.isZone(widget.id);
-    SuperFocusManager.instance.registerRoom(widget.id, transitionConfig: widget.transitionConfig);
+    SuperFocusManager.instance.registerRoom(
+      widget.id,
+      transitionConfig: widget.transitionConfig,
+    );
   }
 
   @override
   void didUpdateWidget(SuperFocusRoom oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.id != oldWidget.id || widget.transitionConfig != oldWidget.transitionConfig) {
-      SuperFocusManager.instance.registerRoom(widget.id, transitionConfig: widget.transitionConfig);
+    if (widget.id != oldWidget.id ||
+        widget.transitionConfig != oldWidget.transitionConfig) {
+      SuperFocusManager.instance.registerRoom(
+        widget.id,
+        transitionConfig: widget.transitionConfig,
+      );
     }
   }
 
@@ -124,9 +128,13 @@ class _SuperFocusRoomState extends State<SuperFocusRoom> {
                 if (hasFocus) {
                   // 异步上报，彻底解决 Build 周期内的重绘死循环
                   Future.microtask(() {
-                    final primaryContext = FocusManager.instance.primaryFocus?.context;
-                    if (primaryContext != null) {
-                      final closestRoomId = RoomScope.of(primaryContext)?.roomId;
+                    if (!mounted) return;
+                    final primaryContext =
+                        FocusManager.instance.primaryFocus?.context;
+                    if (primaryContext != null && primaryContext.mounted) {
+                      final closestRoomId = RoomScope.of(
+                        primaryContext,
+                      )?.roomId;
                       // 只有当最深层的房间就是自己时，才上报。
                       // 防止嵌套房间（如 MediaDetailRoom 嵌套在 MediaRoom 中）在恢复焦点时父房间覆盖子房间。
                       if (closestRoomId == widget.id) {
@@ -344,7 +352,10 @@ class _SuperFocusItemState extends State<SuperFocusItem> {
               }
               _reportFocus();
               // ！！！核心修复 3：确保所有常规方向键移动都会触发自定义滚动引擎 ！！！
-              AutoScrollDispatcher.ensureVisible(context, alignment: widget.alignment);
+              AutoScrollDispatcher.ensureVisible(
+                context,
+                alignment: widget.alignment,
+              );
             }
           },
           child: widget.builder(context, _hasFocus),
@@ -352,7 +363,6 @@ class _SuperFocusItemState extends State<SuperFocusItem> {
       ),
     );
   }
-
 }
 
 class InputInterceptor extends StatefulWidget {

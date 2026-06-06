@@ -152,7 +152,7 @@ class _FloatingHighlightBoxState extends State<FloatingHighlightBox>
 
       Axis? scrollAxis;
       if (viewport is RenderViewportBase) {
-        scrollAxis = axisDirectionToAxis((viewport as RenderViewportBase).axisDirection);
+        scrollAxis = axisDirectionToAxis(viewport.axisDirection);
       }
 
       // 确保 clamp 的 max 永远大于等于 min，防止超大组件反向吞噬报错
@@ -329,13 +329,4 @@ class _FocusOutlinePainter extends CustomPainter {
         oldDelegate.glowRadius != glowRadius ||
         oldDelegate.glowOpacity != glowOpacity;
   }
-}
-
-BuildContext? _findParentContext(BuildContext context) {
-  BuildContext? parent;
-  context.visitAncestorElements((element) {
-    parent = element;
-    return false; // 只访问第一个祖先然后停止
-  });
-  return parent;
 }

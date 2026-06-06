@@ -33,7 +33,6 @@ class FocusScrollEngine {
         return currentPixels != null ? -currentPixels : (targetStart - safeStart);
         
       case FocusAlignment.keepVisible:
-      default:
         double delta = 0.0;
         // 1. 如果目标本身比安全区还大（罕见的超大卡片），优先保证头部对齐
         if ((targetEnd - targetStart) > (safeEnd - safeStart)) {
