@@ -18,6 +18,7 @@ import 'repositories/music_cache_manager.dart';
 import 'repositories/weather_repository.dart';
 import 'repositories/media_repository.dart';
 import 'models/weather_data.dart';
+import 'local/stores/local_media_settings_store.dart';
 import '../engine/audio/app_audio_service.dart';
 
 /// 【数据的总管理员】(Centralized Data Manager - Lightweight Facade)
@@ -50,6 +51,7 @@ class DataManager {
   late final RemoteApiClient _remoteClient;
 
   LocalConfigStore get localStore => _localStore;
+  LocalMediaSettingsStore get mediaSettings => _localStore.mediaSettings;
 
   // 🌟 向下兼容高保真缓存属性
   PoetryData get latestPoetry => PoetryRepository.instance.latestPoetry;

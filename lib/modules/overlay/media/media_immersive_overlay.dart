@@ -1,19 +1,12 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
-
 import 'package:media_kit_video/media_kit_video.dart';
 
 import '../../../core/control/superfocus/focus_widgets.dart';
 import '../../../core/control/superfocus/focus_api.dart';
 import '../../../core/control/superfocus/interaction_manager.dart';
-import '../../../core/control/device_manager/device_manager.dart';
-import '../../../core/layout/grid/grid.dart';
-
 import '../../../../core/engine/theme/theme_api.dart';
-import '../../resident/media/media_service.dart';
 
-import 'core/media_engine_controller.dart';
-import 'core/media_seek_controller.dart';
+import 'core/media_immersive_controller.dart';
 import 'views_components/media_home_confirm_dialog.dart';
 import 'views_components/media_immersive_control_panel.dart';
 import 'views_components/media_immersive_hud.dart';
@@ -28,148 +21,23 @@ class MediaImmersiveOverlay extends StatefulWidget {
 }
 
 class _MediaImmersiveOverlayState extends State<MediaImmersiveOverlay> {
-  final StreamController<String> _interactionStreamController =
-      StreamController<String>.broadcast();
-
-  late final MediaEngineController _engineController;
-  late final MediaSeekController _seekController;
-  late String _currentItemId;
-
-  late StreamSubscription<bool> _completedSub;
+  late final MediaImmersiveController _controller;
 
   @override
   void initState() {
     super.initState();
-    _currentItemId = widget.itemId;
-    _engineController = MediaEngineController(
-      interactionStreamController: _interactionStreamController,
+    _controller = MediaImmersiveController(
+      initialItemId: widget.itemId,
+      onExitRequest: () {
+        if (mounted) FocusAPI.dispatchBackCommand();
+      },
     );
-    _engineController.init(_currentItemId);
-
-    _seekController = MediaSeekController(
-      _engineController.player,
-      _interactionStreamController,
-    );
-
-    _completedSub = _engineController.player.stream.completed.listen((completed) async {
-      if (completed && mounted) {
-        final success = await _switchEpisode(1);
-        if (!success && mounted) {
-          FocusAPI.dispatchBackCommand();
-        }
-      }
-    });
   }
 
   @override
   void dispose() {
-    _completedSub.cancel();
-    _seekController.dispose();
-    _engineController.dispose();
-    _interactionStreamController.close();
+    _controller.dispose();
     super.dispose();
-  }
-
-  bool _handleLocalInput(InputSignal signal) {
-    final showMenu = SuperFocusManager.instance.state.checkIsActive(
-      'media_menu',
-    );
-    final showHomeConfirm = SuperFocusManager.instance.state.checkIsActive(
-      'media_home_confirm',
-    );
-
-    if (showMenu || showHomeConfirm) {
-      if (signal == InputSignal.menu || signal == InputSignal.back) {
-        FocusAPI.dispatchBackCommand();
-        if (showHomeConfirm &&
-            !_engineController.player.state.playing &&
-            _seekController.wasPlayingBeforeSeek) {
-          _engineController.player.play(); // 如果弹窗取消，恢复播放
-        }
-        return true;
-      }
-      return false; // 允许菜单项/弹窗内正常使用方向键与确认键
-    } else {
-      switch (signal) {
-        case InputSignal.menu:
-          // 动作触发焦点从空气节点路由转移至菜单 media_menu
-          FocusAPI.dispatchAction('media_overlay', 'media_overlay_air_node');
-          return true;
-        case InputSignal.confirm:
-          // Enter/确认键 暂停或播放
-          _engineController.player.playOrPause();
-          return true;
-        case InputSignal.left:
-          // 左键快退 10 秒 / 长按 30 秒
-          _seekController.seekRelative(InputSignal.left);
-          return true;
-        case InputSignal.right:
-          // 右键快进 10 秒 / 长按 30 秒
-          _seekController.seekRelative(InputSignal.right);
-          return true;
-        case InputSignal.home:
-          // 暂停播放，并触发拓扑跳转，显示自定义的焦点弹窗
-          _seekController.wasPlayingBeforeSeek =
-              _engineController.player.state.playing;
-          if (_seekController.wasPlayingBeforeSeek) {
-            _engineController.player.pause();
-          }
-          FocusAPI.dispatchAction('media_overlay', 'media_home_trigger');
-          return true;
-        case InputSignal.up:
-          _switchEpisode(-1);
-          return true;
-        case InputSignal.down:
-          _switchEpisode(1);
-          return true;
-        case InputSignal.volumeUp:
-        case InputSignal.volumeDown:
-        case InputSignal.back:
-          return false; // 放行给全局处理（回退或调整全局音量）
-      }
-    }
-  }
-
-  Future<bool> _switchEpisode(int direction) async {
-    final details = await MediaService.instance.fetchItemDetails(_currentItemId);
-    if (details == null) return false;
-    
-    // 如果不是剧集，则属于“不支持切集”的类型，一律报错误提醒
-    if (details['Type'] != 'Episode') {
-      _interactionStreamController.add(direction > 0 ? 'error_next_episode' : 'error_prev_episode');
-      return false;
-    }
-    
-    final seriesId = details['SeriesId'] as String?;
-    final seasonId = details['SeasonId'] as String?;
-    if (seriesId == null || seasonId == null) {
-      _interactionStreamController.add(direction > 0 ? 'error_next_episode' : 'error_prev_episode');
-      return false;
-    }
-    
-    final episodes = await MediaService.instance.fetchEpisodes(seriesId, seasonId);
-    final currentIndex = episodes.indexWhere((ep) => ep['Id'] == _currentItemId);
-    if (currentIndex == -1) {
-      _interactionStreamController.add(direction > 0 ? 'error_next_episode' : 'error_prev_episode');
-      return false;
-    }
-    
-    final targetIndex = currentIndex + direction;
-    if (targetIndex >= 0 && targetIndex < episodes.length) {
-      final nextId = episodes[targetIndex]['Id'] as String?;
-      if (nextId != null) {
-        setState(() {
-          _currentItemId = nextId;
-        });
-        _engineController.playItem(nextId);
-        _interactionStreamController.add(direction > 0 ? 'next_episode' : 'prev_episode');
-        return true;
-      }
-    }
-    
-    // 到了第一集再按上一集，或者最后一集再按下一集（暂不跨季切）
-    _interactionStreamController.add(direction > 0 ? 'error_next_episode' : 'error_prev_episode');
-    return false;
   }
 
   @override
@@ -181,15 +49,12 @@ class _MediaImmersiveOverlayState extends State<MediaImmersiveOverlay> {
         body: SuperFocusRoom(
           id: 'media_overlay',
           child: InputInterceptor(
-            onSignal: _handleLocalInput,
+            onSignal: _controller.handleLocalInput,
             child: Builder(
               builder: (roomContext) {
                 final showMenu = roomContext.useIsActive('media_menu');
-                final scope = roomContext
-                    .dependOnInheritedWidgetOfExactType<RoomScope>();
-                final isIntendingToEnter =
-                    SuperFocusManager.instance.intentionRoomId.value ==
-                    'media_overlay';
+                final scope = roomContext.dependOnInheritedWidgetOfExactType<RoomScope>();
+                final isIntendingToEnter = SuperFocusManager.instance.intentionRoomId.value == 'media_overlay';
 
                 if (scope != null && !scope.isActive && !isIntendingToEnter) {
                   WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -204,7 +69,7 @@ class _MediaImmersiveOverlayState extends State<MediaImmersiveOverlay> {
                     // 真正的播放器组件
                     Positioned.fill(
                       child: Video(
-                        controller: _engineController.videoController,
+                        controller: _controller.engineController.videoController,
                         controls: NoVideoControls, // 禁用默认控制面板
                       ),
                     ),
@@ -214,13 +79,12 @@ class _MediaImmersiveOverlayState extends State<MediaImmersiveOverlay> {
                       child: GestureDetector(
                         behavior: HitTestBehavior.translucent,
                         onTap: () {
-                          if (showMenu ||
-                              roomContext.useIsActive('media_home_confirm')) {
+                          if (showMenu || roomContext.useIsActive('media_home_confirm')) {
                             FocusAPI.dispatchBackCommand();
                             if (roomContext.useIsActive('media_home_confirm') &&
-                                !_engineController.player.state.playing &&
-                                _seekController.wasPlayingBeforeSeek) {
-                              _engineController.player.play();
+                                !_controller.engineController.player.state.playing &&
+                                _controller.seekController.wasPlayingBeforeSeek) {
+                              _controller.engineController.player.play();
                             }
                           } else {
                             FocusAPI.dispatchBackCommand();
@@ -230,13 +94,17 @@ class _MediaImmersiveOverlayState extends State<MediaImmersiveOverlay> {
                       ),
                     ),
 
-                    // 抽离出的 HUD (暂停提醒、进度条、顶部时间)
-                    MediaImmersiveHud(
-                      player: _engineController.player,
-                      itemId: _currentItemId,
-                      interactionStream: _interactionStreamController.stream,
-                      virtualPositionNotifier:
-                          _seekController.virtualPositionNotifier,
+                    // 抽离出的 HUD (暂停提醒、进度条、顶部时间)，外包一层监听 Id 变化
+                    ValueListenableBuilder<String>(
+                      valueListenable: _controller.currentItemIdNotifier,
+                      builder: (context, currentId, child) {
+                        return MediaImmersiveHud(
+                          player: _controller.engineController.player,
+                          itemId: currentId,
+                          interactionStream: _controller.interactionStreamController.stream,
+                          virtualPositionNotifier: _controller.seekController.virtualPositionNotifier,
+                        );
+                      },
                     ),
 
                     // 约束保护：强制空气节点用 Positioned.fill 包裹，且常驻以防焦点退回父容器
@@ -245,18 +113,10 @@ class _MediaImmersiveOverlayState extends State<MediaImmersiveOverlay> {
                     // 左侧悬浮控制菜单
                     if (showMenu)
                       Positioned(
-                        left: 0,
                         top: 0,
                         bottom: 0,
-                        child: Container(
-                          padding: EdgeInsets.only(
-                            left: GridContext.fromViewport(
-                              MediaQuery.sizeOf(context),
-                            ).pageInset,
-                          ),
-                          alignment: Alignment.centerLeft,
-                          child: const MediaImmersiveControlPanel(),
-                        ),
+                        left: 0,
+                        child: MediaImmersiveControlPanel(controller: _controller),
                       ),
 
                     // 居中显示的退出确认弹窗
@@ -266,12 +126,11 @@ class _MediaImmersiveOverlayState extends State<MediaImmersiveOverlay> {
                           color: Colors.black.withValues(alpha: 0.6),
                           child: MediaHomeConfirmDialog(
                             onCancel: () {
-                              if (_seekController.wasPlayingBeforeSeek) {
-                                _engineController.player.play();
+                              if (_controller.seekController.wasPlayingBeforeSeek) {
+                                _controller.engineController.player.play();
                               }
                             },
-                            onConfirm:
-                                () {}, // FocusAPI.dispatchHomeCommand() 已经在 Dialog 里调用了
+                            onConfirm: () {}, // FocusAPI.dispatchHomeCommand() 已经在 Dialog 里调用了
                           ),
                         ),
                       ),
