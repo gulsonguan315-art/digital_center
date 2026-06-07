@@ -97,23 +97,66 @@ class HeroMetadataView extends StatelessWidget {
           // 操作按钮组
           Row(
             children: [
+              if (controller.hasResume) ...[
+                _buildActionButton(
+                  context: context,
+                  grid: grid,
+                  material: material,
+                  id: 'media_overlay',
+                  icon: Icons.play_arrow_rounded,
+                  label: '续播',
+                  autofocus: true,
+                  isPrimary: true,
+                  onPressed: () {
+                    final targetItemId = controller.resumeItemId;
+                    if (targetItemId == null) return;
+
+                    FocusAPI.dispatchAction(roomId, 'media_overlay');
+                    Navigator.of(context).push(
+                      PageRouteBuilder(
+                        opaque: true,
+                        transitionDuration: const Duration(milliseconds: 400),
+                        reverseTransitionDuration: const Duration(milliseconds: 300),
+                        pageBuilder: (ctx, anim1, anim2) => FadeTransition(
+                          opacity: anim1,
+                          child: ScaleTransition(
+                            scale: Tween<double>(begin: 0.9, end: 1.0).animate(
+                              CurvedAnimation(
+                                parent: anim1,
+                                curve: Curves.easeOutCubic,
+                                reverseCurve: Curves.easeInCubic,
+                              ),
+                            ),
+                            child: MediaImmersiveOverlay(
+                              itemId: targetItemId,
+                              startPositionTicks: controller.resumePositionTicks,
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+                SizedBox(width: grid.units(2)),
+              ],
               _buildActionButton(
                 context: context,
                 grid: grid,
                 material: material,
-                id: 'media_overlay',
-                icon: Icons.play_arrow_rounded,
+                id: 'btn_trailer',
+                icon: Icons.play_circle_outline_rounded,
                 label: '播放',
-                autofocus: true,
-                isPrimary: true,
+                autofocus: !controller.hasResume,
+                isPrimary: !controller.hasResume,
                 onPressed: () {
-                  final targetItemId = controller.playItemId;
+                  // 从头播放
+                  final targetItemId = controller.resumeItemId;
                   if (targetItemId == null) return;
 
                   FocusAPI.dispatchAction(roomId, 'media_overlay');
                   Navigator.of(context).push(
                     PageRouteBuilder(
-                      opaque: true, // 阻止底层渲染
+                      opaque: true,
                       transitionDuration: const Duration(milliseconds: 400),
                       reverseTransitionDuration: const Duration(milliseconds: 300),
                       pageBuilder: (ctx, anim1, anim2) => FadeTransition(
@@ -131,18 +174,6 @@ class HeroMetadataView extends StatelessWidget {
                       ),
                     ),
                   );
-                },
-              ),
-              SizedBox(width: grid.units(2)),
-              _buildActionButton(
-                context: context,
-                grid: grid,
-                material: material,
-                id: 'btn_trailer',
-                icon: Icons.movie_creation_outlined,
-                label: '预告片',
-                onPressed: () {
-                  // TODO: 预告片逻辑
                 },
               ),
             ],

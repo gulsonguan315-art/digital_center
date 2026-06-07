@@ -13,8 +13,9 @@ import 'views_components/media_immersive_hud.dart';
 
 class MediaImmersiveOverlay extends StatefulWidget {
   final String itemId;
+  final int startPositionTicks;
 
-  const MediaImmersiveOverlay({super.key, required this.itemId});
+  const MediaImmersiveOverlay({super.key, required this.itemId, this.startPositionTicks = 0});
 
   @override
   State<MediaImmersiveOverlay> createState() => _MediaImmersiveOverlayState();
@@ -28,6 +29,7 @@ class _MediaImmersiveOverlayState extends State<MediaImmersiveOverlay> {
     super.initState();
     _controller = MediaImmersiveController(
       initialItemId: widget.itemId,
+      startPositionTicks: widget.startPositionTicks,
       onExitRequest: () {
         if (mounted) FocusAPI.dispatchBackCommand();
       },
@@ -57,9 +59,12 @@ class _MediaImmersiveOverlayState extends State<MediaImmersiveOverlay> {
                 final isIntendingToEnter = SuperFocusManager.instance.intentionRoomId.value == 'media_overlay';
 
                 if (scope != null && !scope.isActive && !isIntendingToEnter) {
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) async {
                     if (mounted && Navigator.canPop(context)) {
-                      Navigator.of(context).pop();
+                      await _controller.stopAndReport();
+                      if (mounted) {
+                        Navigator.of(context).pop();
+                      }
                     }
                   });
                 }

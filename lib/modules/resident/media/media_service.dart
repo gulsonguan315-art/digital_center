@@ -84,8 +84,7 @@ class MediaService extends ChangeNotifier {
       MediaRepository.instance.logoUrl(itemId, tag);
 
   /// 获取直接串流播放 URL
-  String streamUrl(String itemId) =>
-      MediaRepository.instance.streamUrl(itemId);
+  String streamUrl(String itemId) => MediaRepository.instance.streamUrl(itemId);
 
   /// 详情页：在线拉取详情数据（不走缓存）
   Future<Map<String, dynamic>?> fetchItemDetails(String itemId) async {
@@ -98,7 +97,10 @@ class MediaService extends ChangeNotifier {
   }
 
   /// 获取剧集某季的单集
-  Future<List<Map<String, dynamic>>> fetchEpisodes(String seriesId, String seasonId) async {
+  Future<List<Map<String, dynamic>>> fetchEpisodes(
+    String seriesId,
+    String seasonId,
+  ) async {
     return await MediaRepository.instance.fetchEpisodes(seriesId, seasonId);
   }
 
@@ -108,6 +110,29 @@ class MediaService extends ChangeNotifier {
     final items = await MediaRepository.instance.fetchBoxSetItems(boxSetId);
     _boxSetChildrenCache[boxSetId] = items;
     notifyListeners();
+  }
+
+  /// 汇报播放进度
+  Future<void> reportPlaybackProgress(
+    String itemId,
+    int positionTicks, {
+    String action = 'Playing/Progress',
+  }) async {
+    return await MediaRepository.instance.reportPlaybackProgress(
+      itemId,
+      positionTicks,
+      action: action,
+    );
+  }
+
+  /// 强制标记为已观看
+  Future<void> markItemAsPlayed(String itemId) async {
+    return await MediaRepository.instance.markItemAsPlayed(itemId);
+  }
+
+  /// 获取推荐的下一集 (NextUp)
+  Future<Map<String, dynamic>?> fetchNextUp(String seriesId) async {
+    return await MediaRepository.instance.fetchNextUp(seriesId);
   }
 
   @override

@@ -44,7 +44,7 @@ class MediaRepository {
   /// collectionType 优先匹配，name 关键词兜底
   static const _categoryCollectionType = <String, String>{
     'mov': 'movies',
-    'tv':  'tvshows',
+    'tv': 'tvshows',
     // ani / doc 是独立 Library，通过 name 关键词匹配，见 _resolveLibraryName
   };
 
@@ -81,14 +81,15 @@ class MediaRepository {
         return;
       }
 
-      final body = jsonDecode(utf8.decode(resp.bodyBytes)) as Map<String, dynamic>;
+      final body =
+          jsonDecode(utf8.decode(resp.bodyBytes)) as Map<String, dynamic>;
       final items = (body['Items'] as List<dynamic>?) ?? [];
 
       for (final raw in items) {
         final item = raw as Map<String, dynamic>;
-        final id   = item['Id']             as String? ?? '';
+        final id = item['Id'] as String? ?? '';
         final type = (item['CollectionType'] as String? ?? '').toLowerCase();
-        final name = (item['Name']           as String? ?? '').toLowerCase();
+        final name = (item['Name'] as String? ?? '').toLowerCase();
 
         if (id.isEmpty) continue;
 
@@ -97,8 +98,10 @@ class MediaRepository {
           if (type == entry.value && !_libraryMap.containsKey(entry.key)) {
             // tv / tvshows 只让第一个匹配的 Library 归入 tv，动漫另行按 name 匹配
             _libraryMap[entry.key] = id;
-            Log.d(LogGroup.media,
-              '✅ [Media] 分类 ${entry.key} → Library "$name" ($id)');
+            Log.d(
+              LogGroup.media,
+              '✅ [Media] 分类 ${entry.key} → Library "$name" ($id)',
+            );
           }
         }
 
@@ -112,8 +115,10 @@ class MediaRepository {
                 if (entry.key == 'ani' && _libraryMap['tv'] == id) {
                   _libraryMap.remove('tv');
                 }
-                Log.d(LogGroup.media,
-                  '✅ [Media] 分类 ${entry.key} → Library "$name" ($id) [name匹配]');
+                Log.d(
+                  LogGroup.media,
+                  '✅ [Media] 分类 ${entry.key} → Library "$name" ($id) [name匹配]',
+                );
                 break;
               }
             }
@@ -125,7 +130,7 @@ class MediaRepository {
       if (!_libraryMap.containsKey('tv')) {
         for (final raw in items) {
           final item = raw as Map<String, dynamic>;
-          final id   = item['Id']             as String? ?? '';
+          final id = item['Id'] as String? ?? '';
           final type = (item['CollectionType'] as String? ?? '').toLowerCase();
           final libId = _libraryMap['ani'];
           if (type == 'tvshows' && id != libId) {
@@ -164,7 +169,10 @@ class MediaRepository {
       );
       _emitAndSync(category);
     } else {
-      Log.d(LogGroup.media, '♻️ [Media] 复用已有的 StreamController 用于分类: $category');
+      Log.d(
+        LogGroup.media,
+        '♻️ [Media] 复用已有的 StreamController 用于分类: $category',
+      );
       _emitAndSync(category);
     }
     return _controllers[category]!.stream;
@@ -213,7 +221,7 @@ class MediaRepository {
 
       final url = Uri.parse(
         '${ep.jellyfinBaseUrl}/Users/${ep.jellyfinUserId}/Items/$itemId'
-        '?fields=Overview,Genres,ProductionYear,CommunityRating,ImageTags,People'
+        '?fields=Overview,Genres,ProductionYear,CommunityRating,ImageTags,People',
       );
 
       final resp = await http
@@ -221,7 +229,10 @@ class MediaRepository {
           .timeout(const Duration(seconds: 10));
 
       if (resp.statusCode != 200) {
-        Log.d(LogGroup.media, '⚠️ [Media] Item Details 请求失败: ${resp.statusCode}');
+        Log.d(
+          LogGroup.media,
+          '⚠️ [Media] Item Details 请求失败: ${resp.statusCode}',
+        );
         return null;
       }
 
@@ -242,7 +253,7 @@ class MediaRepository {
         '${ep.jellyfinBaseUrl}/Users/${ep.jellyfinUserId}/Items'
         '?parentId=$boxSetId'
         '&fields=Genres,ProductionYear,CommunityRating,ImageTags'
-        '&SortBy=SortName&SortOrder=Ascending'
+        '&SortBy=SortName&SortOrder=Ascending',
       );
 
       final resp = await http
@@ -250,13 +261,17 @@ class MediaRepository {
           .timeout(const Duration(seconds: 10));
 
       if (resp.statusCode != 200) {
-        Log.d(LogGroup.media, '⚠️ [Media] BoxSet Items 请求失败: ${resp.statusCode}');
+        Log.d(
+          LogGroup.media,
+          '⚠️ [Media] BoxSet Items 请求失败: ${resp.statusCode}',
+        );
         return [];
       }
 
-      final body = jsonDecode(utf8.decode(resp.bodyBytes)) as Map<String, dynamic>;
+      final body =
+          jsonDecode(utf8.decode(resp.bodyBytes)) as Map<String, dynamic>;
       final raws = (body['Items'] as List<dynamic>?) ?? [];
-      
+
       // 合集子项也共享父级的分类样式即可，这里传个 'mov' 或实际父级类型均可。
       return raws
           .map((e) => MediaItem.fromJellyfin(e as Map<String, dynamic>, 'mov'))
@@ -276,7 +291,7 @@ class MediaRepository {
       final url = Uri.parse(
         '${ep.jellyfinBaseUrl}/Shows/$seriesId/Seasons'
         '?userId=${ep.jellyfinUserId}'
-        '&fields=ImageTags'
+        '&fields=ImageTags',
       );
 
       final resp = await http
@@ -284,11 +299,15 @@ class MediaRepository {
           .timeout(const Duration(seconds: 10));
 
       if (resp.statusCode != 200) {
-        Log.d(LogGroup.media, '⚠️ [Media] fetchSeasons 请求失败: ${resp.statusCode}');
+        Log.d(
+          LogGroup.media,
+          '⚠️ [Media] fetchSeasons 请求失败: ${resp.statusCode}',
+        );
         return [];
       }
 
-      final body = jsonDecode(utf8.decode(resp.bodyBytes)) as Map<String, dynamic>;
+      final body =
+          jsonDecode(utf8.decode(resp.bodyBytes)) as Map<String, dynamic>;
       final items = (body['Items'] as List<dynamic>?) ?? [];
       return items.map((e) => e as Map<String, dynamic>).toList();
     } catch (e) {
@@ -298,7 +317,10 @@ class MediaRepository {
   }
 
   /// 获取剧集某季的单集列表
-  Future<List<Map<String, dynamic>>> fetchEpisodes(String seriesId, String seasonId) async {
+  Future<List<Map<String, dynamic>>> fetchEpisodes(
+    String seriesId,
+    String seasonId,
+  ) async {
     try {
       final ep = await _endpoints;
       if (ep.jellyfinBaseUrl.isEmpty || ep.jellyfinToken.isEmpty) return [];
@@ -307,7 +329,7 @@ class MediaRepository {
         '${ep.jellyfinBaseUrl}/Shows/$seriesId/Episodes'
         '?seasonId=$seasonId'
         '&userId=${ep.jellyfinUserId}'
-        '&fields=Overview,ImageTags,RunTimeTicks'
+        '&fields=Overview,ImageTags,RunTimeTicks',
       );
 
       final resp = await http
@@ -315,11 +337,15 @@ class MediaRepository {
           .timeout(const Duration(seconds: 10));
 
       if (resp.statusCode != 200) {
-        Log.d(LogGroup.media, '⚠️ [Media] fetchEpisodes 请求失败: ${resp.statusCode}');
+        Log.d(
+          LogGroup.media,
+          '⚠️ [Media] fetchEpisodes 请求失败: ${resp.statusCode}',
+        );
         return [];
       }
 
-      final body = jsonDecode(utf8.decode(resp.bodyBytes)) as Map<String, dynamic>;
+      final body =
+          jsonDecode(utf8.decode(resp.bodyBytes)) as Map<String, dynamic>;
       final items = (body['Items'] as List<dynamic>?) ?? [];
       return items.map((e) => e as Map<String, dynamic>).toList();
     } catch (e) {
@@ -344,14 +370,17 @@ class MediaRepository {
   /// 【SWR 核心】立即推缓存，后台同步 Jellyfin
   Future<void> _emitAndSync(String category) async {
     Log.d(LogGroup.media, '🔍 [Media] 开始处理分类 [$category] 的数据读取...');
-    
+
     // 【重要修复】broadcast stream 不会缓冲事件，如果同步 emit 必定会导致尚未 listen 的 UI 丢失该次数据。
     // 这里强制让出当前执行栈，等待 UI 在本次 build 周期内完成 subscribe 后，再推送数据。
     await Future.microtask(() {});
 
     // 1. 立即推内存缓存（如有）
     if (_memCache.containsKey(category)) {
-      Log.d(LogGroup.media, '⚡ [Media] 命中内存缓存 [$category]，推送到 UI (共 ${_memCache[category]!.length} 条)');
+      Log.d(
+        LogGroup.media,
+        '⚡ [Media] 命中内存缓存 [$category]，推送到 UI (共 ${_memCache[category]!.length} 条)',
+      );
       _emit(category, _memCache[category]!);
       _syncInBackground(category); // 有内存缓存时仍后台同步，但 UI 已秒出
       return;
@@ -361,7 +390,10 @@ class MediaRepository {
     Log.d(LogGroup.media, '💾 [Media] 未命中内存，尝试读取磁盘缓存 [$category]...');
     final diskCache = await _localStore.media.readCache(category);
     if (diskCache.isNotEmpty) {
-      Log.d(LogGroup.media, '📦 [Media] 读取磁盘缓存成功 [$category] (共 ${diskCache.length} 条)，推送至 UI');
+      Log.d(
+        LogGroup.media,
+        '📦 [Media] 读取磁盘缓存成功 [$category] (共 ${diskCache.length} 条)，推送至 UI',
+      );
       _memCache[category] = diskCache;
       _emit(category, diskCache);
     } else {
@@ -406,10 +438,13 @@ class MediaRepository {
         return;
       }
 
-      final body  = jsonDecode(utf8.decode(resp.bodyBytes)) as Map<String, dynamic>;
-      final raws  = (body['Items'] as List<dynamic>?) ?? [];
+      final body =
+          jsonDecode(utf8.decode(resp.bodyBytes)) as Map<String, dynamic>;
+      final raws = (body['Items'] as List<dynamic>?) ?? [];
       final fresh = raws
-          .map((e) => MediaItem.fromJellyfin(e as Map<String, dynamic>, category))
+          .map(
+            (e) => MediaItem.fromJellyfin(e as Map<String, dynamic>, category),
+          )
           .toList();
 
       // 对比变化：ID 集合不同视为有更新
@@ -420,15 +455,21 @@ class MediaRepository {
 
       // 兼容旧版本缓存升级：如果旧数据缺失 jellyfinType 字段，强制视为有变化以刷新本地缓存
       if (!hasChange && oldList.isNotEmpty && fresh.isNotEmpty) {
-        if (oldList.any((e) => e.jellyfinType == null) && fresh.any((e) => e.jellyfinType != null)) {
+        if (oldList.any((e) => e.jellyfinType == null) &&
+            fresh.any((e) => e.jellyfinType != null)) {
           hasChange = true;
-          Log.d(LogGroup.media, '🔄 [Media] 侦测到旧版本缓存缺失 jellyfinType，强制更新缓存以完成迁移');
+          Log.d(
+            LogGroup.media,
+            '🔄 [Media] 侦测到旧版本缓存缺失 jellyfinType，强制更新缓存以完成迁移',
+          );
         }
       }
 
       if (hasChange) {
-        Log.d(LogGroup.media,
-          '🆕 [Media] $category 内容已更新 (旧: ${oldIds.length} 条 → 新: ${fresh.length} 条)');
+        Log.d(
+          LogGroup.media,
+          '🆕 [Media] $category 内容已更新 (旧: ${oldIds.length} 条 → 新: ${fresh.length} 条)',
+        );
         _memCache[category] = fresh;
         _emit(category, fresh);
         // 异步写盘，不阻塞 UI
@@ -445,25 +486,32 @@ class MediaRepository {
   void _emit(String category, List<MediaItem> items) {
     final controller = _controllers[category];
     if (controller != null && !controller.isClosed) {
-      Log.d(LogGroup.media, '📺 [Media] 向 UI 推送 [$category] 数据 (共 ${items.length} 条)');
+      Log.d(
+        LogGroup.media,
+        '📺 [Media] 向 UI 推送 [$category] 数据 (共 ${items.length} 条)',
+      );
       controller.add(items);
     } else {
-      Log.d(LogGroup.media, '❌ [Media] 无法推送 [$category] 数据: controller 为 null 或已关闭');
+      Log.d(
+        LogGroup.media,
+        '❌ [Media] 无法推送 [$category] 数据: controller 为 null 或已关闭',
+      );
     }
   }
 
   static Map<String, String> _headers(String token) => {
     'X-Emby-Token': token,
+    'X-Emby-Authorization': 'MediaBrowser Client="Digital Center", Device="TV", DeviceId="digital_center_client_v1", Version="1.0.0", Token="$token"',
     'Accept': 'application/json',
   };
 
   /// Jellyfin includeItemTypes 参数值
   static String _jellyfinItemType(String category) {
     return switch (category) {
-      'tv'  => 'Series',
+      'tv' => 'Series',
       'ani' => 'Movie,Series', // 动漫可能包含剧场版(Movie)或番剧(Series)
       'doc' => 'Movie,Series', // 纪录片可能被建为 Movie 或 Series 库
-      _     => 'Movie',        // mov
+      _ => 'Movie', // mov
     };
   }
 
@@ -476,6 +524,134 @@ class MediaRepository {
   Future<ApiEndpoints> get _endpoints async {
     _cachedEndpoints ??= (await _localStore.userSettings.readData()).api;
     return _cachedEndpoints!;
+  }
+
+  /// 汇报播放进度
+  /// [action] : 'Playing' (开始), 'Playing/Progress' (进展), 'Playing/Stopped' (停止)
+  Future<void> reportPlaybackProgress(
+    String itemId,
+    int positionTicks, {
+    String action = 'Playing/Progress',
+  }) async {
+    try {
+      final ep = await _endpoints;
+      if (ep.jellyfinBaseUrl.isEmpty || ep.jellyfinToken.isEmpty) return;
+
+      final url = Uri.parse('${ep.jellyfinBaseUrl}/Sessions/$action');
+      
+      // 完全照抄 gulson_deskpane 的逻辑
+      Map<String, dynamic> payload;
+      if (action == 'Playing') {
+        payload = {'ItemId': itemId}; // Start 只需要 ItemId
+      } else {
+        payload = {
+          'ItemId': itemId,
+          'PositionTicks': positionTicks,
+          'IsPaused': action == 'Playing/Stopped',
+        };
+      }
+
+      final body = jsonEncode(payload);
+
+      final headers = _headers(ep.jellyfinToken);
+      headers['Content-Type'] = 'application/json';
+
+      try {
+        final resp = await http
+            .post(url, headers: headers, body: body)
+            .timeout(const Duration(seconds: 5));
+        if (resp.statusCode != 204 && resp.statusCode != 200) {
+          Log.d(LogGroup.media, '⚠️ [Media] 上报 Dashboard($action) 失败: ${resp.statusCode}');
+        } else {
+          Log.d(LogGroup.media, '✅ [Media] 上报 Dashboard($action) 成功!');
+        }
+      } catch (_) {
+      }
+      // -----------------------------------------------------------------------
+      // 通道 B：强制更新 UserData (抄自 gulson_deskpane)
+      // -----------------------------------------------------------------------
+      if (action == 'Playing/Progress' || action == 'Playing/Stopped') {
+        final userDataUrl = Uri.parse(
+          '${ep.jellyfinBaseUrl}/Users/${ep.jellyfinUserId}/Items/$itemId/UserData',
+        );
+
+        final now = DateTime.now().toUtc().toIso8601String();
+        final userDataBody = jsonEncode({
+          'PlaybackPositionTicks': positionTicks,
+          'Played': false,
+          'LastPlayedDate': now,
+        });
+
+        try {
+          final resp2 = await http
+              .post(userDataUrl, headers: headers, body: userDataBody)
+              .timeout(const Duration(seconds: 5));
+          if (resp2.statusCode == 200) {
+            Log.d(LogGroup.media, '✅ [Media] 强制更新 UserData 成功! (Ticks: ${positionTicks ~/ 10000000}s)');
+          }
+        } catch (_) {}
+      }
+
+    } catch (e) {
+      Log.d(LogGroup.media, '⚠️ [Media] 进度上报流程异常: $e');
+    }
+  }
+
+  /// 强制标记为已观看
+  Future<void> markItemAsPlayed(String itemId) async {
+    try {
+      final ep = await _endpoints;
+      if (ep.jellyfinBaseUrl.isEmpty || ep.jellyfinToken.isEmpty) return;
+
+      final url = Uri.parse(
+        '${ep.jellyfinBaseUrl}/Users/${ep.jellyfinUserId}/PlayedItems/$itemId',
+      );
+
+      final resp = await http
+          .post(url, headers: _headers(ep.jellyfinToken))
+          .timeout(const Duration(seconds: 5));
+
+      if (resp.statusCode != 200 && resp.statusCode != 204) {
+        Log.d(LogGroup.media, '⚠️ [Media] 标记已观看失败: ${resp.statusCode}');
+      } else {
+        Log.d(LogGroup.media, '✅ [Media] 成功标记 $itemId 为已观看');
+      }
+    } catch (e) {
+      Log.d(LogGroup.media, '⚠️ [Media] 标记已观看异常: $e');
+    }
+  }
+
+  /// 获取推荐的下一集 (NextUp)
+  Future<Map<String, dynamic>?> fetchNextUp(String seriesId) async {
+    try {
+      final ep = await _endpoints;
+      if (ep.jellyfinBaseUrl.isEmpty || ep.jellyfinToken.isEmpty) return null;
+
+      final url = Uri.parse(
+        '${ep.jellyfinBaseUrl}/Shows/NextUp'
+        '?userId=${ep.jellyfinUserId}'
+        '&seriesId=$seriesId'
+        '&fields=Overview,ImageTags,RunTimeTicks'
+        '&Limit=1',
+      );
+
+      final resp = await http
+          .get(url, headers: _headers(ep.jellyfinToken))
+          .timeout(const Duration(seconds: 10));
+
+      if (resp.statusCode != 200) return null;
+
+      final body =
+          jsonDecode(utf8.decode(resp.bodyBytes)) as Map<String, dynamic>;
+      final items = (body['Items'] as List<dynamic>?) ?? [];
+      if (items.isNotEmpty) {
+        return items.first as Map<String, dynamic>;
+      }
+      return null;
+    } catch (e) {
+      Log.d(LogGroup.media, '⚠️ [Media] fetchNextUp 异常: $e');
+      return null;
+    }
   }
 }
 

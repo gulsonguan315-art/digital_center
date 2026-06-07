@@ -12,8 +12,18 @@ class LocalMediaStore {
 
   LocalMediaStore({required this.configDirPath});
 
+  String get _cacheDirPath => '$configDirPath/media_cache';
+
   String _filePath(String category) =>
-      '$configDirPath/media_cache_$category.json';
+      '$_cacheDirPath/media_metadata_$category.json';
+
+  Future<void> _ensureCacheDir() async {
+    if (kIsWeb) return;
+    final dir = Directory(_cacheDirPath);
+    if (!dir.existsSync()) {
+      dir.createSync(recursive: true);
+    }
+  }
 
   // ---------------------------------------------------------------------------
   // 读取
@@ -49,6 +59,7 @@ class LocalMediaStore {
   Future<void> writeCache(String category, List<MediaItem> items) async {
     if (kIsWeb) return;
     try {
+      await _ensureCacheDir();
       final file = File(_filePath(category));
       final encoded = jsonEncode(items.map((e) => e.toJson()).toList());
       await file.writeAsString(encoded, flush: true);

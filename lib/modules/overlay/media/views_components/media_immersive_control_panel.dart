@@ -1,19 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:superfocus/core/control/superfocus/focus_widgets.dart';
 import '../../../../core/control/superfocus/focus_api.dart';
+import '../../../../core/control/superfocus/interaction_manager.dart';
 import '../../../../core/layout/grid/grid.dart';
 import '../core/media_immersive_controller.dart';
 
-class MediaImmersiveControlPanel extends StatefulWidget {
+class MediaImmersiveControlPanel extends StatelessWidget {
   final MediaImmersiveController controller;
-  
+
   const MediaImmersiveControlPanel({super.key, required this.controller});
-
-  @override
-  State<MediaImmersiveControlPanel> createState() => _MediaImmersiveControlPanelState();
-}
-
-class _MediaImmersiveControlPanelState extends State<MediaImmersiveControlPanel> {
-  String _activeMenu = 'main';
 
   Widget _buildItem({
     required GridContext grid,
@@ -36,10 +31,16 @@ class _MediaImmersiveControlPanelState extends State<MediaImmersiveControlPanel>
             vertical: grid.units(1.5),
           ),
           decoration: BoxDecoration(
-            color: hasFocus ? Colors.white.withValues(alpha: 0.15) : (isSelected ? Colors.white.withValues(alpha: 0.05) : Colors.transparent),
+            color: hasFocus
+                ? Colors.white.withValues(alpha: 0.15)
+                : (isSelected
+                      ? Colors.white.withValues(alpha: 0.05)
+                      : Colors.transparent),
             borderRadius: BorderRadius.circular(grid.units(1.5)),
             border: Border.all(
-              color: hasFocus ? Colors.white.withValues(alpha: 0.3) : Colors.transparent,
+              color: hasFocus
+                  ? Colors.white.withValues(alpha: 0.3)
+                  : Colors.transparent,
               width: 1,
             ),
           ),
@@ -48,7 +49,9 @@ class _MediaImmersiveControlPanelState extends State<MediaImmersiveControlPanel>
             children: [
               Icon(
                 icon,
-                color: hasFocus || isSelected ? Colors.white : Colors.white.withValues(alpha: 0.6),
+                color: hasFocus || isSelected
+                    ? Colors.white
+                    : Colors.white.withValues(alpha: 0.6),
                 size: grid.units(2.5),
               ),
               SizedBox(width: grid.units(1.5)),
@@ -56,9 +59,13 @@ class _MediaImmersiveControlPanelState extends State<MediaImmersiveControlPanel>
                 child: Text(
                   label,
                   style: TextStyle(
-                    color: hasFocus || isSelected ? Colors.white : Colors.white.withValues(alpha: 0.6),
+                    color: hasFocus || isSelected
+                        ? Colors.white
+                        : Colors.white.withValues(alpha: 0.6),
                     fontSize: grid.units(2.0),
-                    fontWeight: hasFocus || isSelected ? FontWeight.w700 : FontWeight.w500,
+                    fontWeight: hasFocus || isSelected
+                        ? FontWeight.w700
+                        : FontWeight.w500,
                     letterSpacing: 1.0,
                   ),
                 ),
@@ -81,13 +88,11 @@ class _MediaImmersiveControlPanelState extends State<MediaImmersiveControlPanel>
           id: 'media_menu_speed',
           label: '播放速度',
           icon: Icons.speed_rounded,
-          trailing: Icon(Icons.chevron_right, color: Colors.white.withValues(alpha: 0.5)),
-          onPressed: () {
-            setState(() { _activeMenu = 'speed'; });
-            Future.delayed(const Duration(milliseconds: 50), () {
-              if (mounted) FocusAPI.dispatchAction('media_menu', 'media_menu_speed_back');
-            });
-          },
+          trailing: Icon(
+            Icons.chevron_right,
+            color: Colors.white.withValues(alpha: 0.5),
+          ),
+          onPressed: () {}, // BuildingMap自动处理房间跳转
         ),
         SizedBox(height: grid.units(1)),
         _buildItem(
@@ -95,13 +100,11 @@ class _MediaImmersiveControlPanelState extends State<MediaImmersiveControlPanel>
           id: 'media_menu_skip',
           label: '跳过片头片尾',
           icon: Icons.skip_next_rounded,
-          trailing: Icon(Icons.chevron_right, color: Colors.white.withValues(alpha: 0.5)),
-          onPressed: () {
-            setState(() { _activeMenu = 'skip'; });
-            Future.delayed(const Duration(milliseconds: 50), () {
-              if (mounted) FocusAPI.dispatchAction('media_menu', 'media_menu_skip_back');
-            });
-          },
+          trailing: Icon(
+            Icons.chevron_right,
+            color: Colors.white.withValues(alpha: 0.5),
+          ),
+          onPressed: () {}, // BuildingMap自动处理房间跳转
         ),
         SizedBox(height: grid.units(1)),
         _buildItem(
@@ -135,28 +138,32 @@ class _MediaImmersiveControlPanelState extends State<MediaImmersiveControlPanel>
           label: '返回上一级',
           icon: Icons.arrow_back_rounded,
           onPressed: () {
-            setState(() { _activeMenu = 'main'; });
-            Future.delayed(const Duration(milliseconds: 50), () {
-              if (mounted) FocusAPI.dispatchAction('media_menu', 'media_menu_speed');
-            });
+            FocusAPI.dispatchBackCommand();
           },
         ),
         SizedBox(height: grid.units(2)),
-        ...speeds.map((speed) {
-          final isSelected = widget.controller.playbackSpeed == speed;
-          return Padding(
-            padding: EdgeInsets.only(bottom: grid.units(1)),
-            child: _buildItem(
-              grid: grid,
-              id: 'media_menu_speed_$speed',
-              label: '${speed}x',
-              icon: isSelected ? Icons.radio_button_checked : Icons.radio_button_unchecked,
-              isSelected: isSelected,
-              onPressed: () {
-                widget.controller.setPlaybackSpeed(speed);
-                setState(() {});
-              },
-            ),
+        StatefulBuilder(builder: (context, setState) {
+          return Column(
+            mainAxisSize: MainAxisSize.min,
+            children: speeds.map((speed) {
+              final isSelected = controller.playbackSpeed == speed;
+              return Padding(
+                padding: EdgeInsets.only(bottom: grid.units(1)),
+                child: _buildItem(
+                  grid: grid,
+                  id: 'media_menu_speed_$speed',
+                  label: '${speed}x',
+                  icon: isSelected
+                      ? Icons.radio_button_checked
+                      : Icons.radio_button_unchecked,
+                  isSelected: isSelected,
+                  onPressed: () {
+                    controller.setPlaybackSpeed(speed);
+                    setState(() {});
+                  },
+                ),
+              );
+            }).toList(),
           );
         }),
       ],
@@ -174,73 +181,85 @@ class _MediaImmersiveControlPanelState extends State<MediaImmersiveControlPanel>
           label: '返回上一级',
           icon: Icons.arrow_back_rounded,
           onPressed: () {
-            setState(() { _activeMenu = 'main'; });
-            Future.delayed(const Duration(milliseconds: 50), () {
-              if (mounted) FocusAPI.dispatchAction('media_menu', 'media_menu_skip');
-            });
+            FocusAPI.dispatchBackCommand();
           },
         ),
         SizedBox(height: grid.units(2)),
-        _buildItem(
-          grid: grid,
-          id: 'media_menu_skip_toggle',
-          label: '自动跳过片头片尾',
-          icon: widget.controller.autoSkip ? Icons.toggle_on : Icons.toggle_off_outlined,
-          isSelected: widget.controller.autoSkip,
-          onPressed: () {
-            widget.controller.setAutoSkip(!widget.controller.autoSkip);
-            setState(() {});
-          },
-        ),
-        SizedBox(height: grid.units(1)),
-        _buildItem(
-          grid: grid,
-          id: 'media_menu_skip_intro',
-          label: '记录片头 (当前位置)',
-          icon: Icons.login_rounded,
-          trailing: Text(
-            '${widget.controller.introDuration ~/ 1000}s',
-            style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: grid.units(1.5)),
-          ),
-          onPressed: () {
-            widget.controller.recordIntro();
-            setState(() {});
-          },
-        ),
-        SizedBox(height: grid.units(1)),
-        _buildItem(
-          grid: grid,
-          id: 'media_menu_skip_outro',
-          label: '记录片尾 (当前位置)',
-          icon: Icons.logout_rounded,
-          trailing: Text(
-            '距结束${widget.controller.outroDuration ~/ 1000}s',
-            style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: grid.units(1.5)),
-          ),
-          onPressed: () {
-            widget.controller.recordOutro();
-            setState(() {});
-          },
-        ),
+        StatefulBuilder(builder: (context, setState) {
+          return Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildItem(
+                grid: grid,
+                id: 'media_menu_skip_toggle',
+                label: '自动跳过片头片尾',
+                icon: controller.autoSkip
+                    ? Icons.toggle_on
+                    : Icons.toggle_off_outlined,
+                isSelected: controller.autoSkip,
+                onPressed: () {
+                  controller.setAutoSkip(!controller.autoSkip);
+                  setState(() {});
+                },
+              ),
+              SizedBox(height: grid.units(1)),
+              _buildItem(
+                grid: grid,
+                id: 'media_menu_skip_intro',
+                label: '记录片头 (当前位置)',
+                icon: Icons.login_rounded,
+                trailing: Text(
+                  '${controller.introDuration ~/ 1000}s',
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.5),
+                    fontSize: grid.units(1.5),
+                  ),
+                ),
+                onPressed: () {
+                  controller.recordIntro();
+                  setState(() {});
+                },
+              ),
+              SizedBox(height: grid.units(1)),
+              _buildItem(
+                grid: grid,
+                id: 'media_menu_skip_outro',
+                label: '记录片尾 (当前位置)',
+                icon: Icons.logout_rounded,
+                trailing: Text(
+                  '距结束${controller.outroDuration ~/ 1000}s',
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.5),
+                    fontSize: grid.units(1.5),
+                  ),
+                ),
+                onPressed: () {
+                  controller.recordOutro();
+                  setState(() {});
+                },
+              ),
+            ],
+          );
+        }),
       ],
+    );
+  }
+
+  Widget _buildMenuLayer(bool isActive, Widget Function() builder) {
+    return IgnorePointer(
+      ignoring: !isActive,
+      child: AnimatedOpacity(
+        duration: const Duration(milliseconds: 250),
+        opacity: isActive ? 1.0 : 0.0,
+        curve: Curves.easeOutCubic,
+        child: builder(),
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     final grid = GridContext.fromViewport(MediaQuery.sizeOf(context));
-    
-    Widget content;
-    switch (_activeMenu) {
-      case 'speed':
-        content = _buildSpeedMenu(grid);
-        break;
-      case 'skip':
-        content = _buildSkipMenu(grid);
-        break;
-      default:
-        content = _buildMainMenu(grid);
-    }
 
     return Container(
       width: grid.units(38),
@@ -255,12 +274,40 @@ class _MediaImmersiveControlPanelState extends State<MediaImmersiveControlPanel>
       ),
       child: SuperFocusRoom(
         id: 'media_menu',
-        child: AnimatedSwitcher(
-          duration: const Duration(milliseconds: 250),
-          child: KeyedSubtree(
-            key: ValueKey(_activeMenu),
-            child: content,
-          ),
+        child: ValueListenableBuilder(
+          valueListenable: SuperFocusManager.instance.topologyNotifier,
+          builder: (context, topology, _) {
+            final isSpeed = SuperFocusManager.instance.state.checkIsActive('media_menu_speed');
+            final isSkip = SuperFocusManager.instance.state.checkIsActive('media_menu_skip');
+            final isMain = !isSpeed && !isSkip;
+
+            return Stack(
+              clipBehavior: Clip.none,
+              alignment: Alignment.topCenter,
+              children: [
+                const Positioned.fill(child: SuperFocusAirNode()),
+                _buildMenuLayer(isMain, () => _buildMainMenu(grid)),
+                SuperFocusRoom(
+                  id: 'media_menu_speed',
+                  child: Builder(
+                    builder: (ctx) {
+                      final isActive = RoomScope.of(ctx)?.isActive ?? false;
+                      return _buildMenuLayer(isActive, () => _buildSpeedMenu(grid));
+                    }
+                  ),
+                ),
+                SuperFocusRoom(
+                  id: 'media_menu_skip',
+                  child: Builder(
+                    builder: (ctx) {
+                      final isActive = RoomScope.of(ctx)?.isActive ?? false;
+                      return _buildMenuLayer(isActive, () => _buildSkipMenu(grid));
+                    }
+                  ),
+                ),
+              ],
+            );
+          }
         ),
       ),
     );

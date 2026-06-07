@@ -47,7 +47,21 @@ class BuildingMapData {
 
     'mediaPage': ['*', '/*', '->media_overlay'],
     'media_overlay': ['*media_overlay_air_node=>media_menu', '*media_home_trigger=>media_home_confirm'],
-    'media_menu': ['*media_menu_speed', '*media_menu_skip', '*media_menu_subtitle', '*media_menu_audio'],
+    'media_menu': ['/media_menu_speed', '/media_menu_skip', '*media_menu_subtitle', '*media_menu_audio'],
+    'media_menu_speed': [
+      '*media_menu_speed_back',
+      '*media_menu_speed_1.0',
+      '*media_menu_speed_1.25',
+      '*media_menu_speed_1.5',
+      '*media_menu_speed_1.75',
+      '*media_menu_speed_2.0',
+    ],
+    'media_menu_skip': [
+      '*media_menu_skip_back',
+      '*media_menu_skip_toggle',
+      '*media_menu_skip_intro',
+      '*media_menu_skip_outro',
+    ],
     'media_home_confirm': ['*media_home_cancel', '*media_home_ok'],
     'book': ['*科幻', '*人文=>testPage'],
 

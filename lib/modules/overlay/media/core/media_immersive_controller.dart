@@ -5,6 +5,7 @@ import '../../../../core/control/superfocus/focus_api.dart';
 import '../../../../core/control/superfocus/interaction_manager.dart';
 import '../../../../core/control/device_manager/device_manager.dart';
 import '../../../../core/data/data_manager.dart';
+import '../../../../core/log/log.dart';
 import '../../../resident/media/media_service.dart';
 
 import 'media_engine_controller.dart';
@@ -28,6 +29,7 @@ class MediaImmersiveController {
   int _introDuration = 0;
   int _outroDuration = 0;
   bool _isSwitchingEpisode = false;
+  bool _stopReported = false;
 
   double get playbackSpeed => _playbackSpeed;
   bool get autoSkip => _autoSkip;
@@ -37,12 +39,24 @@ class MediaImmersiveController {
   MediaImmersiveController({
     required String initialItemId,
     required this.onExitRequest,
+    int startPositionTicks = 0,
   }) {
     currentItemIdNotifier = ValueNotifier<String>(initialItemId);
     engineController = MediaEngineController(
       interactionStreamController: interactionStreamController,
     );
-    engineController.init(currentItemIdNotifier.value);
+    engineController.init(initialItemId, startPositionTicks: startPositionTicks);
+
+    if (startPositionTicks > 0) {
+      // 稍延再 seek 确保播放器初始化完毕
+      Future.delayed(const Duration(milliseconds: 800), () {
+        final seekDuration = Duration(microseconds: startPositionTicks ~/ 10);
+        Log.d(LogGroup.media, '⏩ [Player] 续播 seek: startPositionTicks=$startPositionTicks → ${seekDuration.inSeconds}s');
+        engineController.player.seek(seekDuration);
+      });
+    } else {
+      Log.d(LogGroup.media, '▶️ [Player] 从头播放 (startPositionTicks=0)');
+    }
 
     seekController = MediaSeekController(
       engineController.player,
@@ -71,6 +85,8 @@ class MediaImmersiveController {
         if (_outroDuration > 0) {
           final total = engineController.player.state.duration.inMilliseconds;
           if (total > 0 && pos.inMilliseconds >= total - _outroDuration) {
+            Log.d(LogGroup.media, '⏭️ [Player] 触发跳过片尾，标记已看完: ${currentItemIdNotifier.value}');
+            MediaService.instance.markItemAsPlayed(currentItemIdNotifier.value);
             switchEpisode(1);
           }
         }
@@ -131,7 +147,28 @@ class MediaImmersiveController {
     }
   }
 
+  /// 在导航返回 **之前** 调用，await 完成后 Jellyfin 已收到正确进度
+  Future<void> stopAndReport() async {
+    if (_stopReported) return;
+    _stopReported = true;
+    final itemId = currentItemIdNotifier.value;
+    final finalTicks = engineController.player.state.position.inMicroseconds * 10;
+    Log.d(LogGroup.media, '🛑 [Player] stopAndReport: itemId=$itemId, ticks=${finalTicks ~/ 10000000}s');
+    await MediaService.instance.reportPlaybackProgress(
+      itemId,
+      finalTicks,
+      action: 'Playing/Stopped',
+    );
+  }
+
   void dispose() {
+    // 正常情况下 stopAndReport 已在导航前被 await，这里只是保险
+    if (!_stopReported) {
+      final itemId = currentItemIdNotifier.value;
+      final finalTicks = engineController.player.state.position.inMicroseconds * 10;
+      Log.d(LogGroup.media, '⚠️ [Player] dispose fallback report: ticks=${finalTicks ~/ 10000000}s');
+      MediaService.instance.reportPlaybackProgress(itemId, finalTicks, action: 'Playing/Stopped');
+    }
     _positionSub.cancel();
     _completedSub.cancel();
     seekController.dispose();
@@ -142,7 +179,18 @@ class MediaImmersiveController {
 
   /// 剧集切换逻辑（1 = 下一集, -1 = 上一集）
   Future<bool> switchEpisode(int direction) async {
-    if (_isSwitchingEpisode) return false;
+    if (_isSwitchingEpisode || currentSeriesId == null) return false;
+    
+    // Stop reporting for the current episode
+    final stoppedItemId = currentItemIdNotifier.value;
+    final stoppedTicks = engineController.player.state.position.inMicroseconds * 10;
+    Log.d(LogGroup.media, '🛑 [Player] 切集上报 Playing/Stopped: itemId=$stoppedItemId, ticks=$stoppedTicks (${stoppedTicks ~/ 10000000}s)');
+    await MediaService.instance.reportPlaybackProgress(
+      stoppedItemId,
+      stoppedTicks,
+      action: 'Playing/Stopped',
+    );
+
     _isSwitchingEpisode = true;
     
     try {

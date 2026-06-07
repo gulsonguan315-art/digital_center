@@ -10,7 +10,16 @@ class LocalMediaSettingsStore {
 
   LocalMediaSettingsStore({required this.configDirPath});
 
-  String get _filePath => '$configDirPath/media_settings.json';
+  String get _cacheDirPath => '$configDirPath/media_cache';
+  String get _filePath => '$_cacheDirPath/media_settings.json';
+
+  Future<void> _ensureCacheDir() async {
+    if (kIsWeb) return;
+    final dir = Directory(_cacheDirPath);
+    if (!dir.existsSync()) {
+      dir.createSync(recursive: true);
+    }
+  }
 
   Future<void> _ensureLoaded() async {
     if (_isLoaded) return;
@@ -31,6 +40,7 @@ class LocalMediaSettingsStore {
   Future<void> _save() async {
     if (kIsWeb) return;
     try {
+      await _ensureCacheDir();
       final file = File(_filePath);
       await file.writeAsString(jsonEncode(_cache), flush: true);
     } catch (_) {}
