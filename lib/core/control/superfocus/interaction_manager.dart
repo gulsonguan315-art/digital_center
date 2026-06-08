@@ -37,6 +37,7 @@ class SuperInteractionManager {
   ValueNotifier<FocusReport?> get cursorReportNotifier =>
       state.cursorReportNotifier;
   ValueNotifier<bool> get cursorHiddenNotifier => state.cursorHiddenNotifier;
+  ValueNotifier<bool> get cursorWaitingNotifier => state.cursorWaitingNotifier;
   String? get currentRoomId => state.currentRoomId;
   ValueNotifier<String?> get intentionRoomId => _controller.intentionRoomId;
 
@@ -58,6 +59,16 @@ class SuperInteractionManager {
   void hideCursor() => state.cursorHiddenNotifier.value = true;
   void showCursor() => state.cursorHiddenNotifier.value = false;
   void clearCursor() => state.cursorReportNotifier.value = null;
+
+  void setCursorWaiting(bool isWaiting) {
+    if (state.cursorWaitingNotifier.value != isWaiting) {
+      state.cursorWaitingNotifier.value = isWaiting;
+      // 当处于 waiting 状态时，可以考虑临时锁定焦点系统防止乱跑
+      if (isWaiting) {
+        state.cursorHiddenNotifier.value = false; // 确保加载动画可见
+      }
+    }
+  }
 
   void requestNextTransition(FocusTransitionMode mode, {Duration? delay}) {
     state.nextTransition = FocusTransitionConfig(mode, delay: delay);

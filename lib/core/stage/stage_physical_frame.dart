@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../layout/grid/grid_extensions.dart';
+import '../engine/theme/theme_api.dart';
 import '../../modules/resident/sidebar/sidebar_metrics.dart';
 import 'stage_metrics.dart';
 
@@ -23,7 +24,9 @@ class StagePhysicalFrame extends StatelessWidget {
           child: Padding(
             // 全局拦截区：自动为所有普通房间留出左侧 Sidebar 的空间
             padding: EdgeInsets.only(
-              left: context.units(StageMetrics.paddingHorizontalU + SidebarMetrics.widthU),
+              left: context.units(
+                StageMetrics.paddingHorizontalU + SidebarMetrics.widthU,
+              ),
               right: context.units(StageMetrics.paddingHorizontalU),
               top: context.units(StageMetrics.paddingVerticalU),
               bottom: context.units(StageMetrics.paddingVerticalU),
@@ -34,7 +37,7 @@ class StagePhysicalFrame extends StatelessWidget {
               ),
               clipBehavior: Clip.none, // 🌟 允许卡片外部阴影/高光自然向外延伸，防止在边缘处被生硬切边
               child: Material(
-                type: MaterialType.transparency,
+                color: Theme.of(context).extension<AppTheme>()!.colors.stageBackground,
                 child: Stack(
                   clipBehavior: Clip.none,
                   children: mainStageContent,
@@ -44,10 +47,7 @@ class StagePhysicalFrame extends StatelessWidget {
           ),
         ),
         Positioned.fill(
-          child: Stack(
-            clipBehavior: Clip.none,
-            children: overlayStageContent,
-          ),
+          child: Stack(clipBehavior: Clip.none, children: overlayStageContent),
         ),
       ],
     );

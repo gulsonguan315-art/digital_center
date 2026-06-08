@@ -28,6 +28,8 @@ class _FloatingHighlightBoxState extends State<FloatingHighlightBox>
   bool _isTransitioning = false;
   Timer? _transitionTimer;
   _TeleportState _teleportState = _TeleportState.idle;
+  bool _isWaiting = false;
+  double _dashPhase = 0.0;
 
   @override
   void initState() {
@@ -38,6 +40,9 @@ class _FloatingHighlightBoxState extends State<FloatingHighlightBox>
     );
     SuperFocusManager.instance.cursorHiddenNotifier.addListener(
       _handleServiceUpdate,
+    );
+    SuperFocusManager.instance.cursorWaitingNotifier.addListener(
+      _handleWaitingUpdate,
     );
   }
 
@@ -51,7 +56,18 @@ class _FloatingHighlightBoxState extends State<FloatingHighlightBox>
     SuperFocusManager.instance.cursorHiddenNotifier.removeListener(
       _handleServiceUpdate,
     );
+    SuperFocusManager.instance.cursorWaitingNotifier.removeListener(
+      _handleWaitingUpdate,
+    );
     super.dispose();
+  }
+
+  void _handleWaitingUpdate() {
+    if (mounted) {
+      setState(() {
+        _isWaiting = SuperFocusManager.instance.cursorWaitingNotifier.value;
+      });
+    }
   }
 
   void _handleServiceUpdate() {
@@ -96,6 +112,13 @@ class _FloatingHighlightBoxState extends State<FloatingHighlightBox>
 
   void _onTick(Duration elapsed) {
     if (!mounted) return;
+
+    // 更新等待状态的虚线动画相位 (转圈)
+    if (_isWaiting) {
+      setState(() {
+        _dashPhase = (elapsed.inMilliseconds % 1000) / 1000.0;
+      });
+    }
 
     // 瞬移模式的 waiting 阶段，冻结追踪旧位置
     if (_teleportState == _TeleportState.waiting) {
@@ -253,6 +276,8 @@ class _FloatingHighlightBoxState extends State<FloatingHighlightBox>
                         visualScale: visualScale,
                         glowRadius: material.focusGlowRadius,
                         glowOpacity: material.focusGlowOpacity,
+                        isWaiting: _isWaiting,
+                        dashPhase: _dashPhase,
                       ),
                     ),
                   ),
@@ -273,6 +298,8 @@ class _FocusOutlinePainter extends CustomPainter {
     required this.visualScale,
     required this.glowRadius,
     required this.glowOpacity,
+    required this.isWaiting,
+    required this.dashPhase,
   });
 
   final FocusGeometry? geometry;
@@ -280,6 +307,8 @@ class _FocusOutlinePainter extends CustomPainter {
   final double visualScale;
   final double glowRadius;
   final double glowOpacity;
+  final bool isWaiting;
+  final double dashPhase;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -288,6 +317,38 @@ class _FocusOutlinePainter extends CustomPainter {
 
     final rect = Offset.zero & size;
     final outlinePath = geometry.buildOutlinePath(rect);
+    
+    Path renderPath;
+    if (isWaiting) {
+      // 提取虚线轮廓
+      renderPath = Path();
+      for (final metric in outlinePath.computeMetrics()) {
+        final length = metric.length;
+        final dashLength = 20.0 * visualScale;
+        final gapLength = 20.0 * visualScale;
+        final patternLength = dashLength + gapLength;
+        // 旋转相位
+        final startOffset = dashPhase * patternLength;
+
+        double distance = -startOffset;
+        while (distance < length) {
+          final start = distance;
+          final end = distance + dashLength;
+          if (end > 0 && start < length) {
+            final extractStart = math.max(0.0, start);
+            final extractEnd = math.min(length, end);
+            renderPath.addPath(
+              metric.extractPath(extractStart, extractEnd),
+              Offset.zero,
+            );
+          }
+          distance += patternLength;
+        }
+      }
+    } else {
+      renderPath = outlinePath;
+    }
+
     final shadowPaint = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2.5 * visualScale
@@ -302,8 +363,8 @@ class _FocusOutlinePainter extends CustomPainter {
       ..strokeCap = StrokeCap.round
       ..color = color;
 
-    canvas.drawPath(outlinePath, shadowPaint);
-    canvas.drawPath(outlinePath, linePaint);
+    canvas.drawPath(renderPath, shadowPaint);
+    canvas.drawPath(renderPath, linePaint);
 
     if (geometry is SidebarTileFocusGeometry) {
       final rightOpacity = (1.0 - geometry.openRightness).clamp(0.0, 1.0);
@@ -327,6 +388,8 @@ class _FocusOutlinePainter extends CustomPainter {
         oldDelegate.color != color ||
         oldDelegate.visualScale != visualScale ||
         oldDelegate.glowRadius != glowRadius ||
-        oldDelegate.glowOpacity != glowOpacity;
+        oldDelegate.glowOpacity != glowOpacity ||
+        oldDelegate.isWaiting != isWaiting ||
+        oldDelegate.dashPhase != dashPhase;
   }
 }

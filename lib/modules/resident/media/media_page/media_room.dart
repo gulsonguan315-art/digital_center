@@ -96,6 +96,7 @@ class _MediaRoomState extends State<MediaRoom> {
                             onTapOverride != null
                                 ? onTapOverride()
                                 : MediaCallback.onMediaPosterTap(
+                                    ctx,
                                     item,
                                     expandedBoxSetId,
                                   );

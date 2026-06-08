@@ -7,17 +7,19 @@ import '../media_callback.dart';
 import '../../media_service.dart';
 import '../../../../../ui/base/poster_card.dart';
 
-typedef GridItemSlotBuilder = Widget Function(
-  BuildContext context,
-  MediaItem item,
-  Widget Function(
-    BuildContext context,
-    bool hasFocus,
-    VoidCallback onTap, {
-    required MediaItem item,
-  }) builder, {
-  VoidCallback? onTapOverride,
-});
+typedef GridItemSlotBuilder =
+    Widget Function(
+      BuildContext context,
+      MediaItem item,
+      Widget Function(
+        BuildContext context,
+        bool hasFocus,
+        VoidCallback onTap, {
+        required MediaItem item,
+      })
+      builder, {
+      VoidCallback? onTapOverride,
+    });
 
 class BoxSetAccordionPanel extends StatelessWidget {
   final bool isExpanded;
@@ -115,16 +117,21 @@ class BoxSetAccordionPanel extends StatelessWidget {
                                   tween: Tween(begin: 0.0, end: 1.0),
                                   duration: const Duration(milliseconds: 600),
                                   builder: (context, value, child) {
-                                    final delay = (childIdx % cols) * 0.08 +
+                                    final delay =
+                                        (childIdx % cols) * 0.08 +
                                         (childIdx ~/ cols) * 0.04;
                                     final progress =
-                                        ((value - delay) / (1.0 - delay))
-                                            .clamp(0.0, 1.0);
-                                    final curvedProgress =
-                                        Curves.easeOutCubic.transform(progress);
+                                        ((value - delay) / (1.0 - delay)).clamp(
+                                          0.0,
+                                          1.0,
+                                        );
+                                    final curvedProgress = Curves.easeOutCubic
+                                        .transform(progress);
                                     return Transform.translate(
                                       offset: Offset(
-                                          0, (1.0 - curvedProgress) * -150.0),
+                                        0,
+                                        (1.0 - curvedProgress) * -150.0,
+                                      ),
                                       child: Opacity(
                                         opacity: curvedProgress,
                                         child: child,
@@ -134,15 +141,27 @@ class BoxSetAccordionPanel extends StatelessWidget {
                                   child: gridItemSlot(
                                     context,
                                     childItem,
-                                    (context, hasFocus, onTap, {required item}) {
+                                    (
+                                      context,
+                                      hasFocus,
+                                      onTap, {
+                                      required item,
+                                    }) {
                                       return PosterCard(
                                         title: item.title,
                                         subtitle: _subtitle(item),
                                         imageUrl: item.posterTag != null
-                                          ? MediaService.instance.posterUrl(item.id, item.posterTag)
-                                          : null,
-                                        badgeText: item.jellyfinType == 'BoxSet' ? '合集' : null,
-                                        cornerText: item.rating != null ? '★ ${item.rating!.toStringAsFixed(1)}' : null,
+                                            ? MediaService.instance.posterUrl(
+                                                item.id,
+                                                item.posterTag,
+                                              )
+                                            : null,
+                                        badgeText: item.jellyfinType == 'BoxSet'
+                                            ? '合集'
+                                            : null,
+                                        cornerText: item.rating != null
+                                            ? '★ ${item.rating!.toStringAsFixed(1)}'
+                                            : null,
                                         isFocused: hasFocus,
                                         onTap: onTap,
                                       );
@@ -150,6 +169,7 @@ class BoxSetAccordionPanel extends StatelessWidget {
                                     onTapOverride: () {
                                       if (boxSetId != null) {
                                         MediaCallback.onBoxSetChildTap(
+                                          context,
                                           childItem,
                                           boxSetId!,
                                         );

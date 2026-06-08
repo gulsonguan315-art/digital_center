@@ -36,6 +36,9 @@ class _MediaImmersiveHudState extends State<MediaImmersiveHud> {
   Duration? _virtualPosition;
   Duration _duration = Duration.zero;
 
+  bool _isBuffering = false;
+  late StreamSubscription<bool> _bufferingSub;
+
   late StreamSubscription<bool> _playingSub;
   late StreamSubscription<Duration> _positionSub;
   late StreamSubscription<Duration> _durationSub;
@@ -93,6 +96,11 @@ class _MediaImmersiveHudState extends State<MediaImmersiveHud> {
 
     _durationSub = widget.player.stream.duration.listen((dur) {
       if (mounted) setState(() => _duration = dur);
+    });
+
+    _isBuffering = widget.player.state.buffering;
+    _bufferingSub = widget.player.stream.buffering.listen((buffering) {
+      if (mounted) setState(() => _isBuffering = buffering);
     });
 
     if (widget.interactionStream != null) {
@@ -215,6 +223,7 @@ class _MediaImmersiveHudState extends State<MediaImmersiveHud> {
   @override
   void dispose() {
     widget.virtualPositionNotifier?.removeListener(_onVirtualPositionChanged);
+    _bufferingSub.cancel();
     _playingSub.cancel();
     _positionSub.cancel();
     _durationSub.cancel();
@@ -242,14 +251,14 @@ class _MediaImmersiveHudState extends State<MediaImmersiveHud> {
     final grid = GridContext.fromViewport(MediaQuery.sizeOf(context));
     final material = context.useTheme();
     
-    // UI 是否该展示 HUD (暂停，或者正在快进/退)
-    final bool showHud = !_isPlaying || _showSeekHudTemporary;
+    // UI 是否该展示 HUD (暂停，或者正在快进/退，或者正在缓冲)
+    final bool showHud = !_isPlaying || _showSeekHudTemporary || _isBuffering;
     
     // 独立的顶部标题栏显隐控制
-    final bool showTitleBar = !_isPlaying || _showTitleTemporary;
+    final bool showTitleBar = !_isPlaying || _showTitleTemporary || _isBuffering;
     
-    // 中心图标显隐逻辑：暂停时一直显示，播放时仅短暂显示，或者切集时显示
-    final bool showCenterIcon = !_isPlaying || _showPlayIconTemporary || (_showSeekHudTemporary && _seekText.isNotEmpty) || _showEpisodeSwitchTemporary;
+    // 中心图标显隐逻辑：暂停时一直显示，播放时仅短暂显示，或者切集时显示，或者正在缓冲时显示
+    final bool showCenterIcon = !_isPlaying || _showPlayIconTemporary || (_showSeekHudTemporary && _seekText.isNotEmpty) || _showEpisodeSwitchTemporary || _isBuffering;
     
     IconData centerIcon;
     Color centerIconColor = Colors.white.withValues(alpha: 0.9);
@@ -387,19 +396,36 @@ class _MediaImmersiveHudState extends State<MediaImmersiveHud> {
                       ),
                     ),
 
-                    // 中间圆圈
-                    Container(
-                      padding: EdgeInsets.all(grid.units(3)),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.5),
-                        shape: BoxShape.circle,
+                    // 中间圆圈 / 缓冲圈
+                    if (_isBuffering)
+                      Container(
+                        padding: EdgeInsets.all(grid.units(3)),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.5),
+                          shape: BoxShape.circle,
+                        ),
+                        child: SizedBox(
+                          width: grid.units(8),
+                          height: grid.units(8),
+                          child: const CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 3,
+                          ),
+                        ),
+                      )
+                    else
+                      Container(
+                        padding: EdgeInsets.all(grid.units(3)),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.5),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          centerIcon,
+                          color: centerIconColor,
+                          size: grid.units(8),
+                        ),
                       ),
-                      child: Icon(
-                        centerIcon,
-                        color: centerIconColor,
-                        size: grid.units(8),
-                      ),
-                    ),
 
                     // 右侧占位/文字区，与左侧等宽以保证绝对居中
                     SizedBox(

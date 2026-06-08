@@ -41,12 +41,14 @@ class ThemeColorLayer extends ThemeExtension<ThemeColorLayer> {
     required this.card,
     required this.appBackground,
     required this.button,
+    required this.stageBackground,
   });
 
   final RoleColors sidebar;
   final RoleColors card;
   final RoleColors appBackground;
   final RoleColors button;
+  final Color stageBackground;
 
   factory ThemeColorLayer.light() => lightColorLayer;
   factory ThemeColorLayer.dark() => nightColorLayer;
@@ -66,12 +68,14 @@ class ThemeColorLayer extends ThemeExtension<ThemeColorLayer> {
     RoleColors? card,
     RoleColors? appBackground,
     RoleColors? button,
+    Color? stageBackground,
   }) {
     return ThemeColorLayer(
       sidebar: sidebar ?? this.sidebar,
       card: card ?? this.card,
       appBackground: appBackground ?? this.appBackground,
       button: button ?? this.button,
+      stageBackground: stageBackground ?? this.stageBackground,
     );
   }
 
@@ -83,6 +87,7 @@ class ThemeColorLayer extends ThemeExtension<ThemeColorLayer> {
       card: _lerpRoleColors(card, other.card, t),
       appBackground: _lerpRoleColors(appBackground, other.appBackground, t),
       button: _lerpRoleColors(button, other.button, t),
+      stageBackground: Color.lerp(stageBackground, other.stageBackground, t) ?? stageBackground,
     );
   }
 

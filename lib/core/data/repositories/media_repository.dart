@@ -559,12 +559,19 @@ class MediaRepository {
       final url = Uri.parse('${ep.jellyfinBaseUrl}/Sessions/Capabilities/Full');
       final body = jsonEncode({
         'PlayableMediaTypes': ['Video', 'Audio'],
-        'SupportedCommands': ['Play', 'Playstate', 'SetAudioStreamIndex', 'SetSubtitleStreamIndex'],
+        'SupportedCommands': [
+          'Play',
+          'Playstate',
+          'SetAudioStreamIndex',
+          'SetSubtitleStreamIndex',
+        ],
         'SupportsMediaControl': true,
       });
       final headers = _headers(ep);
       headers['Content-Type'] = 'application/json';
-      final resp = await http.post(url, headers: headers, body: body).timeout(const Duration(seconds: 3));
+      final resp = await http
+          .post(url, headers: headers, body: body)
+          .timeout(const Duration(seconds: 3));
       if (resp.statusCode == 200 || resp.statusCode == 204) {
         _capabilitiesRegistered = true;
       }
@@ -598,7 +605,9 @@ class MediaRepository {
       if (action != 'Playing') {
         sessionPayload['PositionTicks'] = positionTicks;
         sessionPayload['IsPaused'] = action == 'Playing/Stopped';
-        sessionPayload['EventName'] = action == 'Playing/Stopped' ? 'stop' : 'timeupdate';
+        sessionPayload['EventName'] = action == 'Playing/Stopped'
+            ? 'stop'
+            : 'timeupdate';
       }
 
       if (playSessionId != null && playSessionId.isNotEmpty) {
@@ -615,12 +624,17 @@ class MediaRepository {
             .post(url, headers: headers, body: body)
             .timeout(const Duration(seconds: 5));
         if (resp.statusCode != 204 && resp.statusCode != 200) {
-          Log.d(LogGroup.media, '⚠️ [Media] 上报 Dashboard($action) 失败: ${resp.statusCode}');
+          Log.d(
+            LogGroup.media,
+            '⚠️ [Media] 上报 Dashboard($action) 失败: ${resp.statusCode}',
+          );
         } else {
-          Log.d(LogGroup.media, '✅ [Media] 上报 Dashboard($action) 成功! (PlaySessionId: ${playSessionId?.substring(0, 8) ?? 'none'}...)');
+          Log.d(
+            LogGroup.media,
+            '✅ [Media] 上报 Dashboard($action) 成功! (PlaySessionId: ${playSessionId?.substring(0, 8) ?? 'none'}...)',
+          );
         }
-      } catch (_) {
-      }
+      } catch (_) {}
 
       // -----------------------------------------------------------------------
       // 通道 B：强制更新 UserData (抄自 gulson_deskpane)
@@ -643,11 +657,13 @@ class MediaRepository {
               .post(userDataUrl, headers: headers, body: userDataBody)
               .timeout(const Duration(seconds: 5));
           if (resp2.statusCode == 200) {
-            Log.d(LogGroup.media, '✅ [Media] 强制更新 UserData 成功! (Ticks: ${positionTicks ~/ 10000000}s)');
+            Log.d(
+              LogGroup.media,
+              '✅ [Media] 强制更新 UserData 成功! (Ticks: ${positionTicks ~/ 10000000}s)',
+            );
           }
         } catch (_) {}
       }
-
     } catch (e) {
       Log.d(LogGroup.media, '⚠️ [Media] 进度上报流程异常: $e');
     }
@@ -701,10 +717,14 @@ class MediaRepository {
             .get(resumableUrl, headers: _headers(ep))
             .timeout(const Duration(seconds: 10));
         if (resp.statusCode == 200) {
-          final body = jsonDecode(utf8.decode(resp.bodyBytes)) as Map<String, dynamic>;
+          final body =
+              jsonDecode(utf8.decode(resp.bodyBytes)) as Map<String, dynamic>;
           final items = (body['Items'] as List<dynamic>?) ?? [];
           if (items.isNotEmpty) {
-            Log.d(LogGroup.media, '▶️ [Detail] 命中最近断点集数: ${items.first['Name']}');
+            Log.d(
+              LogGroup.media,
+              '▶️ [Detail] 命中最近断点集数: ${items.first['Name']}',
+            );
             return items.first as Map<String, dynamic>;
           }
         }
@@ -731,7 +751,10 @@ class MediaRepository {
           jsonDecode(utf8.decode(resp.bodyBytes)) as Map<String, dynamic>;
       final items = (body['Items'] as List<dynamic>?) ?? [];
       if (items.isNotEmpty) {
-        Log.d(LogGroup.media, '▶️ [Detail] 命中标准 NextUp: ${items.first['Name']}');
+        Log.d(
+          LogGroup.media,
+          '▶️ [Detail] 命中标准 NextUp: ${items.first['Name']}',
+        );
         return items.first as Map<String, dynamic>;
       }
       return null;

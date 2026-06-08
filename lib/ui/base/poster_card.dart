@@ -1,6 +1,40 @@
+import 'dart:io' as io;
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
+import 'package:file/file.dart' as file_api;
+import 'package:file/local.dart';
+import '../../../core/data/data_manager.dart';
 import '../../../core/engine/theme/theme_api.dart';
 import '../../../core/layout/grid/grid_extensions.dart';
+
+class _AppCacheFileSystem implements FileSystem {
+  final String path;
+  _AppCacheFileSystem(this.path);
+
+  @override
+  Future<file_api.File> createFile(String name) async {
+    final dir = io.Directory(path);
+    if (!await dir.exists()) {
+      await dir.create(recursive: true);
+    }
+    return const LocalFileSystem().file('${dir.path}/$name');
+  }
+}
+
+class MediaPosterCacheManager {
+  static const key = 'media_posters';
+  static CacheManager instance = CacheManager(
+    Config(
+      key,
+      stalePeriod: const Duration(days: 30),
+      maxNrOfCacheObjects: 2000,
+      fileSystem: _AppCacheFileSystem(
+        '${DataManager.instance.configDirPath}/media_cache/poster',
+      ),
+    ),
+  );
+}
 
 /// 🖼️ 通用海报卡片组件 (Generic Poster Card Component)
 class PosterCard extends StatelessWidget {
@@ -195,8 +229,8 @@ class PosterImage extends StatelessWidget {
   final IconData placeholderIcon;
 
   const PosterImage({
-    super.key, 
-    this.imageUrl, 
+    super.key,
+    this.imageUrl,
     required this.placeholder,
     required this.placeholderIcon,
   });
@@ -207,14 +241,14 @@ class PosterImage extends StatelessWidget {
       return PlaceholderView(color: placeholder, icon: placeholderIcon);
     }
 
-    return Image.network(
-      imageUrl!,
+    return CachedNetworkImage(
+      cacheManager: MediaPosterCacheManager.instance,
+      imageUrl: imageUrl!,
       fit: BoxFit.cover,
-      loadingBuilder: (_, child, progress) {
-        if (progress == null) return child;
-        return PlaceholderView(color: placeholder, icon: placeholderIcon);
-      },
-      errorBuilder: (_, e, s) => PlaceholderView(color: placeholder, icon: placeholderIcon),
+      placeholder: (context, url) =>
+          PlaceholderView(color: placeholder, icon: placeholderIcon),
+      errorWidget: (context, url, error) =>
+          PlaceholderView(color: placeholder, icon: placeholderIcon),
     );
   }
 }
@@ -224,11 +258,7 @@ class PlaceholderView extends StatelessWidget {
   final Color color;
   final IconData icon;
 
-  const PlaceholderView({
-    super.key, 
-    required this.color,
-    required this.icon,
-  });
+  const PlaceholderView({super.key, required this.color, required this.icon});
 
   @override
   Widget build(BuildContext context) {

@@ -146,7 +146,7 @@ class MediaImmersiveControlPanel extends StatelessWidget {
           return Column(
             mainAxisSize: MainAxisSize.min,
             children: speeds.map((speed) {
-              final isSelected = controller.playbackSpeed == speed;
+              final isSelected = controller.preferencesManager.playbackSpeed == speed;
               return Padding(
                 padding: EdgeInsets.only(bottom: grid.units(1)),
                 child: _buildItem(
@@ -158,7 +158,7 @@ class MediaImmersiveControlPanel extends StatelessWidget {
                       : Icons.radio_button_unchecked,
                   isSelected: isSelected,
                   onPressed: () {
-                    controller.setPlaybackSpeed(speed);
+                    controller.preferencesManager.setPlaybackSpeed(speed);
                     setState(() {});
                   },
                 ),
@@ -193,12 +193,12 @@ class MediaImmersiveControlPanel extends StatelessWidget {
                 grid: grid,
                 id: 'media_menu_skip_toggle',
                 label: '自动跳过片头片尾',
-                icon: controller.autoSkip
+                icon: controller.preferencesManager.autoSkip
                     ? Icons.toggle_on
                     : Icons.toggle_off_outlined,
-                isSelected: controller.autoSkip,
+                isSelected: controller.preferencesManager.autoSkip,
                 onPressed: () {
-                  controller.setAutoSkip(!controller.autoSkip);
+                  controller.preferencesManager.setAutoSkip(!controller.preferencesManager.autoSkip);
                   setState(() {});
                 },
               ),
@@ -209,14 +209,14 @@ class MediaImmersiveControlPanel extends StatelessWidget {
                 label: '记录片头 (当前位置)',
                 icon: Icons.login_rounded,
                 trailing: Text(
-                  '${controller.introDuration ~/ 1000}s',
+                  '${controller.preferencesManager.introDuration ~/ 1000}s',
                   style: TextStyle(
                     color: Colors.white.withValues(alpha: 0.5),
                     fontSize: grid.units(1.5),
                   ),
                 ),
                 onPressed: () {
-                  controller.recordIntro();
+                  controller.preferencesManager.recordIntro();
                   setState(() {});
                 },
               ),
@@ -227,14 +227,14 @@ class MediaImmersiveControlPanel extends StatelessWidget {
                 label: '记录片尾 (当前位置)',
                 icon: Icons.logout_rounded,
                 trailing: Text(
-                  '距结束${controller.outroDuration ~/ 1000}s',
+                  '距结束${controller.preferencesManager.outroDuration ~/ 1000}s',
                   style: TextStyle(
                     color: Colors.white.withValues(alpha: 0.5),
                     fontSize: grid.units(1.5),
                   ),
                 ),
                 onPressed: () {
-                  controller.recordOutro();
+                  controller.preferencesManager.recordOutro();
                   setState(() {});
                 },
               ),

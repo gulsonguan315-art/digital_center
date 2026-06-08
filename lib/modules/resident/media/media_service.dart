@@ -34,6 +34,29 @@ class MediaService extends ChangeNotifier {
   StreamSubscription<List<MediaItem>>? _subscription;
 
   // ---------------------------------------------------------------------------
+  // 详情页预加载缓存层 (Ephemeral Cache)
+  // ---------------------------------------------------------------------------
+
+  final Map<String, Map<String, dynamic>> _ephemeralDetailCache = {};
+  final Map<String, Map<String, dynamic>> _ephemeralNextUpCache = {};
+
+  /// 在跳转前，提前在主界面将网络请求和 JSON 解析跑完
+  Future<void> preloadDetailData(MediaItem item) async {
+    try {
+      final details = await MediaRepository.instance.fetchItemDetails(item.id);
+      if (details != null) {
+        _ephemeralDetailCache[item.id] = details;
+        if (item.jellyfinType == 'Series') {
+          final nextUp = await MediaRepository.instance.fetchNextUp(item.id);
+          if (nextUp != null) {
+            _ephemeralNextUpCache[item.id] = nextUp;
+          }
+        }
+      }
+    } catch (_) {}
+  }
+
+  // ---------------------------------------------------------------------------
   // 公开 API
   // ---------------------------------------------------------------------------
 
@@ -72,8 +95,8 @@ class MediaService extends ChangeNotifier {
   }
 
   /// 便捷方法：根据条目 id 获取海报图片 URL
-  String posterUrl(String itemId, String? tag) =>
-      MediaRepository.instance.posterUrl(itemId, tag);
+  String posterUrl(String itemId, String? tag, {int height = 674}) =>
+      MediaRepository.instance.posterUrl(itemId, tag, height: height);
 
   /// 根据条目 id 获取背景图片 URL
   String backdropUrl(String itemId, String? tag) =>
@@ -86,8 +109,11 @@ class MediaService extends ChangeNotifier {
   /// 获取直接串流播放 URL
   String streamUrl(String itemId) => MediaRepository.instance.streamUrl(itemId);
 
-  /// 详情页：在线拉取详情数据（不走缓存）
+  /// 详情页：在线拉取详情数据（优先走预加载幽灵缓存）
   Future<Map<String, dynamic>?> fetchItemDetails(String itemId) async {
+    if (_ephemeralDetailCache.containsKey(itemId)) {
+      return _ephemeralDetailCache.remove(itemId);
+    }
     return await MediaRepository.instance.fetchItemDetails(itemId);
   }
 
@@ -132,8 +158,11 @@ class MediaService extends ChangeNotifier {
     return await MediaRepository.instance.markItemAsPlayed(itemId);
   }
 
-  /// 获取推荐的下一集 (NextUp)
+  /// 获取推荐的下一集 (NextUp)（优先走预加载幽灵缓存）
   Future<Map<String, dynamic>?> fetchNextUp(String seriesId) async {
+    if (_ephemeralNextUpCache.containsKey(seriesId)) {
+      return _ephemeralNextUpCache.remove(seriesId);
+    }
     return await MediaRepository.instance.fetchNextUp(seriesId);
   }
 

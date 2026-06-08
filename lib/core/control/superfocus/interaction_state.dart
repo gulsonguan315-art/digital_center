@@ -68,6 +68,7 @@ class InteractionState {
   );
   final ValueNotifier<FocusReport?> cursorReportNotifier = ValueNotifier(null);
   final ValueNotifier<bool> cursorHiddenNotifier = ValueNotifier(false);
+  final ValueNotifier<bool> cursorWaitingNotifier = ValueNotifier(false);
 
   // --- 一次性状态寄存器 ---
   FocusTransitionConfig? nextTransition;
@@ -97,5 +98,6 @@ class InteractionState {
     topologyNotifier.dispose();
     cursorReportNotifier.dispose();
     cursorHiddenNotifier.dispose();
+    cursorWaitingNotifier.dispose();
   }
 }

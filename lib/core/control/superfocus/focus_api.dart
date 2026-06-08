@@ -63,6 +63,11 @@ abstract class FocusAPI {
     SuperFocusManager.instance.onConfirm();
   }
 
+  /// 设置游标进入等待加载状态 (显示转圈/虚线动效)
+  static void setCursorWaiting(bool isWaiting) {
+    SuperFocusManager.instance.setCursorWaiting(isWaiting);
+  }
+
   /// 【返回指令】执行焦点回退（无需 BuildContext）
   static void dispatchBackCommand() {
     SuperFocusManager.instance.onBackCommand();
