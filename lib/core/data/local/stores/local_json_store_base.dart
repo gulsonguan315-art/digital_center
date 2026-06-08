@@ -41,7 +41,7 @@ abstract class LocalJsonStoreBase<T> {
     if (kIsWeb) return;
     try {
       final file = File(_filePath);
-      final encoded = jsonEncode(toJson(data));
+      final encoded = const JsonEncoder.withIndent('  ').convert(toJson(data));
       await file.writeAsString(encoded, flush: true);
     } catch (e) {
       // 容错防御拦截

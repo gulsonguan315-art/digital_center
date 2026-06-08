@@ -40,6 +40,9 @@ class MediaImmersiveController {
   int _outroDuration = 0;
   bool _isSwitchingEpisode = false;
   bool _stopReported = false;
+  
+  bool _hasSkippedIntro = false;
+  bool _hasSkippedOutro = false;
 
   double get playbackSpeed => _playbackSpeed;
   bool get autoSkip => _autoSkip;
@@ -86,14 +89,16 @@ class MediaImmersiveController {
       if (_isSwitchingEpisode) return;
       
       if (_autoSkip && currentSeriesId != null) {
-        if (_introDuration > 0 && pos.inMilliseconds < _introDuration) {
+        if (!_hasSkippedIntro && _introDuration > 0 && pos.inMilliseconds < _introDuration) {
           if (pos.inMilliseconds > 1000 && pos.inMilliseconds < _introDuration - 1000) {
+            _hasSkippedIntro = true;
             engineController.player.seek(Duration(milliseconds: _introDuration));
           }
         }
-        if (_outroDuration > 0) {
+        if (!_hasSkippedOutro && _outroDuration > 0) {
           final total = engineController.player.state.duration.inMilliseconds;
           if (total > 0 && pos.inMilliseconds >= total - _outroDuration) {
+            _hasSkippedOutro = true;
             Log.d(LogGroup.media, '⏭️ [Player] 触发跳过片尾，标记已看完: ${currentItemIdNotifier.value}');
             MediaService.instance.markItemAsPlayed(currentItemIdNotifier.value);
             switchEpisode(1);
@@ -106,6 +111,9 @@ class MediaImmersiveController {
   }
 
   Future<void> _loadSettingsAndApply() async {
+    _hasSkippedIntro = false;
+    _hasSkippedOutro = false;
+
     final details = await MediaService.instance.fetchItemDetails(currentItemIdNotifier.value);
     if (details == null) return;
     currentSeriesId = details['SeriesId'] as String?;

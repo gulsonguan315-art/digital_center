@@ -551,6 +551,26 @@ class MediaRepository {
     return _cachedEndpoints!;
   }
 
+  bool _capabilitiesRegistered = false;
+
+  Future<void> _registerCapabilities(ApiEndpoints ep) async {
+    if (_capabilitiesRegistered) return;
+    try {
+      final url = Uri.parse('${ep.jellyfinBaseUrl}/Sessions/Capabilities/Full');
+      final body = jsonEncode({
+        'PlayableMediaTypes': ['Video', 'Audio'],
+        'SupportedCommands': ['Play', 'Playstate', 'SetAudioStreamIndex', 'SetSubtitleStreamIndex'],
+        'SupportsMediaControl': true,
+      });
+      final headers = _headers(ep);
+      headers['Content-Type'] = 'application/json';
+      final resp = await http.post(url, headers: headers, body: body).timeout(const Duration(seconds: 3));
+      if (resp.statusCode == 200 || resp.statusCode == 204) {
+        _capabilitiesRegistered = true;
+      }
+    } catch (_) {}
+  }
+
   /// 汇报播放进度
   /// [action] : 'Playing' (开始), 'Playing/Progress' (进展), 'Playing/Stopped' (停止)
   /// [playSessionId] : 每次播放器打开（或切集）时生成的 PlaySessionId，用于让 Jellyfin 控制台正确识别为一个独立会话。
@@ -564,24 +584,25 @@ class MediaRepository {
       final ep = await _endpoints;
       if (ep.jellyfinBaseUrl.isEmpty || ep.jellyfinToken.isEmpty) return;
 
+      await _registerCapabilities(ep);
+
       final url = Uri.parse('${ep.jellyfinBaseUrl}/Sessions/$action');
 
-      // 补全后的标准 Payload，让 App 能正常显示在 Jellyfin 控制台的“活动会话”中。
-      // 参考官方客户端结构 + 用户指定要求。
-      final sessionPayload = {
-        'Item': {'Id': itemId},
+      final sessionPayload = <String, dynamic>{
         'ItemId': itemId,
         'MediaSourceId': itemId,
         'PlayMethod': 'DirectPlay',
-        'PlaySessionId': playSessionId ?? '',
         'CanSeek': true,
-        'PositionTicks': positionTicks,
-        'IsPaused': action == 'Playing/Stopped',
       };
 
-      // 对于纯粹的 'Playing' 启动事件，通常 IsPaused 应该是 false（开始播放）。
-      if (action == 'Playing') {
-        sessionPayload['IsPaused'] = false;
+      if (action != 'Playing') {
+        sessionPayload['PositionTicks'] = positionTicks;
+        sessionPayload['IsPaused'] = action == 'Playing/Stopped';
+        sessionPayload['EventName'] = action == 'Playing/Stopped' ? 'stop' : 'timeupdate';
+      }
+
+      if (playSessionId != null && playSessionId.isNotEmpty) {
+        sessionPayload['PlaySessionId'] = playSessionId;
       }
 
       final body = jsonEncode(sessionPayload);

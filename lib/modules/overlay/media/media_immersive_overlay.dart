@@ -46,9 +46,18 @@ class _MediaImmersiveOverlayState extends State<MediaImmersiveOverlay> {
   Widget build(BuildContext context) {
     return ThemeIdentity(
       role: ThemeRole.appBackground,
-      child: Scaffold(
-        backgroundColor: Colors.black, // 设置为纯黑背景
-        body: SuperFocusRoom(
+      child: PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, result) async {
+          if (didPop) return;
+          await _controller.stopAndReport();
+          if (context.mounted) {
+            Navigator.of(context).pop();
+          }
+        },
+        child: Scaffold(
+          backgroundColor: Colors.black, // 设置为纯黑背景
+          body: SuperFocusRoom(
           id: 'media_overlay',
           child: InputInterceptor(
             onSignal: _controller.handleLocalInput,
@@ -146,6 +155,7 @@ class _MediaImmersiveOverlayState extends State<MediaImmersiveOverlay> {
             ),
           ),
         ),
+      ),
       ),
     );
   }
