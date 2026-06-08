@@ -61,14 +61,7 @@ class _MediaImmersiveOverlayState extends State<MediaImmersiveOverlay> {
                 if (scope != null && !scope.isActive && !isIntendingToEnter) {
                   WidgetsBinding.instance.addPostFrameCallback((_) async {
                     if (mounted && Navigator.canPop(context)) {
-                      // 立即暂停画面并显示退出提示（网速慢时避免“假死”感）
-                      _controller.isExiting.value = true;
-                      _controller.exitingMessage.value = '正在保存播放进度...';
-                      _controller.engineController.player.pause();
-
                       await _controller.stopAndReport();
-
-                      _controller.exitingMessage.value = '正在退出播放器...';
                       if (mounted) {
                         Navigator.of(context).pop();
                       }
@@ -147,84 +140,6 @@ class _MediaImmersiveOverlayState extends State<MediaImmersiveOverlay> {
                         ),
                       ),
 
-                    // 打开 overlay 时的加载提示（网速慢时显示动态文案）
-                    ValueListenableBuilder<bool>(
-                      valueListenable: _controller.isPlayerReady,
-                      builder: (context, ready, _) {
-                        if (ready) return const SizedBox.shrink();
-                        return Container(
-                          color: Colors.black.withValues(alpha: 0.85),
-                          child: Center(
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const CircularProgressIndicator(
-                                  color: Colors.white,
-                                  strokeWidth: 3,
-                                ),
-                                const SizedBox(height: 20),
-                                ValueListenableBuilder<String>(
-                                  valueListenable: _controller.loadingMessage,
-                                  builder: (ctx, message, __) => Text(
-                                    message,
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                    textAlign: TextAlign.center,
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                const Text(
-                                  '请稍候...',
-                                  style: TextStyle(color: Colors.white54, fontSize: 13),
-                                ),
-                              ],
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-
-                    // 退出时的动态提示（暂停画面 + 提示正在保存进度等）
-                    ValueListenableBuilder<bool>(
-                      valueListenable: _controller.isExiting,
-                      builder: (context, exiting, _) {
-                        if (!exiting) return const SizedBox.shrink();
-                        return Container(
-                          color: Colors.black.withValues(alpha: 0.92),
-                          child: Center(
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const CircularProgressIndicator(
-                                  color: Colors.white,
-                                  strokeWidth: 3,
-                                ),
-                                const SizedBox(height: 18),
-                                ValueListenableBuilder<String>(
-                                  valueListenable: _controller.exitingMessage,
-                                  builder: (ctx, message, __) => Text(
-                                    message,
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 15,
-                                    ),
-                                    textAlign: TextAlign.center,
-                                  ),
-                                ),
-                                const SizedBox(height: 6),
-                                const Text(
-                                  '正在处理，请稍候...',
-                                  style: TextStyle(color: Colors.white54, fontSize: 12),
-                                ),
-                              ],
-                            ),
-                          ),
-                        );
-                      },
-                    ),
                   ],
                 );
               },

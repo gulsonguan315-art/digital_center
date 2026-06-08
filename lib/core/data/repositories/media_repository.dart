@@ -656,12 +656,42 @@ class MediaRepository {
     }
   }
 
-  /// 获取推荐的下一集 (NextUp)
+  /// 获取推荐的下一集 (优先找最近观看看了一半的，没有再使用 NextUp)
   Future<Map<String, dynamic>?> fetchNextUp(String seriesId) async {
     try {
       final ep = await _endpoints;
       if (ep.jellyfinBaseUrl.isEmpty || ep.jellyfinToken.isEmpty) return null;
 
+      // 1. 优先查询：当前剧集下，最后一次观看且存在播放进度的集数
+      final resumableUrl = Uri.parse(
+        '${ep.jellyfinBaseUrl}/Users/${ep.jellyfinUserId}/Items'
+        '?ParentId=$seriesId'
+        '&IncludeItemTypes=Episode'
+        '&Recursive=true'
+        '&Filters=IsResumable'
+        '&SortBy=DatePlayed'
+        '&SortOrder=Descending'
+        '&fields=Overview,ImageTags,RunTimeTicks,UserData'
+        '&Limit=1',
+      );
+
+      try {
+        final resp = await http
+            .get(resumableUrl, headers: _headers(ep))
+            .timeout(const Duration(seconds: 10));
+        if (resp.statusCode == 200) {
+          final body = jsonDecode(utf8.decode(resp.bodyBytes)) as Map<String, dynamic>;
+          final items = (body['Items'] as List<dynamic>?) ?? [];
+          if (items.isNotEmpty) {
+            Log.d(LogGroup.media, '▶️ [Detail] 命中最近断点集数: ${items.first['Name']}');
+            return items.first as Map<String, dynamic>;
+          }
+        }
+      } catch (e) {
+        Log.d(LogGroup.media, '⚠️ [Media] 查询最近断点异常: $e');
+      }
+
+      // 2. 如果没有中断的集数，则回退到标准的 NextUp (比如第一集，或者刚看完一集后的下一集)
       final url = Uri.parse(
         '${ep.jellyfinBaseUrl}/Shows/NextUp'
         '?userId=${ep.jellyfinUserId}'
@@ -680,6 +710,7 @@ class MediaRepository {
           jsonDecode(utf8.decode(resp.bodyBytes)) as Map<String, dynamic>;
       final items = (body['Items'] as List<dynamic>?) ?? [];
       if (items.isNotEmpty) {
+        Log.d(LogGroup.media, '▶️ [Detail] 命中标准 NextUp: ${items.first['Name']}');
         return items.first as Map<String, dynamic>;
       }
       return null;
