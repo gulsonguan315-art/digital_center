@@ -15,8 +15,14 @@ class MediaDetailController extends ChangeNotifier {
   /// 续播起始位置（ticks），0 = 从头播
   int resumePositionTicks = 0;
 
+  /// 是否从 NextUp 成功解析出“继续观看”上下文（对剧集很有用）。
+  /// 即使 NextUp 返回的单集当前 positionTicks == 0（比如刚好看完上一集），
+  /// 只要 Jellyfin 认为这个是“下一集要看”的，就应该显示“续播”按钮。
+  bool _nextUpResolved = false;
+
   /// 是否有历史进度（决定按钮文字：续播 vs 播放）
-  bool get hasResume => resumePositionTicks > 0;
+  /// 对于剧集：只要成功拿到 NextUp（表示用户有观看历史），就视为有“续播”语义。
+  bool get hasResume => resumePositionTicks > 0 || _nextUpResolved;
 
   List<Map<String, dynamic>> processedPeople = [];
 
@@ -25,6 +31,7 @@ class MediaDetailController extends ChangeNotifier {
   }
 
   Future<void> _fetchDetails() async {
+    _nextUpResolved = false;
     isLoading = true;
     notifyListeners();
 
@@ -73,15 +80,17 @@ class MediaDetailController extends ChangeNotifier {
         final episodeIndex = nextUp['IndexNumber'] as int? ?? 0;
         final userData = nextUp['UserData'] as Map<String, dynamic>?;
         resumePositionTicks = (userData?['PlaybackPositionTicks'] as int?) ?? 0;
+        _nextUpResolved = true; // 关键：只要 NextUp 命中，就认为有系列观看上下文
         final resumeSecs = resumePositionTicks ~/ 10000000;
         Log.d(
           LogGroup.media,
           '▶️ [Detail] NextUp 命中: S${seasonIndex}E${episodeIndex} "$episodeName" (id=$resumeItemId), '
-          'positionTicks=$resumePositionTicks (约${resumeSecs}s), hasResume=$hasResume',
+          'positionTicks=$resumePositionTicks (约${resumeSecs}s), hasResume=$hasResume, _nextUpResolved=$_nextUpResolved',
         );
         return;
       }
       Log.d(LogGroup.media, '⚠️ [Detail] NextUp 为空 (未观看 or 已全部看完)，回退到第一集');
+      _nextUpResolved = false;
       await _fetchFirstEpisode();
     } catch (e) {
       Log.d(LogGroup.media, '❌ [Detail] _fetchNextUp 异常: $e');
@@ -103,6 +112,7 @@ class MediaDetailController extends ChangeNotifier {
           if (episodes.isNotEmpty) {
             resumeItemId = episodes.first['Id'] as String?;
             resumePositionTicks = 0;
+            _nextUpResolved = false;
             Log.d(LogGroup.media, '✅ [Detail] 第一集: id=$resumeItemId (从头播放)');
           }
         }

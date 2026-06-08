@@ -158,6 +158,7 @@ class MediaImmersiveController {
       itemId,
       finalTicks,
       action: 'Playing/Stopped',
+      playSessionId: engineController.playSessionId,
     );
   }
 
@@ -167,7 +168,12 @@ class MediaImmersiveController {
       final itemId = currentItemIdNotifier.value;
       final finalTicks = engineController.player.state.position.inMicroseconds * 10;
       Log.d(LogGroup.media, '⚠️ [Player] dispose fallback report: ticks=${finalTicks ~/ 10000000}s');
-      MediaService.instance.reportPlaybackProgress(itemId, finalTicks, action: 'Playing/Stopped');
+      MediaService.instance.reportPlaybackProgress(
+        itemId,
+        finalTicks,
+        action: 'Playing/Stopped',
+        playSessionId: engineController.playSessionId,
+      );
     }
     _positionSub.cancel();
     _completedSub.cancel();
@@ -189,6 +195,7 @@ class MediaImmersiveController {
       stoppedItemId,
       stoppedTicks,
       action: 'Playing/Stopped',
+      playSessionId: engineController.playSessionId,
     );
 
     _isSwitchingEpisode = true;

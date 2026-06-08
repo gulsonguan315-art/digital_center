@@ -117,11 +117,13 @@ class MediaService extends ChangeNotifier {
     String itemId,
     int positionTicks, {
     String action = 'Playing/Progress',
+    String? playSessionId,
   }) async {
     return await MediaRepository.instance.reportPlaybackProgress(
       itemId,
       positionTicks,
       action: action,
+      playSessionId: playSessionId,
     );
   }
 

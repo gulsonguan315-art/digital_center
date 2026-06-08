@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 
@@ -13,14 +14,26 @@ class MediaEngineController {
   late final VideoController videoController;
   final StreamController<String> interactionStreamController;
 
-  // 新增：保存当前播放的条目 ID 和心跳定时器
+  // 当前播放的条目 ID 和心跳定时器
   String? _currentItemId;
   Timer? _progressTimer;
+
+  /// 每次打开播放器（或切集）时生成的 PlaySessionId。
+  /// 用于让 Jellyfin 控制台把我们的播放识别为一个标准会话。
+  String? _playSessionId;
+  String? get playSessionId => _playSessionId;
 
   MediaEngineController({required this.interactionStreamController});
 
   void init(String itemId, {int startPositionTicks = 0}) {
+    // 防御性清理：如果有人在同一个实例上多次调用 init，先把旧的 timer/listener 收掉
+    _progressTimer?.cancel();
+    // 尝试移除旧 listener（如果之前加过）。ChangeNotifier 内部是安全的重复 remove。
+    AppAudioService.instance.removeListener(_onGlobalVolumeChanged);
+
     _currentItemId = itemId;
+    _playSessionId = _generatePlaySessionId();
+
     player = Player();
     // 初始化时同步全局音量
     player.setVolume(AppAudioService.instance.volume * 100.0);
@@ -46,11 +59,30 @@ class MediaEngineController {
 
   void playItem(String itemId) {
     _currentItemId = itemId;
+    _playSessionId = _generatePlaySessionId(); // 切集视为新的播放会话
+
     final url = MediaService.instance.streamUrl(itemId);
     player.open(Media(url));
 
-    // 切集时，重新上报一次 Playing
+    // 切集时，重新上报一次 Playing（带新的 PlaySessionId）
     _reportProgressToServer(action: 'Playing');
+  }
+
+  /// 生成符合 RFC 4122 的 UUID v4，用作 PlaySessionId。
+  String _generatePlaySessionId() {
+    final random = Random.secure();
+    final bytes = List<int>.generate(16, (_) => random.nextInt(256));
+
+    // version 4
+    bytes[6] = (bytes[6] & 0x0f) | 0x40;
+    // variant (RFC 4122)
+    bytes[8] = (bytes[8] & 0x3f) | 0x80;
+
+    final hex = bytes
+        .map((b) => b.toRadixString(16).padLeft(2, '0'))
+        .join();
+
+    return '${hex.substring(0, 8)}-${hex.substring(8, 12)}-${hex.substring(12, 16)}-${hex.substring(16, 20)}-${hex.substring(20)}';
   }
 
   /// 核心机制：将当前进度换算为 Jellyfin Ticks 并上传
@@ -70,6 +102,7 @@ class MediaEngineController {
       _currentItemId!,
       positionTicks,
       action: action,
+      playSessionId: _playSessionId,
     );
   }
 
@@ -80,10 +113,9 @@ class MediaEngineController {
   }
 
   void dispose() {
-    // 3. 销毁时，向服务端上报停止状态 'Playing/Stopped'
-    _reportProgressToServer(action: 'Playing/Stopped');
-
-    // 清理定时器
+    // 注意：最终的 Playing/Stopped 上报由上层 MediaImmersiveController 负责
+    // （通过 stopAndReport / switchEpisode 中的显式上报 + 兜底）。
+    // 这里只做资源清理，避免在正常退出路径上重复上报 Stopped。
     _progressTimer?.cancel();
 
     AppAudioService.instance.removeListener(_onGlobalVolumeChanged);

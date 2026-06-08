@@ -36,21 +36,26 @@ class MediaRepository {
   bool _initialized = false;
   bool _isDisposed = false;
 
+  /// 是否至少有一次成功建立过分类映射（用于判断是否需要重试）
+  bool get hasLibraryMappings => _libraryMap.isNotEmpty;
+
   // ---------------------------------------------------------------------------
   // 分类映射表（内部常量）
   // ---------------------------------------------------------------------------
 
   /// 我们的分类 ID → Jellyfin CollectionType 或 Library Name 关键词
-  /// collectionType 优先匹配，name 关键词兜底
+  /// collectionType 优先匹配，name 关键词兜底（对 mov/tv 也做名称兜底，提升对各种命名的兼容性）
   static const _categoryCollectionType = <String, String>{
     'mov': 'movies',
     'tv': 'tvshows',
-    // ani / doc 是独立 Library，通过 name 关键词匹配，见 _resolveLibraryName
   };
 
   static const _categoryNameKeywords = <String, List<String>>{
     'ani': ['动漫', 'anime', '二次元'],
     'doc': ['纪录片', '记录片', 'documentary', 'doc'],
+    // 给 mov / tv 也加上常见名称关键词作为兜底（很多用户会把 Library 起名为“电视剧”“剧集”“电影”等）
+    'tv': ['tv', 'show', 'series', '电视剧', '剧集', 'tvshow', 'tvshows', 'shows'],
+    'mov': ['movie', 'movies', '电影', '片库'],
   };
 
   // ---------------------------------------------------------------------------
@@ -58,10 +63,22 @@ class MediaRepository {
   // ---------------------------------------------------------------------------
 
   /// 启动时调用一次，从 Jellyfin `/Users/{id}/Views` 建立分类→LibraryId 映射。
-  /// 建表完成后整个会话内不再重复请求 Views。
+  /// 如果启动时配置未就绪或网络问题导致映射失败，后续访问分类时会自动重试。
   Future<void> init() async {
-    if (_initialized) return;
+    // 允许在 map 为空时重试（启动时失败后，用户配置好再进媒体时能恢复）
+    if (_initialized && _libraryMap.isNotEmpty) return;
     _initialized = true;
+    await _buildLibraryMapFromViews();
+  }
+
+  /// 强制刷新分类 → Library 的映射表（用于启动后配置了 Jellyfin、或之前失败时手动恢复）。
+  Future<void> refreshLibraryMappings() async {
+    _libraryMap.clear();
+    await _buildLibraryMapFromViews();
+  }
+
+  /// 实际执行 /Views 请求并构建映射的内部逻辑。
+  Future<void> _buildLibraryMapFromViews() async {
     try {
       final ep = await _endpoints;
       if (ep.jellyfinBaseUrl.isEmpty || ep.jellyfinToken.isEmpty) {
@@ -96,7 +113,6 @@ class MediaRepository {
         // 1. CollectionType 直接匹配（mov / tv）
         for (final entry in _categoryCollectionType.entries) {
           if (type == entry.value && !_libraryMap.containsKey(entry.key)) {
-            // tv / tvshows 只让第一个匹配的 Library 归入 tv，动漫另行按 name 匹配
             _libraryMap[entry.key] = id;
             Log.d(
               LogGroup.media,
@@ -105,7 +121,7 @@ class MediaRepository {
           }
         }
 
-        // 2. Name 关键词匹配（ani / doc）
+        // 2. Name 关键词匹配（现在 mov/tv/ani/doc 都支持名称兜底）
         for (final entry in _categoryNameKeywords.entries) {
           if (!_libraryMap.containsKey(entry.key)) {
             for (final kw in entry.value) {
@@ -126,7 +142,7 @@ class MediaRepository {
         }
       }
 
-      // 3. tv 被动漫占用时，重新找第一个 tvshows 非动漫 Library
+      // 3. tv 被动漫占用时，重新找第一个 tvshows 非动漫 Library（兜底）
       if (!_libraryMap.containsKey('tv')) {
         for (final raw in items) {
           final item = raw as Map<String, dynamic>;
@@ -143,7 +159,7 @@ class MediaRepository {
 
       Log.d(LogGroup.media, '📋 [Media] 最终分类映射表: $_libraryMap');
     } catch (e) {
-      Log.d(LogGroup.media, '⚠️ [Media] init() 异常: $e');
+      Log.d(LogGroup.media, '⚠️ [Media] 构建 Library 映射异常: $e');
     }
   }
 
@@ -410,7 +426,15 @@ class MediaRepository {
       final ep = await _endpoints;
       if (ep.jellyfinBaseUrl.isEmpty || ep.jellyfinToken.isEmpty) return;
 
-      final libraryId = _libraryMap[category];
+      var libraryId = _libraryMap[category];
+
+      // 如果这个分类还没有对应的 Library，尝试刷新映射表（支持启动后配置 Jellyfin 或启动时失败恢复）
+      if (libraryId == null) {
+        Log.d(LogGroup.media, '🔄 [Media] 分类 $category 无映射，尝试刷新 Library 发现...');
+        await refreshLibraryMappings();
+        libraryId = _libraryMap[category];
+      }
+
       if (libraryId == null) {
         Log.d(LogGroup.media, '⚠️ [Media] 分类 $category 无对应 Library，跳过同步');
         return;
@@ -528,30 +552,38 @@ class MediaRepository {
 
   /// 汇报播放进度
   /// [action] : 'Playing' (开始), 'Playing/Progress' (进展), 'Playing/Stopped' (停止)
+  /// [playSessionId] : 每次播放器打开（或切集）时生成的 PlaySessionId，用于让 Jellyfin 控制台正确识别为一个独立会话。
   Future<void> reportPlaybackProgress(
     String itemId,
     int positionTicks, {
     String action = 'Playing/Progress',
+    String? playSessionId,
   }) async {
     try {
       final ep = await _endpoints;
       if (ep.jellyfinBaseUrl.isEmpty || ep.jellyfinToken.isEmpty) return;
 
       final url = Uri.parse('${ep.jellyfinBaseUrl}/Sessions/$action');
-      
-      // 完全照抄 gulson_deskpane 的逻辑
-      Map<String, dynamic> payload;
+
+      // 补全后的标准 Payload，让 App 能正常显示在 Jellyfin 控制台的“活动会话”中。
+      // 参考官方客户端结构 + 用户指定要求。
+      final sessionPayload = {
+        'Item': {'Id': itemId},
+        'ItemId': itemId,
+        'MediaSourceId': itemId,
+        'PlayMethod': 'DirectPlay',
+        'PlaySessionId': playSessionId ?? '',
+        'CanSeek': true,
+        'PositionTicks': positionTicks,
+        'IsPaused': action == 'Playing/Stopped',
+      };
+
+      // 对于纯粹的 'Playing' 启动事件，通常 IsPaused 应该是 false（开始播放）。
       if (action == 'Playing') {
-        payload = {'ItemId': itemId}; // Start 只需要 ItemId
-      } else {
-        payload = {
-          'ItemId': itemId,
-          'PositionTicks': positionTicks,
-          'IsPaused': action == 'Playing/Stopped',
-        };
+        sessionPayload['IsPaused'] = false;
       }
 
-      final body = jsonEncode(payload);
+      final body = jsonEncode(sessionPayload);
 
       final headers = _headers(ep.jellyfinToken);
       headers['Content-Type'] = 'application/json';
@@ -563,12 +595,14 @@ class MediaRepository {
         if (resp.statusCode != 204 && resp.statusCode != 200) {
           Log.d(LogGroup.media, '⚠️ [Media] 上报 Dashboard($action) 失败: ${resp.statusCode}');
         } else {
-          Log.d(LogGroup.media, '✅ [Media] 上报 Dashboard($action) 成功!');
+          Log.d(LogGroup.media, '✅ [Media] 上报 Dashboard($action) 成功! (PlaySessionId: ${playSessionId?.substring(0, 8) ?? 'none'}...)');
         }
       } catch (_) {
       }
+
       // -----------------------------------------------------------------------
       // 通道 B：强制更新 UserData (抄自 gulson_deskpane)
+      // 此通道保持不变，专门负责可靠的 resume 位置和 LastPlayedDate。
       // -----------------------------------------------------------------------
       if (action == 'Playing/Progress' || action == 'Playing/Stopped') {
         final userDataUrl = Uri.parse(
@@ -631,7 +665,7 @@ class MediaRepository {
         '${ep.jellyfinBaseUrl}/Shows/NextUp'
         '?userId=${ep.jellyfinUserId}'
         '&seriesId=$seriesId'
-        '&fields=Overview,ImageTags,RunTimeTicks'
+        '&fields=Overview,ImageTags,RunTimeTicks,UserData'
         '&Limit=1',
       );
 
