@@ -23,6 +23,16 @@ class MediaImmersiveController {
   late StreamSubscription<bool> _completedSub;
   late StreamSubscription<Duration> _positionSub;
 
+  /// 用于续播 seek 的 duration 监听（等待媒体加载就绪后 seek），dispose 时清理
+  StreamSubscription<Duration>? _resumeReadySubscription;
+
+  // 加载和退出状态，用于慢网络下的动态提示
+  final ValueNotifier<bool> isPlayerReady = ValueNotifier(false);
+  final ValueNotifier<String> loadingMessage = ValueNotifier('正在初始化播放器...');
+
+  final ValueNotifier<bool> isExiting = ValueNotifier(false);
+  final ValueNotifier<String> exitingMessage = ValueNotifier('');
+
   String? currentSeriesId;
   double _playbackSpeed = 1.0;
   bool _autoSkip = false;
@@ -45,17 +55,16 @@ class MediaImmersiveController {
     engineController = MediaEngineController(
       interactionStreamController: interactionStreamController,
     );
+
+    loadingMessage.value = '正在初始化播放器...';
     engineController.init(initialItemId, startPositionTicks: startPositionTicks);
 
     if (startPositionTicks > 0) {
-      // 稍延再 seek 确保播放器初始化完毕
-      Future.delayed(const Duration(milliseconds: 800), () {
-        final seekDuration = Duration(microseconds: startPositionTicks ~/ 10);
-        Log.d(LogGroup.media, '⏩ [Player] 续播 seek: startPositionTicks=$startPositionTicks → ${seekDuration.inSeconds}s');
-        engineController.player.seek(seekDuration);
-      });
+      loadingMessage.value = '正在准备续播位置...';
+      _seekToResumePosition(startPositionTicks);
     } else {
       Log.d(LogGroup.media, '▶️ [Player] 从头播放 (startPositionTicks=0)');
+      _setupInitialReadyListener();
     }
 
     seekController = MediaSeekController(
@@ -151,6 +160,10 @@ class MediaImmersiveController {
   Future<void> stopAndReport() async {
     if (_stopReported) return;
     _stopReported = true;
+
+    // 立即停止心跳定时器，防止 Stopped 之后还有多余的 Progress 上报
+    engineController.cancelProgressTimer();
+
     final itemId = currentItemIdNotifier.value;
     final finalTicks = engineController.player.state.position.inMicroseconds * 10;
     Log.d(LogGroup.media, '🛑 [Player] stopAndReport: itemId=$itemId, ticks=${finalTicks ~/ 10000000}s');
@@ -175,6 +188,7 @@ class MediaImmersiveController {
         playSessionId: engineController.playSessionId,
       );
     }
+    _resumeReadySubscription?.cancel();
     _positionSub.cancel();
     _completedSub.cancel();
     seekController.dispose();
@@ -298,5 +312,52 @@ class MediaImmersiveController {
           return false; // 放行给全局处理（回退或调整全局音量）
       }
     }
+  }
+
+  /// 等待播放器就绪（duration 已知）后再执行续播 seek，避免魔法数字延迟。
+  /// 使用 player.stream.duration 事件驱动，确保媒体信息加载完成（可安全 seek）后再 seek。
+  /// 同时处理已就绪的竞态情况。
+  void _seekToResumePosition(int ticks) {
+    final seekDuration = Duration(microseconds: ticks ~/ 10);
+    Log.d(LogGroup.media, '⏩ [Player] 续播 seek: startPositionTicks=$ticks → ${seekDuration.inSeconds}s');
+
+    // 如果此时 duration 已经已知（媒体已加载），立即 seek
+    if (engineController.player.state.duration > Duration.zero) {
+      engineController.player.seek(seekDuration).then((_) {
+        isPlayerReady.value = true;
+        loadingMessage.value = '';
+      });
+      return;
+    }
+
+    // 监听 duration 事件，一次性 seek 后取消订阅
+    _resumeReadySubscription = engineController.player.stream.duration.listen((duration) {
+      if (duration > Duration.zero) {
+        engineController.player.seek(seekDuration).then((_) {
+          _resumeReadySubscription?.cancel();
+          _resumeReadySubscription = null;
+          isPlayerReady.value = true;
+          loadingMessage.value = '';
+        });
+      }
+    });
+  }
+
+  /// 非续播时等待 duration 就绪后标记播放器可用（用于加载提示）
+  void _setupInitialReadyListener() {
+    if (engineController.player.state.duration > Duration.zero) {
+      isPlayerReady.value = true;
+      loadingMessage.value = '';
+      return;
+    }
+
+    late StreamSubscription<Duration> sub;
+    sub = engineController.player.stream.duration.listen((duration) {
+      if (duration > Duration.zero) {
+        isPlayerReady.value = true;
+        loadingMessage.value = '';
+        sub.cancel();
+      }
+    });
   }
 }

@@ -90,7 +90,7 @@ class MediaRepository {
         '${ep.jellyfinBaseUrl}/Users/${ep.jellyfinUserId}/Views',
       );
       final resp = await http
-          .get(url, headers: _headers(ep.jellyfinToken))
+          .get(url, headers: _headers(ep))
           .timeout(const Duration(seconds: 8));
 
       if (resp.statusCode != 200) {
@@ -241,7 +241,7 @@ class MediaRepository {
       );
 
       final resp = await http
-          .get(url, headers: _headers(ep.jellyfinToken))
+          .get(url, headers: _headers(ep))
           .timeout(const Duration(seconds: 10));
 
       if (resp.statusCode != 200) {
@@ -273,7 +273,7 @@ class MediaRepository {
       );
 
       final resp = await http
-          .get(url, headers: _headers(ep.jellyfinToken))
+          .get(url, headers: _headers(ep))
           .timeout(const Duration(seconds: 10));
 
       if (resp.statusCode != 200) {
@@ -311,7 +311,7 @@ class MediaRepository {
       );
 
       final resp = await http
-          .get(url, headers: _headers(ep.jellyfinToken))
+          .get(url, headers: _headers(ep))
           .timeout(const Duration(seconds: 10));
 
       if (resp.statusCode != 200) {
@@ -349,7 +349,7 @@ class MediaRepository {
       );
 
       final resp = await http
-          .get(url, headers: _headers(ep.jellyfinToken))
+          .get(url, headers: _headers(ep))
           .timeout(const Duration(seconds: 10));
 
       if (resp.statusCode != 200) {
@@ -454,7 +454,7 @@ class MediaRepository {
       );
 
       final resp = await http
-          .get(url, headers: _headers(ep.jellyfinToken))
+          .get(url, headers: _headers(ep))
           .timeout(const Duration(seconds: 15));
 
       if (resp.statusCode != 200) {
@@ -523,9 +523,10 @@ class MediaRepository {
     }
   }
 
-  static Map<String, String> _headers(String token) => {
-    'X-Emby-Token': token,
-    'X-Emby-Authorization': 'MediaBrowser Client="Digital Center", Device="TV", DeviceId="digital_center_client_v1", Version="1.0.0", Token="$token"',
+  static Map<String, String> _headers(ApiEndpoints ep) => {
+    'X-Emby-Token': ep.jellyfinToken,
+    'X-Emby-Authorization':
+        'MediaBrowser Client="${ep.jellyfinDeviceClient}", Device="${ep.jellyfinDeviceName}", DeviceId="${ep.jellyfinDeviceId}", Version="${ep.jellyfinDeviceVersion}", Token="${ep.jellyfinToken}"',
     'Accept': 'application/json',
   };
 
@@ -585,7 +586,7 @@ class MediaRepository {
 
       final body = jsonEncode(sessionPayload);
 
-      final headers = _headers(ep.jellyfinToken);
+      final headers = _headers(ep);
       headers['Content-Type'] = 'application/json';
 
       try {
@@ -642,7 +643,7 @@ class MediaRepository {
       );
 
       final resp = await http
-          .post(url, headers: _headers(ep.jellyfinToken))
+          .post(url, headers: _headers(ep))
           .timeout(const Duration(seconds: 5));
 
       if (resp.statusCode != 200 && resp.statusCode != 204) {
@@ -670,7 +671,7 @@ class MediaRepository {
       );
 
       final resp = await http
-          .get(url, headers: _headers(ep.jellyfinToken))
+          .get(url, headers: _headers(ep))
           .timeout(const Duration(seconds: 10));
 
       if (resp.statusCode != 200) return null;

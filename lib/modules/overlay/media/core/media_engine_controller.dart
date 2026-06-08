@@ -117,8 +117,15 @@ class MediaEngineController {
     // （通过 stopAndReport / switchEpisode 中的显式上报 + 兜底）。
     // 这里只做资源清理，避免在正常退出路径上重复上报 Stopped。
     _progressTimer?.cancel();
+    _progressTimer = null;
 
     AppAudioService.instance.removeListener(_onGlobalVolumeChanged);
     player.dispose();
+  }
+
+  /// 停止进度心跳上报（在 stopAndReport 时调用，避免 Stopped 之后还有 Progress 上报）
+  void cancelProgressTimer() {
+    _progressTimer?.cancel();
+    _progressTimer = null;
   }
 }
