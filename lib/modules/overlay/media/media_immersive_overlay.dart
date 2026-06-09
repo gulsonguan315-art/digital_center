@@ -61,7 +61,8 @@ class _MediaImmersiveOverlayState extends State<MediaImmersiveOverlay> {
         canPop: false,
         onPopInvokedWithResult: (didPop, result) async {
           if (didPop) return;
-          await _controller.stopAndReport();
+          // 立即上报最终进度（后台异步），不阻塞 UI 返回
+          _controller.stopAndReportAsync();
           if (context.mounted) {
             Navigator.of(context).pop();
           }
@@ -82,12 +83,11 @@ class _MediaImmersiveOverlayState extends State<MediaImmersiveOverlay> {
                       'media_overlay';
 
                   if (scope != null && !scope.isActive && !isIntendingToEnter) {
-                    WidgetsBinding.instance.addPostFrameCallback((_) async {
+                    // 房间失活（用户按返回 / 焦点切走），立即 pop，不等待上报
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
                       if (mounted && Navigator.canPop(context)) {
-                        await _controller.stopAndReport();
-                        if (mounted) {
-                          Navigator.of(context).pop();
-                        }
+                        _controller.stopAndReportAsync();
+                        Navigator.of(context).pop();
                       }
                     });
                   }

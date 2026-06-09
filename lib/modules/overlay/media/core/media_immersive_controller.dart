@@ -47,10 +47,19 @@ class MediaImmersiveController {
     );
   }
 
-  /// 在导航返回 **之前** 调用，await 完成后 Jellyfin 已收到正确进度
+  /// 在导航返回 **之前** 调用，await 完成后 Jellyfin 已收到正确进度。
+  /// 主要用于切集等需要可靠性的内部流程。
   Future<void> stopAndReport() async {
     if (playbackPhase.value.index >= PlaybackPhase.buildingEngine.index) {
       await playerEngine.reporter.stopAndReport();
+    }
+  }
+
+  /// 触发最终播放进度上报（后台异步，不阻塞）。
+  /// UI 层退出时应使用此方法，让用户感觉立即返回详情页。
+  void stopAndReportAsync() {
+    if (playbackPhase.value.index >= PlaybackPhase.buildingEngine.index) {
+      playerEngine.reporter.stopAndReportAsync();
     }
   }
 

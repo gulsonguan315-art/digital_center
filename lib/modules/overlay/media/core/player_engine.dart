@@ -61,7 +61,9 @@ class PlayerEngine {
   Future<bool> switchEpisode(int direction) async {
     if (_isSwitchingEpisode) return false;
 
-    await reporter.stopAndReport();
+    // 立即捕获旧集最后位置并后台异步上报 Stopped，不阻塞新集的解析和播放启动
+    // 位置已在调用时同步读取，网络延迟不会影响切集流畅度
+    reporter.stopAndReportAsync();
     _isSwitchingEpisode = true;
 
     try {
@@ -113,7 +115,10 @@ class PlayerEngine {
 
   void dispose() {
     AppAudioService.instance.removeListener(_onGlobalVolumeChanged);
-    reporter.stopAndReport();
+    // 只在尚未执行过 stop 报告时才触发（防止 overlay 退出时双上报）
+    if (!reporter.hasStopped) {
+      reporter.stopAndReportAsync();
+    }
     reporter.dispose();
     seekController.dispose();
     currentItemIdNotifier.dispose();
