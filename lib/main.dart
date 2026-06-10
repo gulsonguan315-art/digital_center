@@ -12,7 +12,7 @@ import 'ui/visual/cursor/floating_cursor.dart';
 import 'ui/pages/building_page.dart';
 
 import 'core/data/data_manager.dart';
-import 'core/stage/stage_initializer.dart';
+import 'app_initializer.dart';
 import 'package:media_kit/media_kit.dart';
 
 void main() async {
@@ -28,7 +28,7 @@ void main() async {
   WidgetsBinding.instance.addObserver(_AppLifecycleObserver());
   
   // 1. 初始化舞台调度中心 (招商登记)
-  StageInitializer.init();
+  AppInitializer.init();
   
   // 1.5 读取用户配置，并立即保存一次（确保新字段如 immersiveMode 被写入文件）
   final userSettings = await DataManager.instance.getUserSettings();

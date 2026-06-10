@@ -4,6 +4,10 @@ import '../../../core/control/superfocus/focus_api.dart';
 import '../../../core/control/superfocus/interaction_manager.dart';
 import '../../../core/engine/theme/theme_api.dart';
 import '../../../core/engine/audio/app_audio_service.dart';
+import '../../../core/stage/stage_contract.dart';
+import '../../../core/stage/stage_models.dart';
+import '../../../core/stage/stage_registry.dart';
+import '../../../core/stage/stage_manager.dart';
 import 'music_model.dart';
 import 'music_callback.dart';
 import 'music_view.dart';
@@ -20,6 +24,17 @@ class MusicRoom extends StatefulWidget {
   const MusicRoom({super.key, this.child});
 
   static const String roomId = MusicModel.musicPageId;
+
+  static void register() {
+    StageRegistry.register(
+      StageContract(
+        roomId: roomId,
+        zone: StageZone.main,
+        keepAlive: true,
+        builder: (context) => const MusicRoom(),
+      ),
+    );
+  }
 
   @override
   State<MusicRoom> createState() => _MusicRoomState();
@@ -46,17 +61,22 @@ class _MusicRoomState extends State<MusicRoom> {
       id: MusicModel.musicPageId,
       child:
           widget.child ??
-          ValueListenableBuilder(
-            valueListenable: SuperFocusManager.instance.topologyNotifier,
-            builder: (context, topology, _) {
+          ListenableBuilder(
+            listenable: Listenable.merge([
+              SuperFocusManager.instance.topologyNotifier,
+              StageManager.instance.isTransitioning,
+            ]),
+            builder: (context, _) {
+              final topology = SuperFocusManager.instance.topologyNotifier.value;
               final isActive = topology.activePath.contains(
                 MusicModel.musicPageId,
               );
               final isEntering =
                   SuperFocusManager.instance.intentionRoomId.value ==
                   MusicModel.musicPageId;
+              final isTransitioning = StageManager.instance.isTransitioning.value;
 
-              if (!isActive && !isEntering) {
+              if (!isActive && !isEntering && !isTransitioning) {
                 return const SizedBox.shrink();
               }
 

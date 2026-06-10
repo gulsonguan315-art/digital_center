@@ -2,10 +2,24 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import '../../../core/control/superfocus/focus_api.dart';
 import '../../../core/data/data_manager.dart';
+import '../../../core/stage/stage_contract.dart';
+import '../../../core/stage/stage_models.dart';
+import '../../../core/stage/stage_registry.dart';
 
 class ExitPageRoom extends StatelessWidget {
   static const String roomId = 'exitPage';
   const ExitPageRoom({super.key});
+
+  static void register() {
+    StageRegistry.register(
+      StageContract(
+        roomId: roomId,
+        zone: StageZone.main,
+        keepAlive: false,
+        builder: (context) => const ExitPageRoom(),
+      ),
+    );
+  }
 
   Future<void> _executeUpdate() async {
     try {

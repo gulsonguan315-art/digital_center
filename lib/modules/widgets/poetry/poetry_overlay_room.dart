@@ -7,6 +7,9 @@ import '../../../core/control/superfocus/interaction_manager.dart'; // 🌟 引�
 import '../../../core/control/superfocus/focus_api.dart';
 import '../../../core/control/superfocus/focus_widgets.dart';
 import '../../../core/engine/theme/theme_api.dart';
+import '../../../core/stage/stage_contract.dart';
+import '../../../core/stage/stage_models.dart';
+import '../../../core/stage/stage_registry.dart';
 import '../../../ui/base/text/surface_text.dart';
 import '../../../ui/base/surface/dashboard_card.dart';
 
@@ -14,6 +17,17 @@ import '../../../ui/base/surface/dashboard_card.dart';
 class PoetryOverlayRoom extends StatelessWidget {
   static const String roomId = 'poetry_overlay';
   const PoetryOverlayRoom({super.key});
+
+  static void register() {
+    StageRegistry.register(
+      StageContract(
+        roomId: roomId,
+        zone: StageZone.overlay,
+        keepAlive: false,
+        builder: (context) => const PoetryOverlayRoom(),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {

@@ -5,6 +5,7 @@ import 'interaction_controller.dart';
 import 'focus_controller.dart';
 import 'mouse_controller.dart';
 import 'building_map.dart';
+import '../../stage/stage_manager.dart';
 
 class SuperInteractionManager {
   static final SuperInteractionManager instance = SuperInteractionManager._internal();
@@ -128,11 +129,18 @@ class SuperInteractionManager {
   // 6. 生命周期
   // ===========================================================================
 
-  void onMove(TraversalDirection direction) => _controller.onMove(direction);
+  void onMove(TraversalDirection direction) {
+    if (StageManager.instance.isTransitioning.value) return;
+    _controller.onMove(direction);
+  }
 
-  void onConfirm() => _controller.onConfirm();
+  void onConfirm() {
+    if (StageManager.instance.isTransitioning.value) return;
+    _controller.onConfirm();
+  }
 
   void onBackCommand() {
+    if (StageManager.instance.isTransitioning.value) return;
     // 优先轮询拦截器，如果被消费则直接返回
     for (final interceptor in _backInterceptors.reversed) {
       if (interceptor()) {
@@ -144,6 +152,7 @@ class SuperInteractionManager {
   }
 
   void onHomeCommand() {
+    if (StageManager.instance.isTransitioning.value) return;
     _controller.onHome();
   }
 
@@ -152,7 +161,10 @@ class SuperInteractionManager {
 
   void onPointerEnter(String targetId) => _controller.onPointerEnter(targetId);
   
-  void onPointerClick(String targetId) => _controller.onPointerClick(targetId);
+  void onPointerClick(String targetId) {
+    if (StageManager.instance.isTransitioning.value) return;
+    _controller.onPointerClick(targetId);
+  }
 
   /// 激活特定节点，在当前交互模式下统一分发，如果节点未注册则运行 fallback。
   void activateNode(String id, {VoidCallback? fallback}) {

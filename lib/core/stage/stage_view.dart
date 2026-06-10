@@ -5,6 +5,7 @@ import 'stage_models.dart';
 import 'stage_registry.dart';
 import 'stage_physical_frame.dart';
 import '../log/log_api.dart';
+import 'stage_room_transition.dart';
 
 /// 商管总调度台 (The Stage Manager Brain)
 /// 职责：打破“先有鸡还是先有蛋”的悖论，监听意图并提前施工。
@@ -18,6 +19,8 @@ class StageView extends StatefulWidget {
 class _StageViewState extends State<StageView> {
   /// 幕后休息室 (缓存)
   final Map<String, Widget> _suspendedRooms = {};
+  /// 正在播放退出动画的房间集合
+  final Set<String> _roomsExiting = {};
 
   @override
   Widget build(BuildContext context) {
@@ -61,23 +64,34 @@ class _StageViewState extends State<StageView> {
       }
     }
 
-    // 检查哪些房间可以撤场
-    final idsToRemove = <String>[];
+    // 检查哪些房间可以撤场，并开启 350ms 的延时撤场以播放退出动画
     _suspendedRooms.forEach((roomId, _) {
       final contract = StageRegistry.getContract(roomId);
       if (contract != null && 
           !activePath.contains(roomId) && 
           roomId != intentionId && 
           !contract.keepAlive) {
-        Log.d(LogGroup.ui, '🧹 撤场 [$roomId]...', subGroup: 'StageBrain');
-        idsToRemove.add(roomId);
-        needsUpdate = true;
+        if (!_roomsExiting.contains(roomId)) {
+          _roomsExiting.add(roomId);
+          Log.d(LogGroup.ui, '🧹 开启 350ms 延时撤场 [$roomId]...', subGroup: 'StageBrain');
+          
+          Future.delayed(const Duration(milliseconds: 350), () {
+            if (mounted) {
+              final currentTopology = SuperFocusManager.instance.topologyNotifier.value;
+              final currentIntention = SuperFocusManager.instance.intentionRoomId.value;
+              final stillNotNeeded = !currentTopology.activePath.contains(roomId) && 
+                                     currentIntention != roomId;
+              setState(() {
+                _roomsExiting.remove(roomId);
+                if (stillNotNeeded) {
+                  _suspendedRooms.remove(roomId);
+                }
+              });
+            }
+          });
+        }
       }
     });
-
-    for (final id in idsToRemove) {
-      _suspendedRooms.remove(id);
-    }
 
     if (needsUpdate) {
       setState(() {});
@@ -94,9 +108,10 @@ class _StageViewState extends State<StageView> {
 
       // 显隐逻辑：只要该房间在当前的激活路径上，或者是正要进入的目标，就必须可见
       final bool isVisible = topology.activePath.contains(roomId) || intentionId == roomId;
-      final wrappedWidget = _wrapRoom(roomWidget, isVisible);
+      final bool isMainStage = contract.zone == StageZone.main;
+      final wrappedWidget = _wrapRoom(roomWidget, isVisible, isMainStage);
 
-      if (contract.zone == StageZone.main) {
+      if (isMainStage) {
         mainSlots.add(wrappedWidget);
       } else {
         overlaySlots.add(wrappedWidget);
@@ -109,7 +124,13 @@ class _StageViewState extends State<StageView> {
     );
   }
 
-  Widget _wrapRoom(Widget child, bool isFocused) {
+  Widget _wrapRoom(Widget child, bool isFocused, bool isMainStage) {
+    if (isMainStage) {
+      return StageRoomTransition(
+        isVisible: isFocused,
+        child: child,
+      );
+    }
     return Offstage(
       offstage: !isFocused,
       child: TickerMode(

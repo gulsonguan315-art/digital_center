@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/control/superfocus/focus_api.dart';
+import '../../../core/stage/stage_contract.dart';
+import '../../../core/stage/stage_models.dart';
+import '../../../core/stage/stage_registry.dart';
 import 'dashboard_model.dart';
 import 'dashboard_view.dart';
 
@@ -11,6 +14,17 @@ class DashboardRoom extends StatelessWidget {
   const DashboardRoom({super.key, this.child});
 
   static const String roomId = DashboardModel.dashboardPageId;
+
+  static void register() {
+    StageRegistry.register(
+      StageContract(
+        roomId: roomId,
+        zone: StageZone.main,
+        keepAlive: true,
+        builder: (context) => const DashboardRoom(),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {

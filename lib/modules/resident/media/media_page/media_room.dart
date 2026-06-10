@@ -3,6 +3,9 @@ import 'package:superfocus/core/layout/grid/grid_extensions.dart';
 import '../../../../core/control/superfocus/focus_api.dart';
 import '../../../../core/control/superfocus/interaction_manager.dart';
 import '../../../../core/engine/theme/theme_api.dart';
+import '../../../../core/stage/stage_contract.dart';
+import '../../../../core/stage/stage_models.dart';
+import '../../../../core/stage/stage_registry.dart';
 import '../media_model.dart';
 import 'media_view.dart';
 import '../media_service.dart';
@@ -10,6 +13,7 @@ import 'media_callback.dart';
 import '../media_detail/media_detail_room.dart';
 import '../../sidebar/sidebar_metrics.dart';
 import '../../../../core/stage/stage_metrics.dart';
+import '../../../../core/stage/stage_manager.dart';
 
 /// 📂 影视页面主房间 (Media Room - Composition Root)
 class MediaRoom extends StatefulWidget {
@@ -17,6 +21,17 @@ class MediaRoom extends StatefulWidget {
   const MediaRoom({super.key, this.child});
 
   static const String roomId = MediaModel.mediaPageId;
+
+  static void register() {
+    StageRegistry.register(
+      StageContract(
+        roomId: roomId,
+        zone: StageZone.main,
+        keepAlive: true,
+        builder: (context) => const MediaRoom(),
+      ),
+    );
+  }
 
   @override
   State<MediaRoom> createState() => _MediaRoomState();
@@ -36,18 +51,23 @@ class _MediaRoomState extends State<MediaRoom> {
       id: MediaModel.mediaPageId,
       child:
           widget.child ??
-          ValueListenableBuilder<FocusTopology>(
-            valueListenable: SuperFocusManager.instance.topologyNotifier,
-            builder: (context, topology, _) {
+          ListenableBuilder(
+            listenable: Listenable.merge([
+              SuperFocusManager.instance.topologyNotifier,
+              StageManager.instance.isTransitioning,
+            ]),
+            builder: (context, _) {
+              final topology = SuperFocusManager.instance.topologyNotifier.value;
               final isActive = topology.activePath.contains(
                 MediaModel.mediaPageId,
               );
               final isEntering =
                   SuperFocusManager.instance.intentionRoomId.value ==
                   MediaModel.mediaPageId;
+              final isTransitioning = StageManager.instance.isTransitioning.value;
 
-              // 页面不活跃且未在进入意图中，跳过渲染节省 GPU
-              if (!isActive && !isEntering) {
+              // 页面不活跃且未在进入意图中，且没有转场动画在播放时，跳过渲染节省 GPU
+              if (!isActive && !isEntering && !isTransitioning) {
                 return const SizedBox.shrink();
               }
 
@@ -139,7 +159,7 @@ class _MediaRoomState extends State<MediaRoom> {
                             ? MediaDetailRoom(
                                 roomId: 'seriesDetail_$seriesDetailId',
                                 itemId: seriesDetailId,
-                              )
+                               )
                             : MediaDetailRoom(
                                 roomId: 'movieDetail_$movieDetailId',
                                 itemId: movieDetailId!,
@@ -162,13 +182,17 @@ class _MediaRoomState extends State<MediaRoom> {
                         key: _stackKey,
                         clipBehavior: Clip.none,
                         children: [
-                          // 底层海报墙：因为 StagePhysicalFrame 已经统一提供了左侧安全区，
-                          // 这里不再需要手动加 Padding，直接渲染即可。
-                          gridView,
+                          // 一楼：标准主舞台
+                          StageFirstFloor(
+                            child: gridView,
+                          ),
 
-                          // 顶层详情页覆盖 (全屏沉浸，支持双向 Hero 动画)
+                          // 二楼：大舞台 (启用自定义定位进行动画缩放)
                           if (_detailWidgetCache != null)
-                            Builder(builder: (context) {
+                            StageSecondFloor(
+                              id: 'media_detail_floor',
+                              isCustomPositioned: true,
+                              child: Builder(builder: (context) {
                               // 全屏 Rect，必须抵消 StagePhysicalFrame 外壳引入的 padding
                               // 利用组合的负边距，逃脱全局的侧边栏安全区，重回物理屏幕左上角
                               final fullScreenRect = Rect.fromLTWH(
@@ -244,6 +268,7 @@ class _MediaRoomState extends State<MediaRoom> {
                             ),
                           );
                         }),
+                      ),
                     ],
                   );
                  },

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../core/control/superfocus/focus_api.dart';
 import '../../../core/control/superfocus/interaction_manager.dart';
 import '../../../core/control/superfocus/building_map.dart';
+import '../../../core/stage/stage_manager.dart';
 import '../media/media_service.dart';
 import 'sidebar_model.dart';
 import 'sidebar_view.dart';
@@ -44,31 +45,35 @@ class _SidebarRoomState extends State<SidebarRoom> {
       child: ValueListenableBuilder<FocusTopology>(
         valueListenable: SuperFocusManager.instance.topologyNotifier,
         builder: (context, topology, _) {
-          return FocusTopologyScope(
-            topology: topology,
-            child: Builder(
-              builder: (context) {
-                final activeId = _findActiveLeafId(context, SidebarModel.menuItems);
-                
-                final effectiveActiveId = activeId ?? 
-                    (_isItemActive(context, SidebarModel.settingId) ? SidebarModel.settingId : 
-                    (_isItemActive(context, SidebarModel.exitId) ? SidebarModel.exitId : null));
-                
-                final String autofocusId = effectiveActiveId ?? SidebarModel.dashboardId;
-                final bool isCollapsed = topology.activeRoom?.startsWith('movieDetail_') == true || 
-                                         topology.activeRoom?.startsWith('seriesDetail_') == true;
+          return ListenableBuilder(
+            listenable: StageManager.instance.isSecondFloorActive,
+            builder: (context, _) {
+              return FocusTopologyScope(
+                topology: topology,
+                child: Builder(
+                  builder: (context) {
+                    final activeId = _findActiveLeafId(context, SidebarModel.menuItems);
+                    
+                    final effectiveActiveId = activeId ?? 
+                        (_isItemActive(context, SidebarModel.settingId) ? SidebarModel.settingId : 
+                        (_isItemActive(context, SidebarModel.exitId) ? SidebarModel.exitId : null));
+                    
+                    final String autofocusId = effectiveActiveId ?? SidebarModel.dashboardId;
+                    final bool isCollapsed = StageManager.instance.isSecondFloorActive.value;
 
-                return widget.child ?? SidebarView(
-                  activeId: effectiveActiveId,
-                  expandedZoneId: _expandedZoneId,
-                  isCollapsed: isCollapsed,
-                  slots: _buildTiles(context, autofocusId, isCollapsed),
-                  zoneWrappers: _buildZoneWrappers(),
-                  settingSlot: _buildSettingTile(context, autofocusId, isCollapsed),
-                  exitSlot: _buildExitTile(context, autofocusId, isCollapsed),
-                );
-              }
-            ),
+                    return widget.child ?? SidebarView(
+                      activeId: effectiveActiveId,
+                      expandedZoneId: _expandedZoneId,
+                      isCollapsed: isCollapsed,
+                      slots: _buildTiles(context, autofocusId, isCollapsed),
+                      zoneWrappers: _buildZoneWrappers(),
+                      settingSlot: _buildSettingTile(context, autofocusId, isCollapsed),
+                      exitSlot: _buildExitTile(context, autofocusId, isCollapsed),
+                    );
+                  }
+                ),
+              );
+            }
           );
         },
       ),

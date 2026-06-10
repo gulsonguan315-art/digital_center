@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../layout/grid/grid_extensions.dart';
-import '../engine/theme/theme_api.dart';
 import '../../modules/resident/sidebar/sidebar_metrics.dart';
 import 'stage_metrics.dart';
 
@@ -31,18 +30,9 @@ class StagePhysicalFrame extends StatelessWidget {
               top: context.units(StageMetrics.paddingVerticalU),
               bottom: context.units(StageMetrics.paddingVerticalU),
             ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(
-                context.units(StageMetrics.borderRadiusU),
-              ),
-              clipBehavior: Clip.none, // 🌟 允许卡片外部阴影/高光自然向外延伸，防止在边缘处被生硬切边
-              child: Material(
-                color: Theme.of(context).extension<AppTheme>()!.colors.stageBackground,
-                child: Stack(
-                  clipBehavior: Clip.none,
-                  children: mainStageContent,
-                ),
-              ),
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: mainStageContent,
             ),
           ),
         ),

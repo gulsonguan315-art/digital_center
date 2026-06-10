@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import '../../../core/control/superfocus/focus_api.dart';
 import '../../../core/engine/theme/theme_api.dart';
+import '../../../core/stage/stage_contract.dart';
+import '../../../core/stage/stage_models.dart';
+import '../../../core/stage/stage_registry.dart';
 import 'test_page_model.dart';
 import 'test_page_callback.dart';
 import 'test_page_view.dart';
@@ -13,6 +16,17 @@ class TestPageRoom extends StatelessWidget {
   const TestPageRoom({super.key});
 
   static const String roomId = TestPageModel.testPageId;
+
+  static void register() {
+    StageRegistry.register(
+      StageContract(
+        roomId: roomId,
+        zone: StageZone.main,
+        keepAlive: false,
+        builder: (context) => const TestPageRoom(),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {

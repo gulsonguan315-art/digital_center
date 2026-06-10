@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import '../../../core/engine/theme/theme_api.dart';
 import '../../../core/control/superfocus/focus_widgets.dart';
+import '../../../core/stage/stage_contract.dart';
+import '../../../core/stage/stage_models.dart';
+import '../../../core/stage/stage_registry.dart';
 import '../../../ui/base/input/ui_base_switch.dart';
 import 'setting_page_model.dart';
 import 'setting_page_callback.dart';
@@ -15,6 +18,17 @@ class SettingPageRoom extends StatelessWidget {
   const SettingPageRoom({super.key, this.child});
 
   static const String roomId = SettingPageModel.settingPageId;
+
+  static void register() {
+    StageRegistry.register(
+      StageContract(
+        roomId: roomId,
+        zone: StageZone.main,
+        keepAlive: false,
+        builder: (context) => const SettingPageRoom(),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {

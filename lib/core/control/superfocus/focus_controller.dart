@@ -6,6 +6,7 @@ import 'scoped_2d_scanner.dart';
 import 'building_map.dart';
 import '../../log/log_api.dart';
 import 'auto_scroll_dispatcher.dart';
+import 'focus_report.dart';
 
 mixin FocusTraceLogger {
   void logCancel(String? target) {
@@ -327,13 +328,15 @@ class FocusController extends BaseInteractionController with FocusTraceLogger {
           : null;
       final newConfig = state.roomRegistry[newRoom]?.transitionConfig;
 
-      final configToUse = newConfig ?? oldConfig;
-      if (configToUse != null) {
-        SuperFocusManager.instance.requestNextTransition(
-          configToUse.mode,
-          delay: configToUse.delay,
-        );
-      }
+      final configToUse = newConfig ?? oldConfig ?? const FocusTransitionConfig(
+        FocusTransitionMode.teleport,
+        delay: Duration(milliseconds: 350),
+      );
+      
+      SuperFocusManager.instance.requestNextTransition(
+        configToUse.mode,
+        delay: configToUse.delay,
+      );
     }
     
     _landedRoomId = newRoom;
