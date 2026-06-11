@@ -426,11 +426,15 @@ class SuperFocusAirNode extends StatefulWidget {
 }
 
 class _SuperFocusAirNodeState extends State<SuperFocusAirNode> {
+  bool _hadFocus = false;
+
   @override
   void dispose() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      SuperFocusManager.instance.showCursor();
-    });
+    if (_hadFocus) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        SuperFocusManager.instance.showCursor();
+      });
+    }
     super.dispose();
   }
 
@@ -442,6 +446,7 @@ class _SuperFocusAirNodeState extends State<SuperFocusAirNode> {
     return SuperFocusItem(
       id: id,
       builder: (context, hasFocus) {
+        _hadFocus = hasFocus;
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (mounted) {
             if (hasFocus) {
