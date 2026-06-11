@@ -18,6 +18,8 @@ class MediaImmersiveControlPanel extends StatelessWidget {
     required VoidCallback onPressed,
     Widget? trailing,
     bool isSelected = false,
+    Color? iconColor,
+    double? iconSize,
   }) {
     return FocusIdentity(
       id: id,
@@ -49,10 +51,10 @@ class MediaImmersiveControlPanel extends StatelessWidget {
             children: [
               Icon(
                 icon,
-                color: hasFocus || isSelected
+                color: iconColor ?? (hasFocus || isSelected
                     ? Colors.white
-                    : Colors.white.withValues(alpha: 0.6),
-                size: grid.units(2.5),
+                    : Colors.white.withValues(alpha: 0.6)),
+                size: iconSize ?? grid.units(2.5),
               ),
               SizedBox(width: grid.units(1.5)),
               Expanded(
@@ -194,9 +196,13 @@ class MediaImmersiveControlPanel extends StatelessWidget {
                 id: 'media_menu_skip_toggle',
                 label: '自动跳过片头片尾',
                 icon: controller.preferencesManager.autoSkip
-                    ? Icons.toggle_on
-                    : Icons.toggle_off_outlined,
+                    ? Icons.toggle_on_rounded
+                    : Icons.toggle_off_rounded,
                 isSelected: controller.preferencesManager.autoSkip,
+                iconSize: grid.units(3.5),
+                iconColor: controller.preferencesManager.autoSkip
+                    ? const Color(0xFF00FF66)
+                    : Colors.white.withValues(alpha: 0.6),
                 onPressed: () {
                   controller.preferencesManager.setAutoSkip(!controller.preferencesManager.autoSkip);
                   setState(() {});
@@ -263,9 +269,14 @@ class MediaImmersiveControlPanel extends StatelessWidget {
 
     return Container(
       width: grid.units(38),
-      padding: EdgeInsets.all(grid.units(2)),
+      padding: EdgeInsets.only(
+        top: grid.units(8),
+        bottom: grid.units(2),
+        left: grid.units(2),
+        right: grid.units(2),
+      ),
       decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.4),
+        color: Colors.black,
         borderRadius: BorderRadius.circular(grid.units(2.5)),
         border: Border.all(
           color: Colors.white.withValues(alpha: 0.1),
