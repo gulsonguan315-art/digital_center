@@ -70,6 +70,11 @@ exit
     exit(0);
   }
 
+  void _executeShutdown() {
+    Process.run('shutdown', ['/s', '/t', '0']);
+    exit(0);
+  }
+
   @override
   Widget build(BuildContext context) {
     return SuperFocusRoom(
@@ -94,9 +99,17 @@ exit
               const SizedBox(height: 30),
               _buildButton(
                 id: 'btn_exit_app',
-                label: '关闭系统',
-                icon: Icons.power_settings_new,
+                label: '退出系统',
+                icon: Icons.exit_to_app,
                 onPressed: _executeExit,
+              ),
+              const SizedBox(height: 30),
+              _buildButton(
+                id: 'btn_shutdown_pc',
+                label: '关闭电脑',
+                icon: Icons.power_settings_new,
+                activeColor: Colors.redAccent,
+                onPressed: _executeShutdown,
               ),
             ],
           ),
@@ -110,6 +123,7 @@ exit
     required String label,
     required IconData icon,
     required VoidCallback onPressed,
+    Color activeColor = Colors.blueAccent,
   }) {
     return FocusIdentity(
       id: id,
@@ -120,7 +134,7 @@ exit
           width: 280,
           padding: const EdgeInsets.symmetric(vertical: 20),
           decoration: BoxDecoration(
-            color: hasFocus ? Colors.blueAccent.withOpacity(0.8) : Colors.white.withOpacity(0.1),
+            color: hasFocus ? activeColor.withOpacity(0.8) : Colors.white.withOpacity(0.1),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
               color: hasFocus ? Colors.white : Colors.white30,
