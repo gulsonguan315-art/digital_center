@@ -71,7 +71,8 @@ exit
   }
 
   void _executeShutdown() {
-    Process.run('shutdown', ['/s', '/t', '0']);
+    // 强制关机，并使用 runSync 确保在 Dart 虚拟机退出前把命令发出去
+    Process.runSync('shutdown', ['/s', '/f', '/t', '0']);
     exit(0);
   }
 
