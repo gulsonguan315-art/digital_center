@@ -25,7 +25,7 @@ class BuildingMapData {
   static const Set<String> roots = {'sidebar'};
 
   static final Map<String, List<String>> structure = {
-    // ── [1] 侧边栏 & 导航根节点 ──────────────────────────────────────────────
+    // ── [0] 侧边栏 & 导航根节点 ──────────────────────────────────────────────
     'sidebar': [
       '*dashboard=>dashboardPage',
       '+media',
@@ -35,8 +35,10 @@ class BuildingMapData {
       '*exit=>exitPage',
     ],
 
-    'exitPage': ['*btn_update', '*btn_exit_app'],
+    // ── [1] 退出页面 ──────────────────────────────────────────────
+    'exitPage': ['*btn_shutdown_pc', '*btn_update', '*btn_exit_app'],
 
+    // ── [2] 影视页面 ──────────────────────────────────────────────
     'media': [
       '*mov=>mediaPage',
       '*tv=>mediaPage',
@@ -46,8 +48,16 @@ class BuildingMapData {
     ],
 
     'mediaPage': ['*', '/*', '->media_overlay'],
-    'media_overlay': ['*media_overlay_air_node=>media_menu', '*media_home_trigger=>media_home_confirm'],
-    'media_menu': ['/media_menu_speed', '/media_menu_skip', '*media_menu_subtitle', '*media_menu_audio'],
+    'media_overlay': [
+      '*media_overlay_air_node=>media_menu',
+      '*media_home_trigger=>media_home_confirm',
+    ],
+    'media_menu': [
+      '/media_menu_speed',
+      '/media_menu_skip',
+      '*media_menu_subtitle',
+      '*media_menu_audio',
+    ],
     'media_menu_speed': [
       '*media_menu_speed_back',
       '*media_menu_speed_1.0',
@@ -65,7 +75,7 @@ class BuildingMapData {
     'media_home_confirm': ['*media_home_cancel', '*media_home_ok'],
     'book': ['*科幻', '*人文=>testPage'],
 
-    // ── [2] 音乐模块 (Music) ──────────────────────────────────────────────────
+    // ── [3] 音乐模块 (Music) ──────────────────────────────────────────────────
     'musicPage': [
       '/music_control',
       '/music_folder',
@@ -93,7 +103,7 @@ class BuildingMapData {
     'music_overlay': ['*music_overlay_air_node=>music_menu'],
     'music_menu': ['*style_scrolling', '*style_single_line', '*style_mood'],
 
-    // ── [3] 仪表盘模块 (Dashboard) ─────────────────────────────────────────────
+    // ── [4] 仪表盘模块 (Dashboard) ─────────────────────────────────────────────
     'dashboardPage': [
       '*dash_weather',
       '*dash_music',
@@ -108,7 +118,7 @@ class BuildingMapData {
     ],
     'poetry_overlay': ['*'], // 🌟 注册沉浸 Overlay 房间，使用通配符以动态支持行点击高亮
     'dash_widget_manager': ['*'], // 🌟 挂件中控房间，支持内部元素进行焦点交互
-    // ── [4] 设置模块 (Settings) ──────────────────────────────────────────────
+    // ── [5] 设置模块 (Settings) ──────────────────────────────────────────────
     'settingPage': ['/theme_setting', '/custom_setting', '/log_setting'],
     'theme_setting': ['+color_mode', '+visual_mode', '+shape_mode'],
     'color_mode': ['*light_mode', '*night_mode'],
@@ -117,13 +127,13 @@ class BuildingMapData {
     'custom_setting': ['*setting_a', '*setting_b', '*setting_c'],
     'log_setting': ['*log_focus', '*log_network', '*log_ui', '*log_system'],
 
-    // ── [5] 调试 & 区域模拟测试 ───────────────────────────────────────────────
+    // ── [6] 调试 & 区域模拟测试 ───────────────────────────────────────────────
     'testPage': ['*card1', '/explorer'],
     'explorer': ['/*', '*'],
     'work_setting': ['*work_a', '*work_b', '/work_grop'],
     'work_grop': ['*work_c', '*work_d'],
 
-    // ── [6] 物理空间模拟区域 (Physical Zones) ─────────────────────────────────────
+    // ── [7] 物理空间模拟区域 (Physical Zones) ─────────────────────────────────────
     '公共区域': ['/空中花园'],
     '空中花园': ['*秋千', '*花盆'],
     '走廊': ['/厨房', '/健身房'],
