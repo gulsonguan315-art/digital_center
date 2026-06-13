@@ -26,6 +26,10 @@ class ApiEndpoints {
   final String jellyfinDeviceId;       // 例如 "digital_center_tv_v1"
   final String jellyfinDeviceVersion;  // 例如 "1.0.0"
 
+  // Book (Audiobookshelf 服务)
+  final String absBaseUrl;
+  final String absApiKey;
+
   const ApiEndpoints({
     required this.poetryBaseUrl,
     this.weatherBaseUrl = '',
@@ -40,6 +44,8 @@ class ApiEndpoints {
     this.jellyfinDeviceName = 'Digital Center TV',
     this.jellyfinDeviceId = 'digital_center_tv_v1',
     this.jellyfinDeviceVersion = '1.0.0',
+    this.absBaseUrl = 'http://192.168.0.2:13378',
+    this.absApiKey = '',
   });
 
   factory ApiEndpoints.fromJson(Map<String, dynamic> json) {
@@ -47,6 +53,7 @@ class ApiEndpoints {
     final apiSec = (json['api'] as Map<String, dynamic>?) ?? json;
     final mediaSec = (json['media'] as Map<String, dynamic>?) ?? json;
     final gonicSec = (json['gonic'] as Map<String, dynamic>?) ?? json;
+    final bookSec = (json['book'] as Map<String, dynamic>?) ?? json;
 
     return ApiEndpoints(
       poetryBaseUrl: _sanitizeUrl(
@@ -69,6 +76,8 @@ class ApiEndpoints {
       jellyfinDeviceName:   (mediaSec['jellyfin_device_name'] ?? json['jellyfin_device_name']) as String? ?? 'Digital Center TV',
       jellyfinDeviceId:     (mediaSec['jellyfin_device_id'] ?? json['jellyfin_device_id']) as String? ?? 'digital_center_tv_v1',
       jellyfinDeviceVersion:(mediaSec['jellyfin_device_version'] ?? json['jellyfin_device_version']) as String? ?? '1.0.0',
+      absBaseUrl: _sanitizeUrl((bookSec['abs_api_base'] ?? json['abs_api_base']) as String? ?? 'http://192.168.0.2:13378'),
+      absApiKey:  (bookSec['abs_api_keys'] ?? json['abs_api_keys']) as String? ?? '',
     );
   }
 
@@ -96,6 +105,11 @@ class ApiEndpoints {
       'gonic_username': gonicUsername,
       'gonic_password': gonicPassword,
     },
+    'book': {
+      '_help': 'Audiobookshelf 有声书/播客服务配置',
+      'abs_api_base': absBaseUrl,
+      'abs_api_keys': absApiKey,
+    },
   };
 
   /// 默认内置公网域名配置 (Out-of-the-box Defaults)
@@ -109,6 +123,8 @@ class ApiEndpoints {
     jellyfinDeviceName: 'Digital Center TV',
     jellyfinDeviceId: 'digital_center_tv_v1',
     jellyfinDeviceVersion: '1.0.0',
+    absBaseUrl: 'http://192.168.0.2:13378',
+    absApiKey: '',
   );
 
   /// 🛡️ URL 自愈清洗器 (Automatic Url Sanitization Filter)

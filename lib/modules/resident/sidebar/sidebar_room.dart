@@ -4,6 +4,7 @@ import '../../../core/control/superfocus/interaction_manager.dart';
 import '../../../core/control/superfocus/building_map.dart';
 import '../../../core/stage/stage_manager.dart';
 import '../media/media_service.dart';
+import '../book/book_service.dart';
 import 'sidebar_model.dart';
 import 'sidebar_view.dart';
 import 'sidebar_tile.dart';
@@ -23,16 +24,18 @@ class _SidebarRoomState extends State<SidebarRoom> {
   @override
   void initState() {
     super.initState();
-    MediaService.instance.addListener(_onMediaServiceChanged);
+    MediaService.instance.addListener(_onServiceChanged);
+    BookService.instance.addListener(_onServiceChanged);
   }
 
   @override
   void dispose() {
-    MediaService.instance.removeListener(_onMediaServiceChanged);
+    MediaService.instance.removeListener(_onServiceChanged);
+    BookService.instance.removeListener(_onServiceChanged);
     super.dispose();
   }
 
-  void _onMediaServiceChanged() {
+  void _onServiceChanged() {
     if (mounted) {
       setState(() {});
     }
@@ -88,6 +91,12 @@ class _SidebarRoomState extends State<SidebarRoom> {
     if (const ['mov', 'tv', 'ani', 'doc', 'adt'].contains(id)) {
       return id == MediaService.instance.selectedCategory &&
           context.useIsActive('mediaPage');
+    }
+
+    // 🌟 图书子分类高亮逻辑
+    if (const ['Humanities', 'sci_fi', 'Power_Fantasy'].contains(id)) {
+      return id == BookService.instance.selectedLibraryAlias &&
+          context.useIsActive('bookPage'); 
     }
 
     // 1. 确定需要扫描的候选房间列表 (主侧边栏 + 所有 Zone)
@@ -182,6 +191,10 @@ class _SidebarRoomState extends State<SidebarRoom> {
     } else if (const ['mov', 'tv', 'ani', 'doc', 'adt'].contains(item.id)) {
       tapAction = () {
         MediaService.instance.setCategory(item.id);
+      };
+    } else if (const ['Humanities', 'sci_fi', 'Power_Fantasy'].contains(item.id)) {
+      tapAction = () {
+        BookService.instance.setLibraryByAlias(item.id);
       };
     }
 

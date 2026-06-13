@@ -1,5 +1,6 @@
 import 'modules/resident/dashboard/dashboard_room.dart';
 import 'modules/resident/exit/exit_page_room.dart';
+import 'modules/resident/book/book_page/book_room.dart';
 import 'modules/resident/media/media_page/media_room.dart';
 import 'modules/resident/music/music_room.dart';
 import 'modules/resident/settings/setting_page_room.dart';
@@ -12,6 +13,7 @@ class AppInitializer {
   static void init() {
     DashboardRoom.register();
     MediaRoom.register();
+    BookRoom.register();
     MusicRoom.register();
     PoetryOverlayRoom.register();
     SettingPageRoom.register();

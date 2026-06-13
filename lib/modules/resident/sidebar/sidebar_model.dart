@@ -58,8 +58,9 @@ class SidebarModel {
       icon: Icons.menu_book_rounded,
       isZone: true,
       children: [
-        SidebarItemModel(id: '科幻', label: 'Science Fiction', icon: Icons.rocket_launch_rounded),
-        SidebarItemModel(id: '人文', label: 'Humanities', icon: Icons.account_balance_rounded),
+        SidebarItemModel(id: 'sci_fi', label: 'Science Fiction', icon: Icons.rocket_launch_rounded),
+        SidebarItemModel(id: 'Humanities', label: 'Humanities', icon: Icons.account_balance_rounded),
+        SidebarItemModel(id: 'Power_Fantasy', label: 'Power Fantasy', icon: Icons.local_fire_department_rounded),
       ],
     ),
   ];

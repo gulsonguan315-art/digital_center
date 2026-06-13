@@ -73,7 +73,6 @@ class BuildingMapData {
       '*media_menu_skip_outro',
     ],
     'media_home_confirm': ['*media_home_cancel', '*media_home_ok'],
-    'book': ['*科幻', '*人文=>testPage'],
 
     // ── [3] 音乐模块 (Music) ──────────────────────────────────────────────────
     'musicPage': [
@@ -118,22 +117,32 @@ class BuildingMapData {
     ],
     'poetry_overlay': ['*'], // 🌟 注册沉浸 Overlay 房间，使用通配符以动态支持行点击高亮
     'dash_widget_manager': ['*'], // 🌟 挂件中控房间，支持内部元素进行焦点交互
-    // ── [5] 设置模块 (Settings) ──────────────────────────────────────────────
+    // ── [5] 图书模块 (Book) ──────────────────────────────────────────────
+    'book': [
+      '*Humanities=>bookPage',
+      '*sci_fi=>bookPage',
+      '*Power_Fantasy=>bookPage',
+    ],
+    'bookPage': ['*', '/*'],
+
+    // ── [6] 设置模块 (Settings) ──────────────────────────────────────────────
     'settingPage': ['/theme_setting', '/custom_setting', '/log_setting'],
+
     'theme_setting': ['+color_mode', '+visual_mode', '+shape_mode'],
     'color_mode': ['*light_mode', '*night_mode'],
     'visual_mode': ['*flat', '*glassy', '*neumorphic'],
     'shape_mode': ['*rightangle', '*round', '*soft'],
+
     'custom_setting': ['*setting_a', '*setting_b', '*setting_c'],
     'log_setting': ['*log_focus', '*log_network', '*log_ui', '*log_system'],
 
-    // ── [6] 调试 & 区域模拟测试 ───────────────────────────────────────────────
+    // ── [7] 调试 & 区域模拟测试 ───────────────────────────────────────────────
     'testPage': ['*card1', '/explorer'],
     'explorer': ['/*', '*'],
     'work_setting': ['*work_a', '*work_b', '/work_grop'],
     'work_grop': ['*work_c', '*work_d'],
 
-    // ── [7] 物理空间模拟区域 (Physical Zones) ─────────────────────────────────────
+    // ── [8] 物理空间模拟区域 (Physical Zones) ─────────────────────────────────────
     '公共区域': ['/空中花园'],
     '空中花园': ['*秋千', '*花盆'],
     '走廊': ['/厨房', '/健身房'],
