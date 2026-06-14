@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import '../layout/grid/grid_extensions.dart';
-import 'stage_metrics.dart';
-import '../../modules/resident/sidebar/sidebar_metrics.dart';
 
 class StageHeroTransition extends StatelessWidget {
   final Widget child;

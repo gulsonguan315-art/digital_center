@@ -3,7 +3,6 @@ import 'package:media_kit_video/media_kit_video.dart';
 
 import '../../../core/control/superfocus/focus_widgets.dart';
 import '../../../core/control/superfocus/focus_api.dart';
-import '../../../core/control/superfocus/interaction_manager.dart';
 import '../../../../core/engine/theme/theme_api.dart';
 
 import 'core/media_immersive_controller.dart';
@@ -140,9 +139,7 @@ class _MediaImmersiveOverlayState extends State<MediaImmersiveOverlay> {
                     ),
 
                     // 约束保护：强制空气节点用 Positioned.fill 包裹，且常驻以防焦点退回父容器
-                    const Positioned.fill(
-                      child: SuperFocusAirNode(),
-                    ),
+                    const Positioned.fill(child: SuperFocusAirNode()),
 
                     // 加载提示文字（覆盖在视频和 HUD 之上，完全接管状态与首帧监听）
                     MediaLoadingMask(controller: _controller),

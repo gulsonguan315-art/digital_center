@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../local/local_config_store.dart';
-import '../models/user_settings.dart';
 import '../models/book_data.dart';
 import '../../log/log.dart';
 
@@ -25,9 +24,7 @@ class BookRepository {
     final settings = await _localStore.userSettings.readData();
     final token = settings.api.absApiKey;
     if (token.isEmpty) return {};
-    return {
-      'Authorization': 'Bearer $token',
-    };
+    return {'Authorization': 'Bearer $token'};
   }
 
   Future<String> _getBaseUrl() async {
@@ -45,8 +42,10 @@ class BookRepository {
       if (headers.isEmpty) return false;
 
       final url = '$baseUrl/api/libraries';
-      final response = await http.get(Uri.parse(url), headers: headers).timeout(const Duration(seconds: 4));
-      
+      final response = await http
+          .get(Uri.parse(url), headers: headers)
+          .timeout(const Duration(seconds: 4));
+
       return response.statusCode == 200;
     } catch (e) {
       Log.d(LogGroup.network, 'Failed to ping Audiobookshelf server: $e');
@@ -62,37 +61,57 @@ class BookRepository {
 
       final headers = await _getAuthHeaders();
       final url = '$baseUrl/api/libraries';
-      final response = await http.get(Uri.parse(url), headers: headers).timeout(const Duration(seconds: 5));
+      final response = await http
+          .get(Uri.parse(url), headers: headers)
+          .timeout(const Duration(seconds: 5));
 
       if (response.statusCode == 200) {
-        final data = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+        final data =
+            jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
         final libraries = data['libraries'] as List<dynamic>? ?? [];
-        return libraries.map((e) => BookLibrary.fromJson(e as Map<String, dynamic>)).toList();
+        return libraries
+            .map((e) => BookLibrary.fromJson(e as Map<String, dynamic>))
+            .toList();
       }
     } catch (e) {
-      Log.d(LogGroup.network, 'Failed to fetch libraries from Audiobookshelf: $e');
+      Log.d(
+        LogGroup.network,
+        'Failed to fetch libraries from Audiobookshelf: $e',
+      );
     }
     return [];
   }
 
   /// 📚 获取某个媒体库下的所有书目，支持自动折叠合集
-  Future<List<BookItem>> fetchLibraryItems(String libraryId, {bool collapseSeries = true}) async {
+  Future<List<BookItem>> fetchLibraryItems(
+    String libraryId, {
+    bool collapseSeries = true,
+  }) async {
     try {
       final baseUrl = await _getBaseUrl();
       if (baseUrl.isEmpty) return [];
 
       final headers = await _getAuthHeaders();
-      final url = '$baseUrl/api/libraries/$libraryId/items${collapseSeries ? '?collapseseries=1' : ''}';
-      
-      final response = await http.get(Uri.parse(url), headers: headers).timeout(const Duration(seconds: 10));
+      final url =
+          '$baseUrl/api/libraries/$libraryId/items${collapseSeries ? '?collapseseries=1' : ''}';
+
+      final response = await http
+          .get(Uri.parse(url), headers: headers)
+          .timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
-        final data = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+        final data =
+            jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
         final results = data['results'] as List<dynamic>? ?? [];
-        return results.map((e) => BookItem.fromJson(e as Map<String, dynamic>)).toList();
+        return results
+            .map((e) => BookItem.fromJson(e as Map<String, dynamic>))
+            .toList();
       }
     } catch (e) {
-      Log.d(LogGroup.network, 'Failed to fetch items for library $libraryId: $e');
+      Log.d(
+        LogGroup.network,
+        'Failed to fetch items for library $libraryId: $e',
+      );
     }
     return [];
   }
@@ -105,11 +124,14 @@ class BookRepository {
 
       final headers = await _getAuthHeaders();
       final url = '$baseUrl/api/items/$itemId';
-      
-      final response = await http.get(Uri.parse(url), headers: headers).timeout(const Duration(seconds: 5));
+
+      final response = await http
+          .get(Uri.parse(url), headers: headers)
+          .timeout(const Duration(seconds: 5));
 
       if (response.statusCode == 200) {
-        final data = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+        final data =
+            jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
         return BookItem.fromJson(data);
       }
     } catch (e) {
@@ -124,7 +146,7 @@ class BookRepository {
     final baseUrl = settings.api.absBaseUrl;
     final token = settings.api.absApiKey;
     if (baseUrl.isEmpty || token.isEmpty) return '';
-    
+
     // Audiobookshelf 支持直接在 URL 尾部带上 token 获取图片
     return '$baseUrl/api/items/$itemId/cover?token=$token';
   }

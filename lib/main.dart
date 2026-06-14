@@ -13,6 +13,7 @@ import 'ui/pages/building_page.dart';
 
 import 'core/data/data_manager.dart';
 import 'app_initializer.dart';
+import 'core/data/repositories/media_repository.dart';
 import 'package:media_kit/media_kit.dart';
 
 void main() async {
@@ -20,30 +21,24 @@ void main() async {
   MediaKit.ensureInitialized();
   await windowManager.ensureInitialized();
   await initializeDateFormatting('zh_CN', null);
-  
+
   // 0. 初始化大管家并阻塞等待加载偏好（避免冷启动主题闪烁）
   await DataManager.instance.init();
 
   // 0.5 注册应用生命周期监听，确保应用在退出/挂起时同步落锁刷盘，杜绝防抖数据丢失
   WidgetsBinding.instance.addObserver(_AppLifecycleObserver());
-  
+
   // 1. 初始化舞台调度中心 (招商登记)
   AppInitializer.init();
-  
+
   // 1.5 读取用户配置，并立即保存一次（确保新字段如 immersiveMode 被写入文件）
   final userSettings = await DataManager.instance.getUserSettings();
   await DataManager.instance.saveUserSettings(userSettings);
 
   // 根据配置设定窗口形态 (C++ 层启动时已屏蔽显示，等待这里施加最终形态)
   WindowOptions windowOptions = userSettings.immersiveMode
-      ? const WindowOptions(
-          fullScreen: true,
-          alwaysOnTop: true,
-        )
-      : const WindowOptions(
-          size: Size(1280, 720),
-          alwaysOnTop: false,
-        );
+      ? const WindowOptions(fullScreen: true, alwaysOnTop: true)
+      : const WindowOptions(size: Size(1280, 720), alwaysOnTop: false);
 
   // waitUntilReadyToShow 会等待 Flutter 渲染出第一帧。
   // 我们已经移除了 C++ 层的强制显示，现在由 Dart 独占窗口控制权。
@@ -57,10 +52,12 @@ void main() async {
 
   // 初始化双模交互系统
   SuperInteractionManager.instance.init(mode: userSettings.interactionMode);
-  
+
   // 2. 启动设备管理模块，接管所有物理输入信号
   SuperInputManager.instance.init();
   runApp(MyApp(immersiveMode: userSettings.immersiveMode));
+  // 后台静默加载媒体分类映射表，避免阻塞启动
+  unawaited(MediaRepository.instance.init());
 }
 
 /// 🔋 临终落锁刷盘生命周期监控器 (App Teardown Lifecycle Observer)
@@ -114,15 +111,16 @@ class MyApp extends StatelessWidget {
                     SuperInputManager.instance.handleRootKeyEvent(node, event),
                 child: FocusTraversalGroup(
                   policy: SuperFocusManager.instance.policy,
-                child: GridScope(
-                  gridContext: gridContext,
-                  gridTokens: gridTokens,
-                  child: Stack(
-                    children: [child!, const FloatingHighlightBox()],
+                  child: GridScope(
+                    gridContext: gridContext,
+                    gridTokens: gridTokens,
+                    child: Stack(
+                      children: [child!, const FloatingHighlightBox()],
+                    ),
                   ),
                 ),
               ),
-            ));
+            );
 
             // 如果是沉浸模式，说明通常是在无桌面/Kiosk环境下运行（如数字大屏），
             // 将整个 APP 强制设为无鼠标指针状态，避免屏幕中间一直有个鼠标。

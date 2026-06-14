@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:superfocus/core/layout/grid/grid_extensions.dart';
 import '../../../../core/control/superfocus/focus_api.dart';
 import '../../../../core/control/superfocus/interaction_manager.dart';
 import '../../../../core/engine/theme/theme_api.dart';

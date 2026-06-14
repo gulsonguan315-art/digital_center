@@ -111,9 +111,9 @@ class _FloatingHighlightBoxState extends State<FloatingHighlightBox>
             timer.cancel();
             return;
           }
-          final isVisible = _liveRect != null;
-          final isTeleportVisible = _teleportState != _TeleportState.waiting;
-          final opacity = (isVisible && isTeleportVisible) ? 1.0 : 0.0;
+          // isVisible flag removed (unused in timer)
+          // isTeleportVisible flag removed (unused in timer)
+          // opacity calculation removed
           // Debug: Cursor tick removed
         });
         // ------------------------

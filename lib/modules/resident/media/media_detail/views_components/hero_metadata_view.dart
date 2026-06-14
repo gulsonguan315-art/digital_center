@@ -4,7 +4,6 @@ import '../../../../../core/layout/grid/grid.dart';
 import '../../../../../core/control/superfocus/focus_api.dart';
 import '../../../../../core/control/superfocus/focus_widgets.dart';
 import '../../../../../core/control/superfocus/interaction_manager.dart';
-import '../../../../overlay/media/media_immersive_overlay.dart';
 import '../../media_service.dart';
 import '../core/media_detail_controller.dart';
 

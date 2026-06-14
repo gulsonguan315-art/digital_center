@@ -4,7 +4,6 @@ import '../../../../../core/layout/grid/grid.dart';
 import '../../../../../core/control/superfocus/focus_api.dart';
 import '../../../../../core/control/superfocus/focus_widgets.dart';
 import '../../media_service.dart';
-import '../../../../overlay/media/media_immersive_overlay.dart';
 
 class SeriesEpisodesView extends StatefulWidget {
   final List<Map<String, dynamic>> episodes;
@@ -58,7 +57,10 @@ class _SeriesEpisodesViewState extends State<SeriesEpisodesView> {
     }
   }
 
-  Widget _buildThumbnailEpisodes(ResolvedThemeMaterial material, GridContext grid) {
+  Widget _buildThumbnailEpisodes(
+    ResolvedThemeMaterial material,
+    GridContext grid,
+  ) {
     return Padding(
       padding: EdgeInsets.only(top: grid.units(3)),
       child: SizedBox(
@@ -72,7 +74,8 @@ class _SeriesEpisodesViewState extends State<SeriesEpisodesView> {
             scrollDirection: Axis.horizontal,
             cacheExtent: 1000.0,
             itemCount: widget.episodes.length,
-            separatorBuilder: (context, index) => SizedBox(width: grid.units(3)),
+            separatorBuilder: (context, index) =>
+                SizedBox(width: grid.units(3)),
             itemBuilder: (context, index) {
               final episode = widget.episodes[index];
               final id = episode['Id'] as String?;
@@ -106,29 +109,38 @@ class _SeriesEpisodesViewState extends State<SeriesEpisodesView> {
                           width: grid.units(32),
                           height: grid.units(18),
                           decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(grid.units(1.5)),
+                            borderRadius: BorderRadius.circular(
+                              grid.units(1.5),
+                            ),
                             border: Border.all(
-                              color: hasFocus ? material.colors.accent : Colors.transparent,
+                              color: hasFocus
+                                  ? material.colors.accent
+                                  : Colors.transparent,
                               width: 3,
                             ),
                             boxShadow: hasFocus
                                 ? [
                                     BoxShadow(
-                                      color: material.colors.accent.withValues(alpha: 0.5),
+                                      color: material.colors.accent.withValues(
+                                        alpha: 0.5,
+                                      ),
                                       blurRadius: 12,
                                       spreadRadius: 2,
-                                    )
+                                    ),
                                   ]
                                 : [],
                           ),
                           child: ClipRRect(
-                            borderRadius: BorderRadius.circular(grid.units(1.5) - 3),
+                            borderRadius: BorderRadius.circular(
+                              grid.units(1.5) - 3,
+                            ),
                             child: imageUrl.isNotEmpty
                                 ? Image.network(
                                     imageUrl,
                                     fit: BoxFit.cover,
-                                    errorBuilder: (context, error, stackTrace) =>
-                                        _buildPlaceholder(material),
+                                    errorBuilder:
+                                        (context, error, stackTrace) =>
+                                            _buildPlaceholder(material),
                                   )
                                 : _buildPlaceholder(material),
                           ),
@@ -178,12 +190,17 @@ class _SeriesEpisodesViewState extends State<SeriesEpisodesView> {
               ),
               scrollDirection: Axis.horizontal,
               itemCount: totalPages,
-              separatorBuilder: (context, index) => SizedBox(width: grid.units(1.5)),
+              separatorBuilder: (context, index) =>
+                  SizedBox(width: grid.units(1.5)),
               itemBuilder: (context, index) {
                 final isSelected = index == _currentEpisodePage;
                 final startRange = index * 50 + 1;
-                final endRange = ((index + 1) * 50).clamp(1, widget.episodes.length);
-                final label = '${startRange.toString().padLeft(3, '0')}-${endRange.toString().padLeft(3, '0')}';
+                final endRange = ((index + 1) * 50).clamp(
+                  1,
+                  widget.episodes.length,
+                );
+                final label =
+                    '${startRange.toString().padLeft(3, '0')}-${endRange.toString().padLeft(3, '0')}';
 
                 return FocusIdentity(
                   id: 'ep_page_$index',
@@ -201,7 +218,9 @@ class _SeriesEpisodesViewState extends State<SeriesEpisodesView> {
                   builder: (context, hasFocus) {
                     return AnimatedContainer(
                       duration: const Duration(milliseconds: 200),
-                      padding: EdgeInsets.symmetric(horizontal: grid.units(1.5)),
+                      padding: EdgeInsets.symmetric(
+                        horizontal: grid.units(1.5),
+                      ),
                       alignment: Alignment.center,
                       decoration: BoxDecoration(
                         color: material.colors.surface.withValues(alpha: 0.8),
@@ -212,7 +231,9 @@ class _SeriesEpisodesViewState extends State<SeriesEpisodesView> {
                         style: TextStyle(
                           fontSize: grid.units(1.5),
                           fontWeight: FontWeight.w600,
-                          color: isSelected || hasFocus ? material.colors.accent : material.colors.textPrimary,
+                          color: isSelected || hasFocus
+                              ? material.colors.accent
+                              : material.colors.textPrimary,
                           decoration: TextDecoration.none,
                         ),
                       ),
@@ -230,7 +251,9 @@ class _SeriesEpisodesViewState extends State<SeriesEpisodesView> {
         SizedBox(
           height: grid.units(3),
           child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: grid.pageInset + context.units(8.0)),
+            padding: EdgeInsets.symmetric(
+              horizontal: grid.pageInset + context.units(8.0),
+            ),
             child: Text(
               _focusedEpisodeTitle,
               maxLines: 1,
@@ -249,12 +272,15 @@ class _SeriesEpisodesViewState extends State<SeriesEpisodesView> {
 
         // Episodes Grid
         Padding(
-          padding: EdgeInsets.symmetric(horizontal: grid.pageInset + context.units(8.0)),
+          padding: EdgeInsets.symmetric(
+            horizontal: grid.pageInset + context.units(8.0),
+          ),
           child: LayoutBuilder(
             builder: (context, constraints) {
               final double spacing = grid.units(1.5);
               // Subtract a tiny amount to prevent floating point precision overflow
-              final double itemWidth = (constraints.maxWidth - (9 * spacing) - 0.1) / 10;
+              final double itemWidth =
+                  (constraints.maxWidth - (9 * spacing) - 0.1) / 10;
               final double itemHeight = itemWidth / 1.5;
 
               return Wrap(
@@ -268,8 +294,11 @@ class _SeriesEpisodesViewState extends State<SeriesEpisodesView> {
                   final id = episode['Id'] as String?;
                   final name = episode['Name'] as String? ?? 'Episode';
                   final epNumber = episode['IndexNumber'] as int?;
-                  final displayTitle = epNumber != null ? '$epNumber. $name' : name;
-                  final label = epNumber?.toString() ?? '${startIdx + index + 1}';
+                  final displayTitle = epNumber != null
+                      ? '$epNumber. $name'
+                      : name;
+                  final label =
+                      epNumber?.toString() ?? '${startIdx + index + 1}';
 
                   return SizedBox(
                     width: itemWidth,
@@ -298,15 +327,21 @@ class _SeriesEpisodesViewState extends State<SeriesEpisodesView> {
                           duration: const Duration(milliseconds: 200),
                           alignment: Alignment.center,
                           decoration: BoxDecoration(
-                            color: material.colors.surface.withValues(alpha: 0.5),
-                            borderRadius: BorderRadius.circular(grid.units(1.0)),
+                            color: material.colors.surface.withValues(
+                              alpha: 0.5,
+                            ),
+                            borderRadius: BorderRadius.circular(
+                              grid.units(1.0),
+                            ),
                           ),
                           child: Text(
                             label,
                             style: TextStyle(
                               fontSize: grid.units(1.6),
                               fontWeight: FontWeight.bold,
-                              color: hasFocus ? material.colors.accent : material.colors.textPrimary,
+                              color: hasFocus
+                                  ? material.colors.accent
+                                  : material.colors.textPrimary,
                               decoration: TextDecoration.none,
                             ),
                           ),
@@ -327,11 +362,7 @@ class _SeriesEpisodesViewState extends State<SeriesEpisodesView> {
     return Container(
       color: material.colors.foreground,
       child: Center(
-        child: Icon(
-          Icons.tv,
-          color: material.colors.textSecondary,
-          size: 40,
-        ),
+        child: Icon(Icons.tv, color: material.colors.textSecondary, size: 40),
       ),
     );
   }

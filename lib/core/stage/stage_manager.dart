@@ -1,7 +1,4 @@
 import 'package:flutter/material.dart';
-import '../layout/grid/grid_extensions.dart';
-import '../../modules/resident/sidebar/sidebar_metrics.dart';
-import 'stage_metrics.dart';
 
 /// 🎭 舞台状态管理器
 /// 维护二楼大舞台的全局激活状态，供侧边栏等组件进行响应式联动
@@ -41,10 +38,7 @@ class StageManager {
 class StageFirstFloor extends StatelessWidget {
   final Widget child;
 
-  const StageFirstFloor({
-    super.key,
-    required this.child,
-  });
+  const StageFirstFloor({super.key, required this.child});
 
   @override
   Widget build(BuildContext context) {

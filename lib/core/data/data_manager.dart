@@ -95,9 +95,12 @@ class DataManager {
       final String formattedPath = Platform.isWindows
           ? rawPath.replaceAll('/', '\\')
           : rawPath.replaceAll('\\', '/');
-      print(
-        '🚀 [System] Loaded user settings from: $formattedPath | Interaction Mode: ${userSettings.interactionMode} | Poetry: ${endpoints.poetryBaseUrl} | Gonic: ${endpoints.gonicBaseUrl}',
-      );
+      Log.d(LogGroup.system, 'Loaded user settings from: $formattedPath');
+      Log.d(LogGroup.system, 'Interaction Mode: ${userSettings.interactionMode}');
+      Log.d(LogGroup.system, 'Poetry: ${endpoints.poetryBaseUrl}');
+      Log.d(LogGroup.system, 'Gonic: ${endpoints.gonicBaseUrl}');
+      Log.d(LogGroup.system, 'Jellyfin: ${endpoints.jellyfinBaseUrl}');
+      Log.d(LogGroup.system, 'Book: ${endpoints.absBaseUrl}');
       Log.d(
         LogGroup.network,
         'Loaded user settings from persistent storage. Path: $formattedPath, Interaction Mode: ${userSettings.interactionMode}, Poetry: ${endpoints.poetryBaseUrl}, Gonic: ${endpoints.gonicBaseUrl}',
@@ -114,7 +117,7 @@ class DataManager {
     await PoetryRepository.instance.init();
     await DashboardRepository.instance.init();
     await WeatherRepository.instance.init();
-    await MediaRepository.instance.init(); // 🎬 影视分类映射表初始化
+    // await MediaRepository.instance.init(); // 🎬 影视分类映射表初始化 - postponed to background after app start
   }
 
   // ===========================================================================
