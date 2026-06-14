@@ -58,5 +58,5 @@ const lightColorLayer = ThemeColorLayer(
     textActive: Color(0xFF673AB7), // 新增
     textFocused: Color(0xFF673AB7), // 新增
   ),
-  stageBackground: Color(0x66000000), // Semi-transparent black/dark gray for stage background
+  stageBackground: Color(0x00000000),
 );

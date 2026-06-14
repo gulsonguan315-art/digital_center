@@ -4,11 +4,30 @@ import 'package:epub_plus/epub_plus.dart';
 import 'package:archive/archive.dart';
 import '../../../../core/log/log.dart';
 
+import 'package:shared_preferences/shared_preferences.dart';
+
 class BookChapter {
   final String title;
   final String htmlContent;
+  final List<String> ancestors;
 
-  BookChapter(this.title, this.htmlContent);
+  BookChapter(this.title, this.htmlContent, {this.ancestors = const []});
+}
+
+class _RawChapter {
+  final String title;
+  final String contentFileName;
+  final String anchor;
+  final String htmlContent;
+  final List<String> ancestors;
+
+  _RawChapter(this.title, this.contentFileName, this.anchor, this.htmlContent, {this.ancestors = const []});
+}
+
+class ChapterWithPos {
+  final _RawChapter chapter;
+  final int pos;
+  ChapterWithPos(this.chapter, this.pos);
 }
 
 class BookReaderController extends ChangeNotifier {
@@ -19,6 +38,44 @@ class BookReaderController extends ChangeNotifier {
   int _currentChapterIndex = 0;
   bool _isLoading = false;
 
+  // --- Reader Preference Settings ---
+  double _fontSize = 20.0;
+  double get fontSize => _fontSize;
+
+  int _fontWeightIndex = 0; // 0: Normal, 1: Medium, 2: Bold
+  int get fontWeightIndex => _fontWeightIndex;
+
+  double _lineHeight = 1.8;
+  double get lineHeight => _lineHeight;
+
+  String _themeMode = 'default'; // 'default', 'parchment', 'eye_care'
+  String get themeMode => _themeMode;
+
+  FontWeight get fontWeight {
+    return switch (_fontWeightIndex) {
+      0 => FontWeight.normal,
+      1 => FontWeight.w500,
+      2 => FontWeight.bold,
+      _ => FontWeight.normal,
+    };
+  }
+
+  BookReaderController() {
+    loadPreferences();
+  }
+
+  void loadPreferences() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      _fontSize = prefs.getDouble('book_font_size') ?? 20.0;
+      _fontWeightIndex = prefs.getInt('book_font_weight_index') ?? 0;
+      _lineHeight = prefs.getDouble('book_line_height') ?? 1.8;
+      _themeMode = prefs.getString('book_theme_mode') ?? 'default';
+      notifyListeners();
+    } catch (_) {}
+  }
+
+  EpubBook? get currentBook => _currentBook;
   List<BookChapter> get chapters => _chapters;
   int get currentChapterIndex => _currentChapterIndex;
   bool get isLoading => _isLoading;
@@ -73,14 +130,96 @@ class BookReaderController extends ChangeNotifier {
   }
 
   void _extractChapters(List<EpubChapter> epubChapters) {
-    for (var chapter in epubChapters) {
-      if (chapter.title != null && chapter.htmlContent != null) {
-        _chapters.add(BookChapter(chapter.title!, chapter.htmlContent!));
+    final List<_RawChapter> rawChapters = [];
+    _extractRawChapters(epubChapters, rawChapters);
+
+    int i = 0;
+    while (i < rawChapters.length) {
+      final currentFile = rawChapters[i].contentFileName;
+      final List<_RawChapter> group = [];
+      while (i < rawChapters.length && rawChapters[i].contentFileName == currentFile) {
+        group.add(rawChapters[i]);
+        i++;
       }
-      if (chapter.subChapters.isNotEmpty) {
-        _extractChapters(chapter.subChapters);
+
+      final fileHtml = group.first.htmlContent;
+      final List<ChapterWithPos> items = [];
+      for (final raw in group) {
+        final pos = _findAnchorPosition(fileHtml, raw.anchor);
+        items.add(ChapterWithPos(raw, pos));
+      }
+
+      // 按照在 HTML 源码中的物理位置进行排序，以确保正确的阅读流顺序
+      items.sort((a, b) => a.pos.compareTo(b.pos));
+
+      for (int k = 0; k < items.length; k++) {
+        final start = (k == 0) ? 0 : items[k].pos;
+        final end = (k + 1 < items.length) ? items[k + 1].pos : fileHtml.length;
+        final content = fileHtml.substring(start, end);
+
+        if (_hasReadableText(content)) {
+          _chapters.add(BookChapter(
+            items[k].chapter.title,
+            content,
+            ancestors: items[k].chapter.ancestors,
+          ));
+        }
       }
     }
+  }
+
+  void _extractRawChapters(List<EpubChapter> epubChapters, List<_RawChapter> list, {List<String> ancestors = const []}) {
+    for (var chapter in epubChapters) {
+      if (chapter.title != null && chapter.htmlContent != null) {
+        list.add(_RawChapter(
+          chapter.title!,
+          chapter.contentFileName ?? '',
+          chapter.anchor ?? '',
+          chapter.htmlContent!,
+          ancestors: ancestors,
+        ));
+      }
+      if (chapter.subChapters.isNotEmpty) {
+        final nextAncestors = [...ancestors];
+        if (chapter.title != null) {
+          nextAncestors.add(chapter.title!);
+        }
+        _extractRawChapters(chapter.subChapters, list, ancestors: nextAncestors);
+      }
+    }
+  }
+
+  int _findAnchorPosition(String html, String anchor) {
+    if (anchor.isEmpty) return 0;
+
+    final regExp = RegExp(
+      'id\\s*=\\s*["\']' + RegExp.escape(anchor) + '["\']|name\\s*=\\s*["\']' + RegExp.escape(anchor) + '["\']',
+      caseSensitive: false,
+    );
+    final match = regExp.firstMatch(html);
+    if (match != null) {
+      int pos = match.start;
+      while (pos > 0 && html[pos] != '<') {
+        pos--;
+      }
+      return pos;
+    }
+
+    final idx = html.indexOf(anchor);
+    if (idx >= 0) {
+      int pos = idx;
+      while (pos > 0 && html[pos] != '<') {
+        pos--;
+      }
+      return pos;
+    }
+    return 0;
+  }
+
+  bool _hasReadableText(String html) {
+    final text = html.replaceAll(RegExp(r'<[^>]*>'), '').trim();
+    if (text.isNotEmpty) return true;
+    return html.contains(RegExp(r'<img|<image', caseSensitive: false));
   }
 
   void _resetScroll() {
@@ -111,5 +250,41 @@ class BookReaderController extends ChangeNotifier {
       _resetScroll();
       notifyListeners();
     }
+  }
+
+  void adjustFontSize(double delta) async {
+    _fontSize = (_fontSize + delta).clamp(12.0, 40.0);
+    notifyListeners();
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setDouble('book_font_size', _fontSize);
+    } catch (_) {}
+  }
+
+  void adjustFontWeight(int delta) async {
+    _fontWeightIndex = (_fontWeightIndex + delta).clamp(0, 2);
+    notifyListeners();
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt('book_font_weight_index', _fontWeightIndex);
+    } catch (_) {}
+  }
+
+  void adjustLineHeight(double delta) async {
+    _lineHeight = (_lineHeight + delta).clamp(1.0, 3.0);
+    notifyListeners();
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setDouble('book_line_height', _lineHeight);
+    } catch (_) {}
+  }
+
+  void setThemeMode(String mode) async {
+    _themeMode = mode;
+    notifyListeners();
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('book_theme_mode', _themeMode);
+    } catch (_) {}
   }
 }

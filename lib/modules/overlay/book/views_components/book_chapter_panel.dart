@@ -20,7 +20,15 @@ class BookChapterPanel extends StatelessWidget {
 
     return Container(
       width: 350,
-      color: colors.surface.withValues(alpha: 0.95),
+      decoration: BoxDecoration(
+        color: colors.surface,
+        border: Border(
+          right: BorderSide(
+            color: colors.border,
+            width: 1.0,
+          ),
+        ),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

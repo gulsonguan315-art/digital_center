@@ -124,9 +124,26 @@ class BuildingMapData {
       '*Power_Fantasy=>bookPage',
     ],
     'bookPage': ['*', '/*', '->book_overlay'],
-    'book_overlay': ['*book_overlay_air_node=>book_menu'],
+    'book_overlay': [
+      '*book_overlay_air_node=>book_control',
+    ],
+    'book_control': [
+      '/book_menu',
+      '/book_settings',
+    ],
     'book_menu': [
       '*', // 动态章节节点
+    ],
+    'book_settings': [
+      '*font_size_minus',
+      '*font_size_plus',
+      '*font_weight_minus',
+      '*font_weight_plus',
+      '*line_height_minus',
+      '*line_height_plus',
+      '*theme_default',
+      '*theme_parchment',
+      '*theme_eye_care',
     ],
 
     // ── [6] 设置模块 (Settings) ──────────────────────────────────────────────

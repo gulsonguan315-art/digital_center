@@ -1,12 +1,16 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../../../../core/control/superfocus/focus_api.dart';
 import '../../../../core/control/superfocus/focus_widgets.dart';
+import '../../../../core/control/superfocus/interaction_manager.dart';
 import '../../../../core/control/device_manager/device_manager.dart';
 import '../../../../core/engine/theme/theme_api.dart';
 import '../../resident/book/book_model.dart';
 import '../../resident/book/book_service.dart';
 import 'book_reader_renderer.dart';
 import 'views_components/book_chapter_panel.dart';
+import 'views_components/book_control_panel.dart';
+import 'views_components/book_settings_panel.dart';
 
 class BookReaderView extends StatefulWidget {
   const BookReaderView({super.key});
@@ -16,33 +20,25 @@ class BookReaderView extends StatefulWidget {
 }
 
 class _BookReaderViewState extends State<BookReaderView> {
-  bool _isMenuVisible = false;
-
-  void _toggleMenu() {
-    setState(() {
-      _isMenuVisible = !_isMenuVisible;
-    });
-    if (_isMenuVisible) {
-      FocusAPI.dispatchAction(BookModel.bookOverlayId, BookModel.bookAirNodeId);
-    } else {
-      FocusAPI.dispatchBackCommand();
-    }
-  }
-
   bool _handleLocalInput(InputSignal signal) {
-    if (_isMenuVisible) {
+    final isBottomMenuVisible = SuperFocusManager.instance.state.checkIsActive('book_control');
+    final isChapterPanelVisible = SuperFocusManager.instance.state.checkIsActive('book_menu');
+    final isSettingsPanelVisible = SuperFocusManager.instance.state.checkIsActive('book_settings');
+
+    if (isBottomMenuVisible || isChapterPanelVisible || isSettingsPanelVisible) {
       if (signal == InputSignal.menu || signal == InputSignal.back) {
-        _toggleMenu();
+        FocusAPI.dispatchBackCommand();
         return true;
       }
-      return false; // let menu items handle up/down/confirm
+      return false; // let overlays handle focus movement internally
     } else {
       switch (signal) {
         case InputSignal.down:
           final sc = BookService.instance.readerController.scrollController;
           if (sc.hasClients) {
-            // 滚动 3 行：字号 22 * 行高 1.8 * 3
-            const double scrollAmount = 22 * 1.8 * 3; 
+            final fontSize = BookService.instance.readerController.fontSize;
+            final lineHeight = BookService.instance.readerController.lineHeight;
+            final double scrollAmount = fontSize * lineHeight * 3; 
             final target = (sc.offset + scrollAmount).clamp(0.0, sc.position.maxScrollExtent);
             sc.animateTo(target, duration: const Duration(milliseconds: 150), curve: Curves.easeInOut);
           }
@@ -50,8 +46,9 @@ class _BookReaderViewState extends State<BookReaderView> {
         case InputSignal.up:
           final sc = BookService.instance.readerController.scrollController;
           if (sc.hasClients) {
-            // 滚动 3 行：字号 22 * 行高 1.8 * 3
-            const double scrollAmount = 22 * 1.8 * 3; 
+            final fontSize = BookService.instance.readerController.fontSize;
+            final lineHeight = BookService.instance.readerController.lineHeight;
+            final double scrollAmount = fontSize * lineHeight * 3; 
             final target = (sc.offset - scrollAmount).clamp(0.0, sc.position.maxScrollExtent);
             sc.animateTo(target, duration: const Duration(milliseconds: 150), curve: Curves.easeInOut);
           }
@@ -63,7 +60,8 @@ class _BookReaderViewState extends State<BookReaderView> {
           BookService.instance.readerController.previousChapter();
           return true;
         case InputSignal.menu:
-          _toggleMenu();
+          // Toggle bottom menu
+          FocusAPI.dispatchAction(BookModel.bookOverlayId, BookModel.bookAirNodeId);
           return true;
         case InputSignal.back:
           FocusAPI.dispatchBackCommand();
@@ -80,28 +78,70 @@ class _BookReaderViewState extends State<BookReaderView> {
     
     return InputInterceptor(
       onSignal: _handleLocalInput,
-      child: Stack(
-        children: [
-          Positioned.fill(
-            child: Container(
-              color: colors.surface,
-              child: const BookReaderRenderer(),
-            ),
-          ),
+      child: Builder(
+        builder: (roomContext) {
+          final isBottomMenuVisible = roomContext.useIsActive('book_control');
+          final isChapterPanelVisible = roomContext.useIsActive('book_menu');
+          final isSettingsPanelVisible = roomContext.useIsActive('book_settings');
           
-          if (_isMenuVisible)
-            Positioned(
-              left: 0,
-              top: 0,
-              bottom: 0,
-              child: BookChapterPanel(
-                onChapterSelected: (index) {
-                  BookService.instance.readerController.jumpToChapter(index);
-                  _toggleMenu();
-                },
+          final hasActiveOverlay = isBottomMenuVisible || isChapterPanelVisible || isSettingsPanelVisible;
+
+          return Stack(
+            children: [
+              Positioned.fill(
+                child: Container(
+                  color: colors.surface,
+                  child: const BookReaderRenderer(),
+                ),
               ),
-            ),
-        ],
+              
+              if (hasActiveOverlay) ...[
+                Positioned.fill(
+                  child: ClipRect(
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.0),
+                      child: Container(
+                        color: Colors.black.withValues(alpha: 0.15), // 稍微调暗，提升对比度
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+              
+              // Bottom control panel
+              if (isBottomMenuVisible)
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  child: const BookControlPanel(),
+                ),
+
+              // Left chapter directory panel
+              if (isChapterPanelVisible)
+                Positioned(
+                  left: 0,
+                  top: 0,
+                  bottom: 0,
+                  child: BookChapterPanel(
+                    onChapterSelected: (index) {
+                      BookService.instance.readerController.jumpToChapter(index);
+                      FocusAPI.dispatchAction(BookModel.bookOverlayId, BookModel.bookAirNodeId); // close and return
+                    },
+                  ),
+                ),
+
+              // Right settings panel
+              if (isSettingsPanelVisible)
+                Positioned(
+                  right: 0,
+                  top: 0,
+                  bottom: 0,
+                  child: const BookSettingsPanel(),
+                ),
+            ],
+          );
+        },
       ),
     );
   }
