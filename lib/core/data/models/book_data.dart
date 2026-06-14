@@ -46,12 +46,21 @@ class BookItem {
       ids = List<String>.from(collapsedSeries['libraryItemIds'] as List);
     }
 
+    String authorName = metadata['authorName'] as String? ?? '';
+    if (authorName.isEmpty && metadata['authors'] is List) {
+      final authorsList = metadata['authors'] as List;
+      authorName = authorsList
+          .map((a) => (a as Map<String, dynamic>)['name'] as String? ?? '')
+          .where((name) => name.isNotEmpty)
+          .join(', ');
+    }
+
     return BookItem(
       id: json['id'] as String? ?? '',
       title: isSeries 
           ? (collapsedSeries['name'] as String? ?? metadata['title'] as String? ?? '')
           : (metadata['title'] as String? ?? ''),
-      author: metadata['authorName'] as String? ?? '',
+      author: authorName,
       coverPath: media['coverPath'] as String? ?? '',
       isSeries: isSeries,
       numBooks: numBooks,

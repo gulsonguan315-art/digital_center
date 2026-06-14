@@ -110,6 +110,9 @@ class SuperInteractionManager {
 
   void unregisterRoom(String id) {
     state.roomRegistry.remove(id);
+    if (intentionRoomId.value == id) {
+      intentionRoomId.value = null;
+    }
   }
 
   // ===========================================================================

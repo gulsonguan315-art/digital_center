@@ -10,7 +10,9 @@ import 'book_reader_view.dart';
 class BookReaderRoom extends StatefulWidget {
   const BookReaderRoom({super.key});
 
-  static void register() {
+  /// 注册 book_overlay 的 StageContract。
+  /// ⚠️ 由 [BookRoom.register()] 统一调用，请勿在其他地方单独调用。
+  static void registerContract() {
     StageRegistry.register(
       StageContract(
         roomId: BookModel.bookOverlayId,

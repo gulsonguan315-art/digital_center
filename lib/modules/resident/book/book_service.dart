@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import '../../../core/data/local/local_config_store.dart';
 import '../../../core/data/data_manager.dart';
 import '../../../core/data/models/book_data.dart';
 import '../../../core/data/repositories/book_repository.dart';
@@ -108,21 +106,12 @@ class BookService extends ChangeNotifier {
   Future<void> openBook(BookItem item) async {
     readerController.setLoading(true);
     try {
-      final settings = await LocalConfigStore().userSettings.readData();
-      final baseUrl = settings.api.absBaseUrl;
-      final token = settings.api.absApiKey;
-      
-      final url = '$baseUrl/api/items/${item.id}/download';
-      final response = await http.get(
-        Uri.parse(url),
-        headers: {'Authorization': 'Bearer $token'},
-      );
-
-      if (response.statusCode == 200) {
-        Log.d(LogGroup.book, '✅ [Book] 书籍下载成功: ${item.id}, size: ${response.bodyBytes.length}');
-        await readerController.loadEpubBytes(response.bodyBytes);
+      final bytes = await BookRepository.instance.downloadItemBytes(item.id);
+      if (bytes != null) {
+        Log.d(LogGroup.book, '✅ [Book] 书籍下载成功: ${item.id}, size: ${bytes.length}');
+        await readerController.loadEpubBytes(bytes);
       } else {
-        Log.d(LogGroup.book, '❌ [Book] 书籍下载失败: status=${response.statusCode}');
+        Log.d(LogGroup.book, '❌ [Book] 书籍下载失败: ${item.id}');
         readerController.setLoading(false);
       }
     } catch (e) {

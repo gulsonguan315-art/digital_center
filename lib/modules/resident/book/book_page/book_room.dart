@@ -10,6 +10,7 @@ import '../book_service.dart';
 import 'book_callback.dart';
 import 'book_view.dart';
 import '../../../../core/stage/stage_manager.dart';
+import '../../../overlay/book/book_reader_room.dart';
 
 /// 📚 图书页面主房间 (Book Room - Composition Root)
 class BookRoom extends StatefulWidget {
@@ -19,6 +20,7 @@ class BookRoom extends StatefulWidget {
   static const String roomId = BookModel.bookPageId;
 
   static void register() {
+    // 🌟 一并注册所有图书相关合约（对标 MediaRoom.register() 统一注册模式）
     StageRegistry.register(
       StageContract(
         roomId: roomId,
@@ -27,6 +29,8 @@ class BookRoom extends StatefulWidget {
         builder: (context) => const BookRoom(),
       ),
     );
+
+    BookReaderRoom.registerContract();
   }
 
   @override
@@ -34,6 +38,8 @@ class BookRoom extends StatefulWidget {
 }
 
 class _BookRoomState extends State<BookRoom> {
+  String? _lastExpandedSeriesId;
+
   @override
   Widget build(BuildContext context) {
     return SuperFocusRoom(
@@ -48,26 +54,22 @@ class _BookRoomState extends State<BookRoom> {
             builder: (context, _) {
               final topology =
                   SuperFocusManager.instance.topologyNotifier.value;
-              final isActive = topology.activePath.contains(
-                BookModel.bookPageId,
-              );
-              final isEntering =
-                  SuperFocusManager.instance.intentionRoomId.value ==
-                  BookModel.bookPageId;
-              final isTransitioning =
-                  StageManager.instance.isTransitioning.value;
 
-              // 移除了 SizedBox.shrink() 激进卸载。
-              // 因为 StageView 已经使用了 Offstage + TickerMode 来包裹非活跃房间，
-              // 这已经足够阻断重绘和动画以节省 GPU。
-              // 如果强制 shrink 卸载，会导致内部的所有 FocusNode 销毁，从而破坏传送门弹栈（Portal Return）时的焦点记忆！
+              // StageView 已用 Offstage + TickerMode 包裹非活跃房间，无需激进卸载。
+              // 强制 shrink 会销毁内部 FocusNode，破坏传送门弹栈时的焦点记忆。
 
-              // 判断是否有合集展开
+              // 判断合集展开状态
               String? expandedSeriesId;
-              for (final path in topology.activePath) {
-                if (path.startsWith('bookExpand_')) {
-                  expandedSeriesId = path.replaceFirst('bookExpand_', '');
-                  break;
+              final activeRoom = topology.activeRoom;
+              if (activeRoom != null) {
+                if (activeRoom.startsWith('bookExpand_')) {
+                  expandedSeriesId = activeRoom.replaceFirst('bookExpand_', '');
+                  _lastExpandedSeriesId = expandedSeriesId;
+                } else if (activeRoom == BookRoom.roomId || !activeRoom.startsWith('book_')) {
+                  expandedSeriesId = null;
+                  _lastExpandedSeriesId = null;
+                } else {
+                  expandedSeriesId = _lastExpandedSeriesId;
                 }
               }
 
@@ -79,20 +81,12 @@ class _BookRoomState extends State<BookRoom> {
                     expandedSeriesId: expandedSeriesId,
                     gridItemSlot:
                         (context, item, innerBuilder, {onTapOverride}) {
-                          final focusId = item.id;
+                          final focusId = item.isSeries
+                              ? 'series_${item.id}'
+                              : 'book_${item.id}';
 
                           void action(BuildContext ctx) {
-                            final RenderBox? itemBox =
-                                ctx.findRenderObject() as RenderBox?;
-                            if (itemBox != null) {
-                              final itemGlobal = itemBox.localToGlobal(
-                                Offset.zero,
-                              );
-                              BookService.instance.lastHeroRect =
-                                  itemGlobal & itemBox.size;
-                              BookService.instance.lastHeroItem = item;
-                            }
-
+                            // 🌟 焦点系统自动抓取游标物理坐标，无需手动计算 Rect
                             onTapOverride != null
                                 ? onTapOverride()
                                 : BookCallback.onBookPosterTap(

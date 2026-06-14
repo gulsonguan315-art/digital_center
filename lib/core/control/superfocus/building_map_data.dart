@@ -119,16 +119,14 @@ class BuildingMapData {
     'dash_widget_manager': ['*'], // 🌟 挂件中控房间，支持内部元素进行焦点交互
     // ── [5] 图书模块 (Book) ──────────────────────────────────────────────
     'book': [
-      '*Humanities=>bookPage',
       '*sci_fi=>bookPage',
+      '*Humanities=>bookPage',
       '*Power_Fantasy=>bookPage',
     ],
     'bookPage': ['*', '/*', '->book_overlay'],
-    'book_overlay': [
-      '*book_overlay_air_node=>book_menu',
-    ],
+    'book_overlay': ['*book_overlay_air_node=>book_menu'],
     'book_menu': [
-      '/*', // 动态章节节点
+      '*', // 动态章节节点
     ],
 
     // ── [6] 设置模块 (Settings) ──────────────────────────────────────────────
@@ -140,7 +138,15 @@ class BuildingMapData {
     'shape_mode': ['*rightangle', '*round', '*soft'],
 
     'custom_setting': ['*setting_a', '*setting_b', '*setting_c'],
-    'log_setting': ['*log_focus', '*log_network', '*log_ui', '*log_system', '*log_music', '*log_media', '*log_book'],
+    'log_setting': [
+      '*log_focus',
+      '*log_network',
+      '*log_ui',
+      '*log_system',
+      '*log_music',
+      '*log_media',
+      '*log_book',
+    ],
 
     // ── [7] 调试 & 区域模拟测试 ───────────────────────────────────────────────
     'testPage': ['*card1', '/explorer'],

@@ -6,6 +6,7 @@ import '../../../../core/engine/theme/theme_api.dart';
 import '../../resident/book/book_model.dart';
 import '../../resident/book/book_service.dart';
 import 'book_reader_renderer.dart';
+import 'views_components/book_chapter_panel.dart';
 
 class BookReaderView extends StatefulWidget {
   const BookReaderView({super.key});
@@ -22,9 +23,9 @@ class _BookReaderViewState extends State<BookReaderView> {
       _isMenuVisible = !_isMenuVisible;
     });
     if (_isMenuVisible) {
-      FocusAPI.dispatchAction(BookModel.bookOverlayId, 'book_menu');
+      FocusAPI.dispatchAction(BookModel.bookOverlayId, BookModel.bookAirNodeId);
     } else {
-      FocusAPI.dispatchAction('book_menu', BookModel.bookOverlayId);
+      FocusAPI.dispatchBackCommand();
     }
   }
 
@@ -93,72 +94,11 @@ class _BookReaderViewState extends State<BookReaderView> {
               left: 0,
               top: 0,
               bottom: 0,
-              width: 350,
-              child: Container(
-                color: colors.surface.withValues(alpha: 0.95),
-                child: Column(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Text(
-                        '章节目录',
-                        style: TextStyle(
-                          color: colors.textPrimary,
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                    Expanded(
-                      child: ListenableBuilder(
-                        listenable: BookService.instance.readerController,
-                        builder: (context, _) {
-                          final chapters = BookService.instance.readerController.chapters;
-                          if (chapters.isEmpty) {
-                            return Center(
-                              child: Text(
-                                '暂无章节',
-                                style: TextStyle(color: colors.textSecondary),
-                              ),
-                            );
-                          }
-                          
-                          return SuperFocusRoom(
-                            id: 'book_menu',
-                            child: ListView.builder(
-                              itemCount: chapters.length,
-                              itemBuilder: (context, index) {
-                                final chapter = chapters[index];
-                                return Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 2.0),
-                                  child: SuperFocusItem(
-                                    id: 'book_chapter_$index',
-                                    onPressed: () {
-                                      BookService.instance.readerController.jumpToChapter(index);
-                                      _toggleMenu();
-                                    },
-                                    builder: (context, hasFocus) {
-                                      return Container(
-                                        color: hasFocus ? colors.accent.withValues(alpha: 0.3) : Colors.transparent,
-                                        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-                                        child: Text(
-                                          chapter.title,
-                                          style: TextStyle(
-                                            color: hasFocus ? colors.accent : colors.textPrimary,
-                                          ),
-                                        ),
-                                      );
-                                    },
-                                  ),
-                                );
-                              },
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  ],
-                ),
+              child: BookChapterPanel(
+                onChapterSelected: (index) {
+                  BookService.instance.readerController.jumpToChapter(index);
+                  _toggleMenu();
+                },
               ),
             ),
         ],

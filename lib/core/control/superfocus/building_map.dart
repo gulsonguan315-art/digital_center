@@ -30,6 +30,9 @@ class BuildingMap {
           final childId = item.substring(FocusSyntax.zone.length);
           _parentCache[childId] = parentId;
           _zoneCache.add(childId);
+        } else if (item.startsWith(FocusSyntax.staticPortal)) {
+          final childId = item.substring(FocusSyntax.staticPortal.length);
+          _parentCache[childId] = parentId;
         } else {
           final link = _parseNavLink(item);
           if (link != null) {

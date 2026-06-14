@@ -110,7 +110,9 @@ class _BookPageViewState extends State<BookPageView> {
                                   return PosterCard(
                                     title: item.title,
                                     subtitle: item.author.isNotEmpty ? item.author : '未知作者',
-                                    imageUrl: service.getCoverArtUrl(item.id),
+                                    imageUrl: item.coverPath.isEmpty
+                                        ? 'assets/book_cover.png'
+                                        : service.getCoverArtUrl(item.id),
                                     badgeText: item.isSeries ? '合集 (${item.numBooks})' : null,
                                     isFocused: hasFocus,
                                     onTap: onTap,
@@ -145,7 +147,9 @@ class _BookPageViewState extends State<BookPageView> {
                                   return PosterCard(
                                     title: item.title,
                                     subtitle: item.author.isNotEmpty ? item.author : '未知作者',
-                                    imageUrl: service.getCoverArtUrl(item.id),
+                                    imageUrl: item.coverPath.isEmpty
+                                        ? 'assets/book_cover.png'
+                                        : service.getCoverArtUrl(item.id),
                                     badgeText: item.isSeries ? '合集 (${item.numBooks})' : null,
                                     isFocused: hasFocus,
                                     onTap: onTap,

@@ -118,6 +118,46 @@ class PosterCard extends StatelessWidget {
                             placeholder: colors.backgroundFocused,
                             placeholderIcon: placeholderIcon,
                           ),
+                          if (imageUrl == 'assets/book_cover.png')
+                            Positioned.fill(
+                              child: Container(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: context.units(1.5),
+                                  vertical: context.units(2.0),
+                                ),
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    colors: [
+                                      Colors.black.withValues(alpha: 0.65),
+                                      Colors.black.withValues(alpha: 0.25),
+                                      Colors.black.withValues(alpha: 0.75),
+                                    ],
+                                    begin: Alignment.topCenter,
+                                    end: Alignment.bottomCenter,
+                                  ),
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    title,
+                                    textAlign: TextAlign.center,
+                                    maxLines: 4,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: context.units(1.4),
+                                      fontWeight: FontWeight.bold,
+                                      shadows: [
+                                        Shadow(
+                                          color: Colors.black.withValues(alpha: 0.8),
+                                          offset: const Offset(1, 1),
+                                          blurRadius: 4,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
                           if (badgeText != null && badgeText!.isNotEmpty)
                             Positioned(
                               top: context.units(0.8),
@@ -239,6 +279,13 @@ class PosterImage extends StatelessWidget {
   Widget build(BuildContext context) {
     if (imageUrl == null || imageUrl!.isEmpty) {
       return PlaceholderView(color: placeholder, icon: placeholderIcon);
+    }
+
+    if (imageUrl!.startsWith('assets/')) {
+      return Image.asset(
+        imageUrl!,
+        fit: BoxFit.cover,
+      );
     }
 
     return CachedNetworkImage(

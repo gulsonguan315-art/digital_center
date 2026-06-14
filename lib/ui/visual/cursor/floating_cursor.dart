@@ -28,9 +28,9 @@ class _FloatingHighlightBoxState extends State<FloatingHighlightBox>
   bool _isTransitioning = false;
   Timer? _transitionTimer;
   _TeleportState __teleportState = _TeleportState.idle;
-  
+
   _TeleportState get _teleportState => __teleportState;
-  
+
   set _teleportState(_TeleportState value) {
     if (__teleportState != value) {
       // Debug: _teleportState mutation removed
@@ -38,6 +38,7 @@ class _FloatingHighlightBoxState extends State<FloatingHighlightBox>
       __teleportState = value;
     }
   }
+
   bool _isWaiting = false;
   double _dashPhase = 0.0;
 
@@ -82,7 +83,8 @@ class _FloatingHighlightBoxState extends State<FloatingHighlightBox>
   void _handleWaitingUpdate() {
     if (mounted) {
       setState(() {
-        _isWaiting = SuperFocusManager.instance.cursorWaitingNotifier.value ||
+        _isWaiting =
+            SuperFocusManager.instance.cursorWaitingNotifier.value ||
             SuperFocusManager.instance.intentionRoomId.value != null;
       });
     }
@@ -129,14 +131,20 @@ class _FloatingHighlightBoxState extends State<FloatingHighlightBox>
             _idleTimer = Timer(const Duration(milliseconds: 200), () {
               if (mounted) {
                 setState(() => _teleportState = _TeleportState.idle);
-                SuperFocusManager.instance.state.cursorTeleportingNotifier.value = false;
+                SuperFocusManager
+                        .instance
+                        .state
+                        .cursorTeleportingNotifier
+                        .value =
+                    false;
               }
             });
           }
         });
       } else {
         // Debug: Entering normal slide transition state removed
-        SuperFocusManager.instance.state.cursorTeleportingNotifier.value = false;
+        SuperFocusManager.instance.state.cursorTeleportingNotifier.value =
+            false;
         _isTransitioning = true;
         _transitionTimer?.cancel();
         _idleTimer?.cancel();

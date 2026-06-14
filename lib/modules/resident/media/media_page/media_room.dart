@@ -94,6 +94,8 @@ class MediaRoom extends StatefulWidget {
 }
 
 class _MediaRoomState extends State<MediaRoom> {
+  String? _lastExpandedBoxSetId;
+
   @override
   Widget build(BuildContext context) {
     return SuperFocusRoom(
@@ -109,12 +111,21 @@ class _MediaRoomState extends State<MediaRoom> {
               final topology =
                   SuperFocusManager.instance.topologyNotifier.value;
 
-              // 判断是否有合集展开
+              // 判断合集展开状态
               String? expandedBoxSetId;
-              for (final path in topology.activePath) {
-                if (path.startsWith('mediaExpand_')) {
-                  expandedBoxSetId = path.replaceFirst('mediaExpand_', '');
-                  break;
+              final activeRoom = topology.activeRoom;
+              if (activeRoom != null) {
+                if (activeRoom.startsWith('mediaExpand_')) {
+                  expandedBoxSetId = activeRoom.replaceFirst('mediaExpand_', '');
+                  _lastExpandedBoxSetId = expandedBoxSetId;
+                } else if (activeRoom == MediaRoom.roomId ||
+                    (!activeRoom.startsWith('media_') &&
+                        !activeRoom.startsWith('movieDetail_') &&
+                        !activeRoom.startsWith('seriesDetail_'))) {
+                  expandedBoxSetId = null;
+                  _lastExpandedBoxSetId = null;
+                } else {
+                  expandedBoxSetId = _lastExpandedBoxSetId;
                 }
               }
 

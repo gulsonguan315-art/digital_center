@@ -1,15 +1,30 @@
+import 'dart:async';
 import 'package:flutter/widgets.dart';
 import 'interaction_state.dart';
+import '../../log/log_api.dart';
 
 /// 交互控制器基类
 /// 定义了外部系统（如按键、UI 组件）可以触发的标准动作。
 abstract class BaseInteractionController {
   late final InteractionState state;
   final ValueNotifier<String?> intentionRoomId = ValueNotifier(null);
+  Timer? _intentionTimeoutTimer;
 
   /// 初始化控制器
   void init(InteractionState state) {
     this.state = state;
+    intentionRoomId.addListener(() {
+      _intentionTimeoutTimer?.cancel();
+      final target = intentionRoomId.value;
+      if (target != null) {
+        _intentionTimeoutTimer = Timer(const Duration(milliseconds: 1000), () {
+          if (intentionRoomId.value == target) {
+            Log.d(LogGroup.focus, '⏰ 焦点系统：导航意图超时，启动自动解锁保护释放意图：[$target]');
+            intentionRoomId.value = null;
+          }
+        });
+      }
+    });
   }
 
   /// 【移动意图】处理方向键移动（遥控器专属）

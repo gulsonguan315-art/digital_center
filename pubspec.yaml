@@ -41,5 +41,11 @@ flutter_icons:
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/
+  fonts:
+    - family: LeMiHuiYuan
+      fonts:
+        - asset: assets/fonts/乐米惠圆体.ttf
   shaders:
     - shaders/motion_blur_circle.frag

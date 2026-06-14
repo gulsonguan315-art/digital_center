@@ -147,7 +147,31 @@ class BookRepository {
     final token = settings.api.absApiKey;
     if (baseUrl.isEmpty || token.isEmpty) return '';
 
-    // Audiobookshelf 支持直接在 URL 尾部带上 token 获取图片
+  // Audiobookshelf 支持直接在 URL 尾部带上 token 获取图片
     return '$baseUrl/api/items/$itemId/cover?token=$token';
+  }
+
+  /// 📖 下载书籍字节数据
+  Future<List<int>?> downloadItemBytes(String itemId) async {
+    try {
+      final baseUrl = await _getBaseUrl();
+      if (baseUrl.isEmpty) return null;
+
+      final headers = await _getAuthHeaders();
+      final url = '$baseUrl/api/items/$itemId/download';
+
+      final response = await http
+          .get(Uri.parse(url), headers: headers)
+          .timeout(const Duration(seconds: 30));
+
+      if (response.statusCode == 200) {
+        return response.bodyBytes;
+      } else {
+        Log.d(LogGroup.network, 'Failed to download item $itemId: status=${response.statusCode}');
+      }
+    } catch (e) {
+      Log.d(LogGroup.network, 'Failed to download item $itemId: $e');
+    }
+    return null;
   }
 }

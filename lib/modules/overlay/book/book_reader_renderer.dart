@@ -31,6 +31,16 @@ class BookReaderRenderer extends StatelessWidget {
         // 1. 移除 HTML 源码中的原生换行（在 HTML 中只等价于空格）
         String text = chapter.htmlContent.replaceAll(RegExp(r'\r?\n'), ' ');
 
+        // 1.5. 移除所有的超链接注释标签及内容 (如 <a href="...">1</a>, [2], 注3 等)
+        // 使用精确的正则表达式，只过滤数字、星号或单字母等脚注格式，避免误删正常的目录超链接
+        text = text.replaceAll(
+          RegExp(
+            r'<a\s+[^>]*>(?:(?:注|注释|note|footnote)?\s*[\[【（(]*\d+[\]】）)]*|\*+|[a-zA-Z])</a>',
+            caseSensitive: false,
+          ),
+          '',
+        );
+
         // 2. 将块级元素结束标签或换行标签替换为我们的结构化换行
         text = text.replaceAll(RegExp(r'</p>|<br\s*/?>|</h1>|</h2>|</h3>|</h4>|</h5>|</h6>|</div>|</li>', caseSensitive: false), '\n\n');
 
@@ -67,6 +77,7 @@ class BookReaderRenderer extends StatelessWidget {
               Text(
                 chapter.title,
                 style: TextStyle(
+                  fontFamily: 'LeMiHuiYuan',
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
                   color: colors.textPrimary,
@@ -80,6 +91,7 @@ class BookReaderRenderer extends StatelessWidget {
                   child: Text(
                     text,
                     style: TextStyle(
+                      fontFamily: 'LeMiHuiYuan',
                       fontSize: 22, // 稍微加大字号提升阅读体验
                       height: 1.8,  // 行高保持舒适
                       color: colors.textPrimary.withValues(alpha: 0.9),

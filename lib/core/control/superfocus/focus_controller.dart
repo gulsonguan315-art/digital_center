@@ -21,25 +21,26 @@ mixin FocusTraceLogger {
     }
   }
 
-  void logLanding(String? source, String roomId, String nodeId, String tag) {
+  void logLanding(String? source, String roomId, String nodeId, String tag, Set<String> activePath) {
     Log.d(
       LogGroup.focus,
-      '\n4，目标回应：[$roomId] 准备就绪 (Atomic)\n5，准备跳转：${source ?? "系统"} ——> [$roomId:$nodeId] $tag\n6，成功落地：[$roomId:$nodeId]\n---',
+      '\n4，目标回应：[$roomId] 准备就绪 (Atomic)\n5，准备跳转：${source ?? "系统"} ——> [$roomId:$nodeId] $tag\n6，成功落地：[$roomId:$nodeId]\n7，活跃路径：activePath: $activePath\n---',
     );
   }
 
-  void logBackStart(String currentPos) {
-    Log.d(LogGroup.focus, '---\n1，当前位置：$currentPos');
+  void logBackStart(String currentPos, Set<String> activePath) {
+    Log.d(LogGroup.focus, '---\n1，当前位置：$currentPos\n    当前路径 activePath: $activePath');
   }
 
   void logBackIntent(String targetId, String reason) {
     Log.d(LogGroup.focus, '2，意图回归：[$targetId] ($reason)\n3，协议校验：Back 序列已启动');
   }
 
-  void logPortalReturn(String targetId, String currentPos) {
+  void logPortalReturn(String targetId, String? nodeId, String currentPos, Set<String> activePath) {
+    final targetPos = nodeId != null ? '$targetId:$nodeId' : targetId;
     Log.d(
       LogGroup.focus,
-      '\n4，目标回应：[$targetId] 准备就绪 (Portal Return)\n5，准备跳转：$currentPos ——> [$targetId] (传送门节点)\n6，成功落地：[$targetId]\n---',
+      '\n4，目标回应：[$targetId] 准备就绪 (Portal Return)\n5，准备跳转：$currentPos ——> [$targetPos] (传送门节点)\n6，成功落地：[$targetPos]\n7，活跃路径：activePath: $activePath\n---',
     );
   }
 
@@ -173,12 +174,12 @@ class FocusController extends BaseInteractionController with FocusTraceLogger {
         ? state.nodeRegistry[focusedId]?.roomId
         : currentRoomId;
     final String currentPos = switch ((focusedId, room)) {
-      (String f, String r) => '[$r：$f]',
+      (String f, String r) => '[$r:$f]',
       (null, String r) => '[$r]',
       _ => '未知',
     };
 
-    logBackStart(currentPos);
+    logBackStart(currentPos, state.topologyNotifier.value.activePath);
     String? targetId;
     String reason;
 
@@ -188,18 +189,22 @@ class FocusController extends BaseInteractionController with FocusTraceLogger {
       targetId = entry.returnTo;
       reason = '传送门弹栈：飞回 [$targetId]';
       final returnNode = entry.returnToFocusNode;
+      final returnNodeId = state.nodeRegistry.entries
+          .where((e) => e.value.node == returnNode)
+          .firstOrNull
+          ?.key;
       if (returnNode != null && returnNode.canRequestFocus) {
         _lastActionSource = currentPos;
         logBackIntent(targetId, reason);
         onRoomEnter(entry.returnTo, printLog: false);
-        logPortalReturn(targetId, currentPos);
+        logPortalReturn(targetId, returnNodeId, currentPos, state.topologyNotifier.value.activePath);
         returnNode.requestFocus();
         return;
       } else {
         _lastActionSource = currentPos;
         logBackIntent(targetId, reason);
         onRoomEnter(entry.returnTo, printLog: false);
-        logPortalReturn(targetId, currentPos);
+        logPortalReturn(targetId, null, currentPos, state.topologyNotifier.value.activePath);
         intentionRoomId.value = entry.returnTo;
         _tryFulfillIntention();
         return;
@@ -230,6 +235,18 @@ class FocusController extends BaseInteractionController with FocusTraceLogger {
       final entryNodeInfo = entryNodeId != null
           ? state.nodeRegistry[entryNodeId]
           : null;
+
+      Log.d(
+        LogGroup.focus,
+        '🔍 [Debug Back] room: $room, targetId: $targetId, entryNodeId: $entryNodeId, entryNodeInfoNull: ${entryNodeInfo == null}, infoRoomId: ${entryNodeInfo?.roomId}, canRequestFocus: ${entryNodeInfo?.node.canRequestFocus}',
+      );
+      if (entryNodeId != null && entryNodeInfo == null) {
+        Log.d(
+          LogGroup.focus,
+          '🔍 [Debug Back] Current nodeRegistry keys: ${state.nodeRegistry.keys.toList()}',
+        );
+      }
+
       if (entryNodeId != null &&
           entryNodeInfo != null &&
           entryNodeInfo.roomId == targetId &&
@@ -319,6 +336,10 @@ class FocusController extends BaseInteractionController with FocusTraceLogger {
           }
         }
       }
+      Log.d(
+        LogGroup.focus, 
+        '⚠️ _executeSearch: 无法在房间 [$targetId] 中找到可聚焦的节点！当前注册的所有节点: ${state.nodeRegistry.entries.map((e) => "${e.key}(room: ${e.value.roomId}, canFocus: ${e.value.node.canRequestFocus})").toList()}',
+      );
       return;
     }
 
@@ -355,11 +376,11 @@ class FocusController extends BaseInteractionController with FocusTraceLogger {
 
     _landedRoomId = newRoom;
 
-    logLanding(_lastActionSource, info.roomId, nodeId, tag);
-
-    // 消费并传递 heroRect
+    // 先进入房间以更新 activePath
     onRoomEnter(info.roomId, printLog: false, heroRect: _pendingHeroRect);
     _pendingHeroRect = null;
+
+    logLanding(_lastActionSource, info.roomId, nodeId, tag, state.topologyNotifier.value.activePath);
 
     intentionRoomId.value = null;
     info.node.requestFocus();
@@ -372,7 +393,6 @@ class FocusController extends BaseInteractionController with FocusTraceLogger {
 
   void onAction(String sourceRoom, String id, {bool asTerminalRoom = false}) {
     _actionDispatched = true;
-    _lastActionSource = '[$sourceRoom:$id]';
     _pendingHeroRect = state.cursorReportNotifier.value?.rect; // 🌟 抓取跳跃源点
     final String actualNodeId =
         state.nodeRegistry.entries
@@ -383,13 +403,14 @@ class FocusController extends BaseInteractionController with FocusTraceLogger {
             .firstOrNull
             ?.key ??
         id;
+    _lastActionSource = '[$sourceRoom:$actualNodeId]';
 
     final String? portalTarget = BuildingMap.resolvePortalDestination(
       sourceRoom,
       id,
     );
     if (portalTarget != null) {
-      logPortalAction(sourceRoom, id, portalTarget);
+      logPortalAction(sourceRoom, actualNodeId, portalTarget);
       state.portalStack.add(
         PortalEntry(
           landedIn: portalTarget,
@@ -404,7 +425,7 @@ class FocusController extends BaseInteractionController with FocusTraceLogger {
 
     final String? roomTarget = BuildingMap.resolveRoomEntry(sourceRoom, id);
     if (roomTarget != null) {
-      logRoomAction(sourceRoom, id, roomTarget);
+      logRoomAction(sourceRoom, actualNodeId, roomTarget);
 
       // ✅ 关键：动态报备父子关系，确保 Back 逻辑能通过 _parentCache 飞回来
       // 传入 asTerminalRoom 标识，防止死胡同房间无限继承动态通配符
@@ -428,7 +449,7 @@ class FocusController extends BaseInteractionController with FocusTraceLogger {
 
     final String? navTarget = BuildingMap.resolveNavTarget(sourceRoom, id);
     if (navTarget != null) {
-      logRoomAction(sourceRoom, id, navTarget);
+      logRoomAction(sourceRoom, actualNodeId, navTarget);
       // 动态更新入口节点：确保 Back 时回落到实际触发导航的那个节点
       BuildingMap.updateEntryNode(sourceRoom, navTarget, id);
       onRoomEnter(navTarget, printLog: false, heroRect: _pendingHeroRect);

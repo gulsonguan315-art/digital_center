@@ -128,8 +128,10 @@ class BookSeriesAccordionPanel extends StatelessWidget {
                                       subtitle: item.author.isNotEmpty
                                           ? item.author
                                           : '未知作者',
-                                      imageUrl: BookService.instance
-                                          .getCoverArtUrl(item.id),
+                                      imageUrl: item.coverPath.isEmpty
+                                          ? 'assets/book_cover.png'
+                                          : BookService.instance
+                                              .getCoverArtUrl(item.id),
                                       badgeText: item.isSeries
                                           ? '合集 (${item.numBooks})'
                                           : null,

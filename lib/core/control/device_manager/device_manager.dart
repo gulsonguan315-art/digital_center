@@ -1,6 +1,7 @@
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import '../superfocus/focus_api.dart';
+import '../superfocus/interaction_manager.dart';
 import '../../engine/audio/app_audio_service.dart';
 import '../../log/log_api.dart';
 import 'components/keyboard/keyboard_source.dart';
@@ -141,7 +142,11 @@ class SuperInputManager {
     // 强制拦截除音量控制外的一切用户指令，避免盲操造成焦点暴走或状态混乱。
     if (FocusAPI.isInputLocked) {
       if (signal != InputSignal.volumeUp && signal != InputSignal.volumeDown) {
-        Log.d(LogGroup.system, '拦截生效：当前为锁定状态，忽略 $signal', subGroup: 'DeviceManager');
+        Log.d(
+          LogGroup.system, 
+          '拦截生效：当前为锁定状态，忽略 $signal (原因 -> waiting: ${FocusAPI.isCursorWaiting}, teleporting: ${FocusAPI.isCursorTeleporting}, intention: ${SuperFocusManager.instance.intentionRoomId.value})', 
+          subGroup: 'DeviceManager',
+        );
         return;
       }
     }
