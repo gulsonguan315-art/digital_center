@@ -21,6 +21,8 @@ enum PlaybackPhase {
 class MediaImmersiveController {
   final VoidCallback onExitRequest;
 
+  bool _isDisposed = false;
+
   final StreamController<String> interactionStreamController =
       StreamController<String>.broadcast();
   late final PlayerEngine playerEngine;
@@ -64,6 +66,7 @@ class MediaImmersiveController {
   }
 
   void dispose() {
+    _isDisposed = true;
     if (playbackPhase.value.index >= PlaybackPhase.buildingEngine.index) {
       playerEngine.dispose();
       preferencesManager.dispose();
@@ -145,6 +148,8 @@ class MediaImmersiveController {
       Log.d(LogGroup.media, '▶️ [Player] 从头播放 (startPositionTicks=0)');
     }
 
-    playbackPhase.value = PlaybackPhase.playing;
+    if (!_isDisposed) {
+      playbackPhase.value = PlaybackPhase.playing;
+    }
   }
 }

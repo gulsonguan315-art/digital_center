@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import '../../../../core/control/superfocus/focus_api.dart';
 import '../../../../core/data/models/book_data.dart';
 import '../book_model.dart';
-
 import '../book_service.dart';
+import '../../../overlay/book/book_reader_room.dart';
 
 class BookCallback {
   static void onBookPosterTap(BuildContext context, BookItem item, String? expandedSeriesId) {
@@ -20,7 +20,12 @@ class BookCallback {
         );
       }
     } else {
-      // TODO: 单本图书点击后的处理逻辑
+      // 单本图书，可调用阅读器
+      // 同时通知 Service 开始加载这本电子书
+      BookService.instance.openBook(item);
+      
+      final sourceRoom = expandedSeriesId != null ? 'bookExpand_$expandedSeriesId' : BookModel.bookPageId;
+      FocusAPI.dispatchAction(sourceRoom, BookModel.bookOverlayId);
     }
   }
 }

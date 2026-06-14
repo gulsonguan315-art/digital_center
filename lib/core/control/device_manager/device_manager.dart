@@ -137,6 +137,15 @@ class SuperInputManager {
   void _handleSignal(InputSignal signal) {
     Log.d(LogGroup.system, '信号接收：$signal', subGroup: 'DeviceManager');
 
+    // 【全局等待锁】当系统处于关键异步期（如跨界瞬移、页面缩放转场，或网络读数据），
+    // 强制拦截除音量控制外的一切用户指令，避免盲操造成焦点暴走或状态混乱。
+    if (FocusAPI.isInputLocked) {
+      if (signal != InputSignal.volumeUp && signal != InputSignal.volumeDown) {
+        Log.d(LogGroup.system, '拦截生效：当前为锁定状态，忽略 $signal', subGroup: 'DeviceManager');
+        return;
+      }
+    }
+
     // 1. 优先遍历拦截器（栈顶优先 LIFO）
     for (final interceptor in _interceptors.reversed) {
       if (interceptor(signal)) { // 如果拦截器返回 true，代表已消费

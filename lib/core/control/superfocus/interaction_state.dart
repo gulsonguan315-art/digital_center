@@ -1,22 +1,30 @@
 import 'package:flutter/widgets.dart';
 import 'focus_report.dart';
 
-/// 焦点状态快照 - 存储“当前在哪”
 class FocusTopology {
   final String? activeRoom;
   final Set<String> activePath;
+  final Set<String> logicalPath;
+  final Rect? heroRect;
 
-  const FocusTopology({this.activeRoom, this.activePath = const {}});
+  const FocusTopology({
+    this.activeRoom,
+    this.activePath = const {},
+    this.logicalPath = const {},
+    this.heroRect,
+  });
 
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is FocusTopology &&
           activeRoom == other.activeRoom &&
-          activePath == other.activePath;
+          activePath == other.activePath &&
+          logicalPath == other.logicalPath &&
+          heroRect == other.heroRect;
 
   @override
-  int get hashCode => Object.hash(activeRoom, activePath);
+  int get hashCode => Object.hash(activeRoom, activePath, logicalPath, heroRect);
 }
 
 /// 节点注册信息
@@ -69,6 +77,7 @@ class InteractionState {
   final ValueNotifier<FocusReport?> cursorReportNotifier = ValueNotifier(null);
   final ValueNotifier<bool> cursorHiddenNotifier = ValueNotifier(false);
   final ValueNotifier<bool> cursorWaitingNotifier = ValueNotifier(false);
+  final ValueNotifier<bool> cursorTeleportingNotifier = ValueNotifier(false);
 
   // --- 一次性状态寄存器 ---
   FocusTransitionConfig? nextTransition;
@@ -99,5 +108,6 @@ class InteractionState {
     cursorReportNotifier.dispose();
     cursorHiddenNotifier.dispose();
     cursorWaitingNotifier.dispose();
+    cursorTeleportingNotifier.dispose();
   }
 }

@@ -6,7 +6,6 @@ import 'scoped_2d_scanner.dart';
 import 'building_map.dart';
 import '../../log/log_api.dart';
 import 'auto_scroll_dispatcher.dart';
-import 'focus_report.dart';
 
 mixin FocusTraceLogger {
   void logCancel(String? target) {
@@ -77,6 +76,7 @@ class FocusController extends BaseInteractionController with FocusTraceLogger {
   // --- CPU 内部临时状态 ---
   String? _lastActionSource;
   bool _pendingCallback = false;
+  Rect? _pendingHeroRect; // 🌟 暂存动作发生时的游标源点物理坐标，用于跨帧转场动画
 
   final Scoped2dScanner scanner = const Scoped2dScanner();
   FocusTraversalPolicy get policy => scanner;
@@ -150,12 +150,12 @@ class FocusController extends BaseInteractionController with FocusTraceLogger {
     cancelNavigation();
     state.portalStack.clear();
     BuildingMap.clearDynamicCache();
-    
+
     const targetRoom = 'sidebar';
     logRoomAction(currentRoomId ?? '未知', 'Home', targetRoom);
     onRoomEnter(targetRoom, printLog: true);
     intentionRoomId.value = targetRoom;
-    _executeSearch(targetRoom);
+    _tryFulfillIntention();
   }
 
   @override
@@ -194,6 +194,14 @@ class FocusController extends BaseInteractionController with FocusTraceLogger {
         onRoomEnter(entry.returnTo, printLog: false);
         logPortalReturn(targetId, currentPos);
         returnNode.requestFocus();
+        return;
+      } else {
+        _lastActionSource = currentPos;
+        logBackIntent(targetId, reason);
+        onRoomEnter(entry.returnTo, printLog: false);
+        logPortalReturn(targetId, currentPos);
+        intentionRoomId.value = entry.returnTo;
+        _tryFulfillIntention();
         return;
       }
     } else if (room != null) {
@@ -238,21 +246,29 @@ class FocusController extends BaseInteractionController with FocusTraceLogger {
         return;
       }
 
-      _executeSearch(targetId, allowUnpack: true);
+      _tryFulfillIntention();
     } else {
       logBackFail(reason);
     }
   }
 
-  void onRoomEnter(String roomId, {bool printLog = true}) {
+  void onRoomEnter(String roomId, {bool printLog = true, Rect? heroRect}) {
     if (currentRoomId != roomId) {
       final oldPath = state.topologyNotifier.value.activePath;
       final newPath = <String>{};
       _fillAncestorPath(roomId, newPath);
 
+      // 🌟 核心升级：计算 Logical Path，不仅包含当前活跃路径，还包含所有传送门记忆的溯源路径
+      final Set<String> logicalPath = Set.from(newPath);
+      for (final entry in state.portalStack) {
+        _fillAncestorPath(entry.returnTo, logicalPath);
+      }
+
       state.topologyNotifier.value = FocusTopology(
         activeRoom: roomId,
         activePath: newPath,
+        logicalPath: logicalPath,
+        heroRect: heroRect ?? state.topologyNotifier.value.heroRect,
       );
 
       final deactivated = oldPath.difference(newPath);
@@ -328,21 +344,23 @@ class FocusController extends BaseInteractionController with FocusTraceLogger {
           : null;
       final newConfig = state.roomRegistry[newRoom]?.transitionConfig;
 
-      final configToUse = newConfig ?? oldConfig ?? const FocusTransitionConfig(
-        FocusTransitionMode.teleport,
-        delay: Duration(milliseconds: 350),
-      );
-      
-      SuperFocusManager.instance.requestNextTransition(
-        configToUse.mode,
-        delay: configToUse.delay,
-      );
+      final configToUse = newConfig ?? oldConfig;
+      if (configToUse != null) {
+        SuperFocusManager.instance.requestNextTransition(
+          configToUse.mode,
+          delay: configToUse.delay,
+        );
+      }
     }
-    
+
     _landedRoomId = newRoom;
 
     logLanding(_lastActionSource, info.roomId, nodeId, tag);
-    onRoomEnter(info.roomId, printLog: false);
+
+    // 消费并传递 heroRect
+    onRoomEnter(info.roomId, printLog: false, heroRect: _pendingHeroRect);
+    _pendingHeroRect = null;
+
     intentionRoomId.value = null;
     info.node.requestFocus();
 
@@ -355,6 +373,7 @@ class FocusController extends BaseInteractionController with FocusTraceLogger {
   void onAction(String sourceRoom, String id, {bool asTerminalRoom = false}) {
     _actionDispatched = true;
     _lastActionSource = '[$sourceRoom:$id]';
+    _pendingHeroRect = state.cursorReportNotifier.value?.rect; // 🌟 抓取跳跃源点
     final String actualNodeId =
         state.nodeRegistry.entries
             .where(
@@ -379,7 +398,7 @@ class FocusController extends BaseInteractionController with FocusTraceLogger {
         ),
       );
       intentionRoomId.value = portalTarget;
-      _executeSearch(portalTarget);
+      _tryFulfillIntention();
       return;
     }
 
@@ -399,10 +418,11 @@ class FocusController extends BaseInteractionController with FocusTraceLogger {
       BuildingMap.updateEntryNode(sourceRoom, roomTarget, actualNodeId);
 
       // ✅ 关键：立即更新拓扑状态，让 UI 渲染出子房间内容
-      onRoomEnter(roomTarget, printLog: false);
+      onRoomEnter(roomTarget, printLog: false, heroRect: _pendingHeroRect);
+      _pendingHeroRect = null;
 
       intentionRoomId.value = roomTarget;
-      _executeSearch(roomTarget);
+      _tryFulfillIntention();
       return;
     }
 
@@ -411,9 +431,11 @@ class FocusController extends BaseInteractionController with FocusTraceLogger {
       logRoomAction(sourceRoom, id, navTarget);
       // 动态更新入口节点：确保 Back 时回落到实际触发导航的那个节点
       BuildingMap.updateEntryNode(sourceRoom, navTarget, id);
-      onRoomEnter(navTarget, printLog: false);
+      onRoomEnter(navTarget, printLog: false, heroRect: _pendingHeroRect);
+      _pendingHeroRect = null;
+
       intentionRoomId.value = navTarget;
-      _executeSearch(navTarget);
+      _tryFulfillIntention();
       return;
     }
 

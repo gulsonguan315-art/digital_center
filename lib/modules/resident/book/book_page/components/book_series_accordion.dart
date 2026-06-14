@@ -137,9 +137,6 @@ class BookSeriesAccordionPanel extends StatelessWidget {
                                       onTap: onTap,
                                     );
                                   },
-                                  onTapOverride: () {
-                                    // TODO: 展开内部书籍点击
-                                  },
                                 );
                               },
                             ),

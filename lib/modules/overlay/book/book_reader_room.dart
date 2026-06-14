@@ -1,0 +1,55 @@
+import 'package:flutter/material.dart';
+import '../../../../core/control/superfocus/focus_api.dart';
+import '../../../../core/control/superfocus/interaction_manager.dart';
+import '../../../../core/control/superfocus/focus_widgets.dart';
+import '../../../../core/engine/theme/theme_api.dart';
+import '../../../../core/stage/stage_contract.dart';
+import '../../../../core/stage/stage_models.dart';
+import '../../../../core/stage/stage_registry.dart';
+import '../../../../core/stage/stage_manager.dart';
+import '../../resident/book/book_model.dart';
+import 'book_reader_view.dart';
+
+class BookReaderRoom extends StatefulWidget {
+  const BookReaderRoom({super.key});
+
+  static void register() {
+    StageRegistry.register(
+      StageContract(
+        roomId: BookModel.bookOverlayId,
+        zone: StageZone.thirdFloor_overlay,
+        keepAlive: false,
+        builder: (context) => const BookReaderRoom(),
+      ),
+    );
+  }
+
+  @override
+  State<BookReaderRoom> createState() => _BookReaderRoomState();
+}
+
+class _BookReaderRoomState extends State<BookReaderRoom> {
+  @override
+  Widget build(BuildContext context) {
+    return ThemeIdentity(
+      role: ThemeRole.appBackground,
+      child: Scaffold(
+        backgroundColor: Colors.black, // 纯黑底色，和 Media 保持一致
+        body: SuperFocusRoom(
+          id: BookModel.bookOverlayId,
+          child: const Stack(
+            children: [
+              Positioned.fill(
+                child: BookReaderView(),
+              ),
+              // 约束保护：强制空气节点用 Positioned.fill 包裹
+              Positioned.fill(
+                child: SuperFocusAirNode(),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}

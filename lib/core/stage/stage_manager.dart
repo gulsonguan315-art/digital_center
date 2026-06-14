@@ -86,15 +86,7 @@ class _StageSecondFloorState extends State<StageSecondFloor> {
 
   @override
   Widget build(BuildContext context) {
-    if (widget.isCustomPositioned) {
-      return widget.child;
-    }
-    return Positioned(
-      left: -context.units(StageMetrics.paddingHorizontalU + SidebarMetrics.widthU),
-      right: -context.units(StageMetrics.paddingHorizontalU),
-      top: -context.units(StageMetrics.paddingVerticalU),
-      bottom: -context.units(StageMetrics.paddingVerticalU),
-      child: widget.child,
-    );
+    // 已经由 StagePhysicalFrame 的独立层级保证了全屏渲染，无需再使用负边距逃逸
+    return widget.child;
   }
 }

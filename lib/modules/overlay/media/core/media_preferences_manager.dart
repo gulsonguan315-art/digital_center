@@ -38,6 +38,9 @@ class MediaPreferencesManager {
     _completedSub = playerEngine.player.stream.completed.listen((completed) async {
       if (playerEngine.isSwitchingEpisode) return;
       if (completed) {
+        // 如果文件根本没加载出来（duration 为空或为 0），忽略此事件，防止媒体报错导致异常退出
+        if (playerEngine.player.state.duration.inSeconds == 0) return;
+
         final success = await playerEngine.switchEpisode(1);
         if (!success) {
           onExitRequest();
@@ -55,9 +58,7 @@ class MediaPreferencesManager {
           if (pos.inMilliseconds > 1000 &&
               pos.inMilliseconds < _introDuration - 1000) {
             _hasSkippedIntro = true;
-            playerEngine.player.seek(
-              Duration(milliseconds: _introDuration),
-            );
+            playerEngine.player.seek(Duration(milliseconds: _introDuration));
           }
         }
         if (!_hasSkippedOutro && _outroDuration > 0) {
@@ -68,7 +69,9 @@ class MediaPreferencesManager {
               LogGroup.media,
               '⏭️ [Player] 触发跳过片尾，标记已看完: ${playerEngine.currentItemIdNotifier.value}',
             );
-            MediaService.instance.markItemAsPlayed(playerEngine.currentItemIdNotifier.value);
+            MediaService.instance.markItemAsPlayed(
+              playerEngine.currentItemIdNotifier.value,
+            );
             playerEngine.switchEpisode(1);
           }
         }

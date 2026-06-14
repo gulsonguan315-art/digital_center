@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import '../../../../../core/engine/theme/theme_api.dart';
 import '../../../../../core/layout/grid/grid.dart';
 import '../../../../../core/control/superfocus/focus_api.dart';
+import '../../../../../core/control/superfocus/focus_widgets.dart';
+import '../../../../../core/control/superfocus/interaction_manager.dart';
 import '../../../../overlay/media/media_immersive_overlay.dart';
+import '../../media_service.dart';
 import '../core/media_detail_controller.dart';
 
 class HeroMetadataView extends StatelessWidget {
@@ -21,6 +24,7 @@ class HeroMetadataView extends StatelessWidget {
   Widget build(BuildContext context) {
     final material = context.useTheme();
     final grid = GridContext.fromViewport(MediaQuery.sizeOf(context));
+    final isActive = RoomScope.of(context)?.isActive ?? true;
 
     final title = controller.title;
     final logoUrl = controller.logoUrl;
@@ -31,7 +35,9 @@ class HeroMetadataView extends StatelessWidget {
     final overview = controller.overview;
 
     return Positioned(
-      left: grid.pageInset + context.units(8.0), // 补偿负边距，同时避开折叠侧边栏(5.6U)和焦点环(17px)
+      left:
+          grid.pageInset +
+          context.units(8.0), // 补偿负边距，同时避开折叠侧边栏(5.6U)和焦点环(17px)
       bottom: grid.units(10) + context.units(8.0), // 补偿负边距
       width: grid.viewportWidth * 0.5, // 占据半屏宽度
       child: Column(
@@ -45,11 +51,12 @@ class HeroMetadataView extends StatelessWidget {
               height: grid.units(12), // 苹果风格的 Logo 通常较大
               fit: BoxFit.contain,
               alignment: Alignment.centerLeft,
-              errorBuilder: (context, error, stackTrace) => _buildTitleText(title, grid, material),
+              errorBuilder: (context, error, stackTrace) =>
+                  _buildTitleText(title, grid, material),
             )
           else
             _buildTitleText(title, grid, material),
-            
+
           SizedBox(height: grid.units(2)),
 
           // 元数据行
@@ -78,8 +85,8 @@ class HeroMetadataView extends StatelessWidget {
 
           // 剧情简介
           if (overview.isNotEmpty)
-            SizedBox(
-              width: grid.viewportWidth * 0.45, // 简介文本略窄，提升阅读体验
+            Padding(
+              padding: EdgeInsets.only(right: grid.units(4)), // 留出右侧边距提升阅读体验
               child: Text(
                 overview,
                 maxLines: 4,
@@ -95,85 +102,66 @@ class HeroMetadataView extends StatelessWidget {
           SizedBox(height: grid.units(4)),
 
           // 操作按钮组
-          Row(
+          Wrap(
+            spacing: grid.units(2),
+            runSpacing: grid.units(2),
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              if (controller.hasResume) ...[
-                _buildActionButton(
-                  context: context,
-                  grid: grid,
-                  material: material,
-                  id: 'media_overlay',
-                  icon: Icons.play_arrow_rounded,
-                  label: '续播',
-                  autofocus: true,
-                  isPrimary: true,
-                  onPressed: () {
-                    final targetItemId = controller.resumeItemId;
-                    if (targetItemId == null) return;
-
-                    FocusAPI.dispatchAction(roomId, 'media_overlay');
-                    Navigator.of(context).push(
-                      PageRouteBuilder(
-                        opaque: true,
-                        transitionDuration: const Duration(milliseconds: 400),
-                        reverseTransitionDuration: const Duration(milliseconds: 300),
-                        pageBuilder: (ctx, anim1, anim2) => FadeTransition(
-                          opacity: anim1,
-                          child: ScaleTransition(
-                            scale: Tween<double>(begin: 0.9, end: 1.0).animate(
-                              CurvedAnimation(
-                                parent: anim1,
-                                curve: Curves.easeOutCubic,
-                                reverseCurve: Curves.easeInCubic,
-                              ),
-                            ),
-                            child: MediaImmersiveOverlay(
-                              itemId: targetItemId,
-                              startPositionTicks: controller.resumePositionTicks,
-                            ),
-                          ),
-                        ),
-                      ),
-                    );
-                  },
-                ),
-                SizedBox(width: grid.units(2)),
-              ],
               _buildActionButton(
                 context: context,
                 grid: grid,
                 material: material,
-                id: 'btn_trailer',
+                id: 'btn_resume',
+                icon: Icons.play_arrow_rounded,
+                label: '续播',
+                autofocus: isActive,
+                isPrimary: true,
+                onPressed: () async {
+                  SuperInteractionManager.instance.setCursorWaiting(true);
+                  final data = await controller.resolvePlaybackData(
+                    fromBeginning: false,
+                  );
+                  SuperInteractionManager.instance.setCursorWaiting(false);
+
+                  if (data == null || !context.mounted) return;
+
+                  final targetItemId = data['id'] as String;
+                  final ticks = data['ticks'] as int;
+
+                  MediaService.instance.immersiveParams = MediaImmersiveParams(
+                    itemId: targetItemId,
+                    mediaType: controller.type,
+                    startPositionTicks: ticks,
+                  );
+                  FocusAPI.dispatchAction(roomId, 'media_overlay');
+                },
+              ),
+              _buildActionButton(
+                context: context,
+                grid: grid,
+                material: material,
+                id: 'btn_play',
                 icon: Icons.play_circle_outline_rounded,
                 label: '播放',
-                autofocus: !controller.hasResume,
-                isPrimary: !controller.hasResume,
-                onPressed: () {
-                  // 从头播放
-                  final targetItemId = controller.resumeItemId;
-                  if (targetItemId == null) return;
-
-                  FocusAPI.dispatchAction(roomId, 'media_overlay');
-                  Navigator.of(context).push(
-                    PageRouteBuilder(
-                      opaque: true,
-                      transitionDuration: const Duration(milliseconds: 400),
-                      reverseTransitionDuration: const Duration(milliseconds: 300),
-                      pageBuilder: (ctx, anim1, anim2) => FadeTransition(
-                        opacity: anim1,
-                        child: ScaleTransition(
-                          scale: Tween<double>(begin: 0.9, end: 1.0).animate(
-                            CurvedAnimation(
-                              parent: anim1,
-                              curve: Curves.easeOutCubic,
-                              reverseCurve: Curves.easeInCubic,
-                            ),
-                          ),
-                          child: MediaImmersiveOverlay(itemId: targetItemId),
-                        ),
-                      ),
-                    ),
+                autofocus: false,
+                isPrimary: false,
+                onPressed: () async {
+                  SuperInteractionManager.instance.setCursorWaiting(true);
+                  final data = await controller.resolvePlaybackData(
+                    fromBeginning: true,
                   );
+                  SuperInteractionManager.instance.setCursorWaiting(false);
+
+                  if (data == null || !context.mounted) return;
+
+                  final targetItemId = data['id'] as String;
+
+                  MediaService.instance.immersiveParams = MediaImmersiveParams(
+                    itemId: targetItemId,
+                    mediaType: controller.type,
+                    startPositionTicks: 0,
+                  );
+                  FocusAPI.dispatchAction(roomId, 'media_overlay');
                 },
               ),
             ],
@@ -183,7 +171,11 @@ class HeroMetadataView extends StatelessWidget {
     );
   }
 
-  Widget _buildTitleText(String title, GridContext grid, ResolvedThemeMaterial material) {
+  Widget _buildTitleText(
+    String title,
+    GridContext grid,
+    ResolvedThemeMaterial material,
+  ) {
     return Text(
       title,
       style: TextStyle(
@@ -218,12 +210,14 @@ class HeroMetadataView extends StatelessWidget {
         final bgColor = hasFocus
             ? material.colors.textPrimary
             : (isPrimary
-                ? material.colors.textPrimary.withValues(alpha: 0.8)
-                : material.colors.foreground.withValues(alpha: 0.5));
+                  ? material.colors.textPrimary.withValues(alpha: 0.8)
+                  : material.colors.foreground.withValues(alpha: 0.5));
 
         final fgColor = hasFocus
             ? material.colors.surface
-            : (isPrimary ? material.colors.surface : material.colors.textPrimary);
+            : (isPrimary
+                  ? material.colors.surface
+                  : material.colors.textPrimary);
 
         return AnimatedContainer(
           duration: const Duration(milliseconds: 200),
@@ -242,7 +236,7 @@ class HeroMetadataView extends StatelessWidget {
                       blurRadius: 16,
                       spreadRadius: 4,
                       offset: const Offset(0, 4),
-                    )
+                    ),
                   ]
                 : [],
           ),

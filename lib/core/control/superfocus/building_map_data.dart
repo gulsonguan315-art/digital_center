@@ -123,7 +123,13 @@ class BuildingMapData {
       '*sci_fi=>bookPage',
       '*Power_Fantasy=>bookPage',
     ],
-    'bookPage': ['*', '/*'],
+    'bookPage': ['*', '/*', '->book_overlay'],
+    'book_overlay': [
+      '*book_overlay_air_node=>book_menu',
+    ],
+    'book_menu': [
+      '/*', // 动态章节节点
+    ],
 
     // ── [6] 设置模块 (Settings) ──────────────────────────────────────────────
     'settingPage': ['/theme_setting', '/custom_setting', '/log_setting'],
@@ -134,7 +140,7 @@ class BuildingMapData {
     'shape_mode': ['*rightangle', '*round', '*soft'],
 
     'custom_setting': ['*setting_a', '*setting_b', '*setting_c'],
-    'log_setting': ['*log_focus', '*log_network', '*log_ui', '*log_system'],
+    'log_setting': ['*log_focus', '*log_network', '*log_ui', '*log_system', '*log_music', '*log_media', '*log_book'],
 
     // ── [7] 调试 & 区域模拟测试 ───────────────────────────────────────────────
     'testPage': ['*card1', '/explorer'],

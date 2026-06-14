@@ -8,6 +8,7 @@ class LogGroup {
   static const String system = 'System';
   static const String music = 'Music';
   static const String media = 'Media';
+  static const String book = 'Book';
 }
 
 /// 全局日志系统
@@ -22,6 +23,7 @@ class Log {
         LogGroup.system,
         LogGroup.music,
         LogGroup.media,
+        LogGroup.book,
       });
 
   /// 快捷访问当前的白名单

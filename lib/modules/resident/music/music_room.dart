@@ -29,7 +29,7 @@ class MusicRoom extends StatefulWidget {
     StageRegistry.register(
       StageContract(
         roomId: roomId,
-        zone: StageZone.main,
+        zone: StageZone.firstFloor_main,
         keepAlive: true,
         builder: (context) => const MusicRoom(),
       ),

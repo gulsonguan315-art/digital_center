@@ -35,27 +35,8 @@ class _SeriesEpisodesViewState extends State<SeriesEpisodesView> {
 
   void _openEpisode(BuildContext context, String id) {
     final roomId = RoomScope.of(context)?.roomId ?? '';
+    MediaService.instance.immersiveParams = MediaImmersiveParams(itemId: id);
     FocusAPI.dispatchAction(roomId, 'media_overlay');
-    Navigator.of(context).push(
-      PageRouteBuilder(
-        opaque: true, // 阻止底层渲染
-        transitionDuration: const Duration(milliseconds: 400),
-        reverseTransitionDuration: const Duration(milliseconds: 300),
-        pageBuilder: (ctx, anim1, anim2) => FadeTransition(
-          opacity: anim1,
-          child: ScaleTransition(
-            scale: Tween<double>(begin: 0.9, end: 1.0).animate(
-              CurvedAnimation(
-                parent: anim1,
-                curve: Curves.easeOutCubic,
-                reverseCurve: Curves.easeInCubic,
-              ),
-            ),
-            child: MediaImmersiveOverlay(itemId: id),
-          ),
-        ),
-      ),
-    );
   }
 
   @override

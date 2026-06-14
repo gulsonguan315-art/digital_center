@@ -8,7 +8,8 @@ import 'building_map.dart';
 import '../../stage/stage_manager.dart';
 
 class SuperInteractionManager {
-  static final SuperInteractionManager instance = SuperInteractionManager._internal();
+  static final SuperInteractionManager instance =
+      SuperInteractionManager._internal();
   SuperInteractionManager._internal();
 
   /// 焦点系统的 RAM (内存单元)
@@ -72,12 +73,14 @@ class SuperInteractionManager {
   }
 
   void requestNextTransition(FocusTransitionMode mode, {Duration? delay}) {
+    // Debug print removed
     state.nextTransition = FocusTransitionConfig(mode, delay: delay);
   }
 
   FocusTransitionConfig? consumeNextTransition() {
     final config = state.nextTransition;
     state.nextTransition = null;
+    // Debug print removed
     return config;
   }
 
@@ -160,7 +163,7 @@ class SuperInteractionManager {
   void onBack(BuildContext context) => onBackCommand();
 
   void onPointerEnter(String targetId) => _controller.onPointerEnter(targetId);
-  
+
   void onPointerClick(String targetId) {
     if (StageManager.instance.isTransitioning.value) return;
     _controller.onPointerClick(targetId);

@@ -22,7 +22,7 @@ class BookRoom extends StatefulWidget {
     StageRegistry.register(
       StageContract(
         roomId: roomId,
-        zone: StageZone.main,
+        zone: StageZone.firstFloor_main,
         keepAlive: true,
         builder: (context) => const BookRoom(),
       ),
@@ -57,10 +57,10 @@ class _BookRoomState extends State<BookRoom> {
               final isTransitioning =
                   StageManager.instance.isTransitioning.value;
 
-              // 页面不活跃且未在进入意图中，且没有转场动画在播放时，跳过渲染节省 GPU
-              if (!isActive && !isEntering && !isTransitioning) {
-                return const SizedBox.shrink();
-              }
+              // 移除了 SizedBox.shrink() 激进卸载。
+              // 因为 StageView 已经使用了 Offstage + TickerMode 来包裹非活跃房间，
+              // 这已经足够阻断重绘和动画以节省 GPU。
+              // 如果强制 shrink 卸载，会导致内部的所有 FocusNode 销毁，从而破坏传送门弹栈（Portal Return）时的焦点记忆！
 
               // 判断是否有合集展开
               String? expandedSeriesId;

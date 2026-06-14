@@ -22,7 +22,7 @@ class PoetryOverlayRoom extends StatelessWidget {
     StageRegistry.register(
       StageContract(
         roomId: roomId,
-        zone: StageZone.overlay,
+        zone: StageZone.thirdFloor_overlay,
         keepAlive: false,
         builder: (context) => const PoetryOverlayRoom(),
       ),

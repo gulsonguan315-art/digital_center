@@ -103,16 +103,17 @@ class MyApp extends StatelessWidget {
             final gridContext = GridContext.fromViewport(viewportSize);
             final gridTokens = GridTokens.fromContext(gridContext);
 
-            Widget appBody = Focus(
-              debugLabel: 'GlobalDeviceInputGuard',
-              descendantsAreFocusable: true,
-              autofocus: true,
-              // 利用 Flutter 事件冒泡：TextField 等原生输入组件先消费自己的按键，
-              // 未消费的才冒泡到这里，由 DeviceManager 翻译为 InputSignal 下发焦点系统。
-              onKeyEvent: (node, event) =>
-                  SuperInputManager.instance.handleRootKeyEvent(node, event),
-              child: FocusTraversalGroup(
-                policy: SuperFocusManager.instance.policy,
+            Widget appBody = ExcludeSemantics(
+              child: Focus(
+                debugLabel: 'GlobalDeviceInputGuard',
+                descendantsAreFocusable: true,
+                autofocus: true,
+                // 利用 Flutter 事件冒泡：TextField 等原生输入组件先消费自己的按键，
+                // 未消费的才冒泡到这里，由 DeviceManager 翻译为 InputSignal 下发焦点系统。
+                onKeyEvent: (node, event) =>
+                    SuperInputManager.instance.handleRootKeyEvent(node, event),
+                child: FocusTraversalGroup(
+                  policy: SuperFocusManager.instance.policy,
                 child: GridScope(
                   gridContext: gridContext,
                   gridTokens: gridTokens,
@@ -121,7 +122,7 @@ class MyApp extends StatelessWidget {
                   ),
                 ),
               ),
-            );
+            ));
 
             // 如果是沉浸模式，说明通常是在无桌面/Kiosk环境下运行（如数字大屏），
             // 将整个 APP 强制设为无鼠标指针状态，避免屏幕中间一直有个鼠标。

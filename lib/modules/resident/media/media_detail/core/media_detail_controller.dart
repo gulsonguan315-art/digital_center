@@ -9,31 +9,23 @@ class MediaDetailController extends ChangeNotifier {
   bool isLoading = true;
   bool isError = false;
 
-  /// 续播信息：下一集 item id（剧集返回 NextUp，电影返回自身）
-  String? resumeItemId;
-
-  /// 续播起始位置（ticks），0 = 从头播
-  int resumePositionTicks = 0;
-
-  /// 是否从 NextUp 成功解析出“继续观看”上下文（对剧集很有用）。
-  /// 即使 NextUp 返回的单集当前 positionTicks == 0（比如刚好看完上一集），
-  /// 只要 Jellyfin 认为这个是“下一集要看”的，就应该显示“续播”按钮。
-  bool _nextUpResolved = false;
-
-  /// 是否有历史进度（决定按钮文字：续播 vs 播放）
-  /// 对于剧集：只要成功拿到 NextUp（表示用户有观看历史），就视为有“续播”语义。
-  bool get hasResume => resumePositionTicks > 0 || _nextUpResolved;
-
   List<Map<String, dynamic>> processedPeople = [];
+
+  bool _isDisposed = false;
+
+  @override
+  void dispose() {
+    _isDisposed = true;
+    super.dispose();
+  }
 
   MediaDetailController(this.itemId) {
     _fetchDetails();
   }
 
   Future<void> _fetchDetails() async {
-    _nextUpResolved = false;
     isLoading = true;
-    notifyListeners();
+    if (!_isDisposed) notifyListeners();
 
     try {
       Log.d(LogGroup.media, '🔍 [Detail] 开始获取详情: $itemId');
@@ -42,19 +34,9 @@ class MediaDetailController extends ChangeNotifier {
         _rawDetails = details;
         _processPeople();
         Log.d(LogGroup.media, '✅ [Detail] 详情获取成功: type=$type, title=$title');
-        if (type == 'Series') {
-          await _fetchNextUp();
-        } else {
-          // 电影：读取自身进度
-          final userData = details['UserData'] as Map<String, dynamic>?;
-          resumePositionTicks =
-              (userData?['PlaybackPositionTicks'] as int?) ?? 0;
-          resumeItemId = itemId;
-          final resumeSecs = resumePositionTicks ~/ 10000000;
-          Log.d(
-            LogGroup.media,
-            '🎬 [Detail] 电影进度: resumePositionTicks=$resumePositionTicks (约${resumeSecs}s), hasResume=$hasResume',
-          );
+        if (type == 'Movie') {
+          // 电影：如果需要，可以预加载电影自身的进度，但现在统统交由点击后解析
+          Log.d(LogGroup.media, '🎬 [Detail] 电影详情已加载');
         }
       } else {
         isError = true;
@@ -65,40 +47,50 @@ class MediaDetailController extends ChangeNotifier {
       Log.d(LogGroup.media, '❌ [Detail] _fetchDetails 异常: $e');
     } finally {
       isLoading = false;
-      notifyListeners();
+      if (!_isDisposed) notifyListeners();
     }
   }
 
-  Future<void> _fetchNextUp() async {
+  /// 动态解析播放目标（点击播放/续播按钮时调用）
+  /// [fromBeginning]: 若为 true，则强制从头播放（跳过续播查询，直接获取第一集或将进度清零）
+  Future<Map<String, dynamic>?> resolvePlaybackData({bool fromBeginning = false}) async {
     try {
-      Log.d(LogGroup.media, '🔍 [Detail] 查询 NextUp: seriesId=$itemId');
-      final nextUp = await MediaService.instance.fetchNextUp(itemId);
-      if (nextUp != null) {
-        resumeItemId = nextUp['Id'] as String?;
-        final episodeName = nextUp['Name'] as String? ?? '未知';
-        final seasonIndex = nextUp['ParentIndexNumber'] as int? ?? 0;
-        final episodeIndex = nextUp['IndexNumber'] as int? ?? 0;
-        final userData = nextUp['UserData'] as Map<String, dynamic>?;
-        resumePositionTicks = (userData?['PlaybackPositionTicks'] as int?) ?? 0;
-        _nextUpResolved = true; // 关键：只要 NextUp 命中，就认为有系列观看上下文
-        final resumeSecs = resumePositionTicks ~/ 10000000;
-        Log.d(
-          LogGroup.media,
-          '▶️ [Detail] NextUp 命中: S${seasonIndex}E${episodeIndex} "$episodeName" (id=$resumeItemId), '
-          'positionTicks=$resumePositionTicks (约${resumeSecs}s), hasResume=$hasResume, _nextUpResolved=$_nextUpResolved',
-        );
-        return;
+      if (type == 'Movie') {
+        if (fromBeginning) {
+          return {'id': itemId, 'ticks': 0};
+        }
+        final details = await MediaService.instance.fetchItemDetails(itemId);
+        final userData = details?['UserData'] as Map<String, dynamic>?;
+        final ticks = (userData?['PlaybackPositionTicks'] as int?) ?? 0;
+        return {'id': itemId, 'ticks': ticks};
+      } else {
+        if (fromBeginning) {
+          return await _fetchFirstEpisodeData();
+        }
+        
+        Log.d(LogGroup.media, '🔍 [Detail] 动态查询 NextUp: seriesId=$itemId');
+        final nextUp = await MediaService.instance.fetchNextUp(itemId);
+        if (nextUp != null) {
+          final resumeId = nextUp['Id'] as String?;
+          final userData = nextUp['UserData'] as Map<String, dynamic>?;
+          final ticks = (userData?['PlaybackPositionTicks'] as int?) ?? 0;
+          if (resumeId != null) {
+            return {'id': resumeId, 'ticks': ticks};
+          }
+        }
+        Log.d(LogGroup.media, '⚠️ [Detail] NextUp 为空 (未观看 or 已全部看完)，回退到第一集');
+        return await _fetchFirstEpisodeData();
       }
-      Log.d(LogGroup.media, '⚠️ [Detail] NextUp 为空 (未观看 or 已全部看完)，回退到第一集');
-      _nextUpResolved = false;
-      await _fetchFirstEpisode();
     } catch (e) {
-      Log.d(LogGroup.media, '❌ [Detail] _fetchNextUp 异常: $e');
-      await _fetchFirstEpisode();
+      Log.d(LogGroup.media, '❌ [Detail] resolvePlaybackData 异常: $e');
+      if (type == 'Series') {
+        return await _fetchFirstEpisodeData();
+      }
+      return {'id': itemId, 'ticks': 0};
     }
   }
 
-  Future<void> _fetchFirstEpisode() async {
+  Future<Map<String, dynamic>?> _fetchFirstEpisodeData() async {
     try {
       Log.d(LogGroup.media, '🔍 [Detail] 获取第一集: seriesId=$itemId');
       final seasons = await MediaService.instance.fetchSeasons(itemId);
@@ -110,18 +102,18 @@ class MediaDetailController extends ChangeNotifier {
             firstSeasonId,
           );
           if (episodes.isNotEmpty) {
-            resumeItemId = episodes.first['Id'] as String?;
-            resumePositionTicks = 0;
-            _nextUpResolved = false;
-            Log.d(LogGroup.media, '✅ [Detail] 第一集: id=$resumeItemId (从头播放)');
+            final firstEpId = episodes.first['Id'] as String?;
+            if (firstEpId != null) {
+              Log.d(LogGroup.media, '✅ [Detail] 第一集: id=$firstEpId (从头播放)');
+              return {'id': firstEpId, 'ticks': 0};
+            }
           }
         }
-      } else {
-        Log.d(LogGroup.media, '⚠️ [Detail] 没有找到任何季数');
       }
     } catch (e) {
-      Log.d(LogGroup.media, '❌ [Detail] _fetchFirstEpisode 异常: $e');
+      Log.d(LogGroup.media, '❌ [Detail] _fetchFirstEpisodeData 异常: $e');
     }
+    return null;
   }
 
   // 原始数据暴露给特定的子视图（如剧集视图需要深入解析 Season/Episode）
@@ -163,7 +155,7 @@ class MediaDetailController extends ChangeNotifier {
 
   String get type => _rawDetails?['Type'] as String? ?? '';
 
-  String? get playItemId => resumeItemId;
+  String? get playItemId => itemId;
 
   // 算法抽离：过滤无头像人员、去重、优先级排序、截断前 15 人
   void _processPeople() {

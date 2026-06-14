@@ -27,7 +27,17 @@ class _FloatingHighlightBoxState extends State<FloatingHighlightBox>
   BuildContext? _currentTrackingContext;
   bool _isTransitioning = false;
   Timer? _transitionTimer;
-  _TeleportState _teleportState = _TeleportState.idle;
+  _TeleportState __teleportState = _TeleportState.idle;
+  
+  _TeleportState get _teleportState => __teleportState;
+  
+  set _teleportState(_TeleportState value) {
+    if (__teleportState != value) {
+      // Debug: _teleportState mutation removed
+      // Uncomment to trace: print(StackTrace.current);
+      __teleportState = value;
+    }
+  }
   bool _isWaiting = false;
   double _dashPhase = 0.0;
 
@@ -44,12 +54,16 @@ class _FloatingHighlightBoxState extends State<FloatingHighlightBox>
     SuperFocusManager.instance.cursorWaitingNotifier.addListener(
       _handleWaitingUpdate,
     );
+    SuperFocusManager.instance.intentionRoomId.addListener(
+      _handleWaitingUpdate,
+    );
   }
 
   @override
   void dispose() {
     _ticker.dispose();
     _transitionTimer?.cancel();
+    _idleTimer?.cancel();
     SuperFocusManager.instance.cursorReportNotifier.removeListener(
       _handleServiceUpdate,
     );
@@ -59,42 +73,73 @@ class _FloatingHighlightBoxState extends State<FloatingHighlightBox>
     SuperFocusManager.instance.cursorWaitingNotifier.removeListener(
       _handleWaitingUpdate,
     );
+    SuperFocusManager.instance.intentionRoomId.removeListener(
+      _handleWaitingUpdate,
+    );
     super.dispose();
   }
 
   void _handleWaitingUpdate() {
     if (mounted) {
       setState(() {
-        _isWaiting = SuperFocusManager.instance.cursorWaitingNotifier.value;
+        _isWaiting = SuperFocusManager.instance.cursorWaitingNotifier.value ||
+            SuperFocusManager.instance.intentionRoomId.value != null;
       });
     }
   }
+
+  Timer? _idleTimer;
 
   void _handleServiceUpdate() {
     final report = SuperFocusManager.instance.cursorReportNotifier.value;
     if (report?.context != _currentTrackingContext) {
       _currentTrackingContext = report?.context;
-      
+
       if (report?.transitionMode == FocusTransitionMode.teleport) {
         _teleportState = _TeleportState.waiting;
-        final delay = report?.teleportDelay ?? const Duration(milliseconds: 200);
-        
+        SuperFocusManager.instance.state.cursorTeleportingNotifier.value = true;
+        final delay =
+            report?.teleportDelay ?? const Duration(milliseconds: 200);
+
+        // Debug: Entering teleport waiting state removed
+
+        // --- DIAGNOSTIC TIMER ---
+        int ticks = 0;
+        Timer.periodic(const Duration(milliseconds: 100), (timer) {
+          ticks++;
+          if (ticks > (delay.inMilliseconds ~/ 100)) {
+            timer.cancel();
+            return;
+          }
+          final isVisible = _liveRect != null;
+          final isTeleportVisible = _teleportState != _TeleportState.waiting;
+          final opacity = (isVisible && isTeleportVisible) ? 1.0 : 0.0;
+          // Debug: Cursor tick removed
+        });
+        // ------------------------
+
         _transitionTimer?.cancel();
+        _idleTimer?.cancel();
         _transitionTimer = Timer(delay, () {
+          // Debug: Teleport waiting finished removed
           if (mounted) {
             setState(() => _teleportState = _TeleportState.fadingIn);
-            
+
             // 渐显完成后恢复闲置状态
-            Timer(const Duration(milliseconds: 200), () {
+            _idleTimer = Timer(const Duration(milliseconds: 200), () {
               if (mounted) {
                 setState(() => _teleportState = _TeleportState.idle);
+                SuperFocusManager.instance.state.cursorTeleportingNotifier.value = false;
               }
             });
           }
         });
       } else {
+        // Debug: Entering normal slide transition state removed
+        SuperFocusManager.instance.state.cursorTeleportingNotifier.value = false;
         _isTransitioning = true;
         _transitionTimer?.cancel();
+        _idleTimer?.cancel();
         _transitionTimer = Timer(const Duration(milliseconds: 300), () {
           if (mounted) {
             setState(() => _isTransitioning = false);
@@ -163,7 +208,8 @@ class _FloatingHighlightBoxState extends State<FloatingHighlightBox>
 
       // 从上下文中无依赖地读取滚动策略
       final policyWidget = FocusScrollPolicy.read(report.context!);
-      final EdgeInsets insets = policyWidget?.boundary.asEdgeInsets ?? EdgeInsets.zero;
+      final EdgeInsets insets =
+          policyWidget?.boundary.asEdgeInsets ?? EdgeInsets.zero;
 
       // 将 policy 的 insets 转换为针对该视口的内缩
       final Rect safeRect = Rect.fromLTRB(
@@ -179,8 +225,14 @@ class _FloatingHighlightBoxState extends State<FloatingHighlightBox>
       }
 
       // 确保 clamp 的 max 永远大于等于 min，防止超大组件反向吞噬报错
-      double maxLeft = math.max(safeRect.left, safeRect.right - targetRect.width);
-      double maxTop = math.max(safeRect.top, safeRect.bottom - targetRect.height);
+      double maxLeft = math.max(
+        safeRect.left,
+        safeRect.right - targetRect.width,
+      );
+      double maxTop = math.max(
+        safeRect.top,
+        safeRect.bottom - targetRect.height,
+      );
 
       // ！！！核心优化：只在能够滚动的轴上施加空气墙钳制！！！
       // 如果某轴不可滚动（比如垂直瀑布流的横向），钳制会导致游标脱离卡片物理位置
@@ -195,10 +247,10 @@ class _FloatingHighlightBoxState extends State<FloatingHighlightBox>
       }
 
       targetRect = Rect.fromLTWH(
-        clampedLeft, 
-        clampedTop, 
-        targetRect.width, 
-        targetRect.height
+        clampedLeft,
+        clampedTop,
+        targetRect.width,
+        targetRect.height,
       );
     }
 
@@ -317,7 +369,7 @@ class _FocusOutlinePainter extends CustomPainter {
 
     final rect = Offset.zero & size;
     final outlinePath = geometry.buildOutlinePath(rect);
-    
+
     Path renderPath;
     if (isWaiting) {
       // 提取虚线轮廓

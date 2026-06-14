@@ -44,6 +44,20 @@ abstract class FocusAPI {
     SuperFocusManager.instance.requestNextTransition(mode, delay: delay);
   }
 
+  /// 当前是否处于网络数据加载期（虚线转圈状态），可用于拦截输入
+  static bool get isCursorWaiting =>
+      SuperFocusManager.instance.cursorWaitingNotifier.value;
+
+  /// 当前是否处于全局游标隐身转场期（Teleport等），可用于拦截输入
+  static bool get isCursorTeleporting =>
+      SuperFocusManager.instance.state.cursorTeleportingNotifier.value;
+
+  /// 判断当前输入系统是否应该处于锁定状态
+  static bool get isInputLocked =>
+      isCursorWaiting ||
+      isCursorTeleporting ||
+      SuperFocusManager.instance.intentionRoomId.value != null;
+
   /// 手动请求返回
   static void dispatchBack(BuildContext context) {
     SuperFocusManager.instance.onBack(context);

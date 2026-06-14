@@ -38,6 +38,7 @@ class SettingPageModel {
   static const String logSystemId = 'log_system';
   static const String logMusicId = 'log_music';
   static const String logMediaId = 'log_media';
+  static const String logBookId = 'log_book';
 
   // --- Group Titles ---
   static const String themeGroupTitle = 'THEME SETTING';
@@ -150,6 +151,11 @@ class SettingPageModel {
       value: 'Media',
       label: 'MEDIA',
       id: logMediaId,
+    ),
+    SelectOption(
+      value: 'Book',
+      label: 'BOOK',
+      id: logBookId,
     ),
   ];
 }

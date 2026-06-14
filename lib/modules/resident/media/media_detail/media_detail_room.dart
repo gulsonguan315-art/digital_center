@@ -51,7 +51,7 @@ class _MediaDetailRoomState extends State<MediaDetailRoom> {
       id: widget.roomId,
       transitionConfig: const FocusTransitionConfig(
         FocusTransitionMode.teleport,
-        delay: Duration(milliseconds: 500),
+        delay: Duration(milliseconds: 350),
       ),
       child: ThemeIdentity(
         role: ThemeRole.appBackground,
@@ -92,7 +92,8 @@ class _MediaDetailRoomState extends State<MediaDetailRoom> {
                         backdropUrl,
                         fit: BoxFit.cover,
                         alignment: Alignment.topCenter,
-                        errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
+                        errorBuilder: (context, error, stackTrace) =>
+                            const SizedBox.shrink(),
                       ),
                     ),
 
@@ -160,16 +161,21 @@ class _MediaDetailRoomState extends State<MediaDetailRoom> {
                               ),
                             ),
                           ),
-                          
+
                           // 第二屏及以下：动态内容区
                           SliverToBoxAdapter(
                             child: _controller.type == 'Series'
-                                ? SeriesDetailView(seriesId: widget.itemId, details: _controller.rawDetails!)
+                                ? SeriesDetailView(
+                                    seriesId: widget.itemId,
+                                    details: _controller.rawDetails!,
+                                  )
                                 : MovieDetailView(controller: _controller),
                           ),
-                          
+
                           // 底部留白
-                          SliverToBoxAdapter(child: SizedBox(height: grid.units(10))),
+                          SliverToBoxAdapter(
+                            child: SizedBox(height: grid.units(10)),
+                          ),
                         ],
                       ),
                     ),

@@ -24,16 +24,16 @@ class BuildingPage extends StatelessWidget {
             child: Stack(
               children: [
                 // 舞台区：由商管系统 (StageView) 内部自动调度，在底层铺满全屏
+                // 将 Sidebar 作为中间层注入，实现完美的三明治 Z 轴层级
                 const Positioned.fill(
-                  child: StageView(),
-                ),
-                
-                // 侧边栏：内部自带 Room 和监听，在顶层悬浮覆盖
-                const Positioned(
-                  left: 0,
-                  top: 0,
-                  bottom: 0,
-                  child: SidebarRoom(),
+                  child: StageView(
+                    sidebar: Positioned(
+                      left: 0,
+                      top: 0,
+                      bottom: 0,
+                      child: SidebarRoom(),
+                    ),
+                  ),
                 ),
               ],
             ),

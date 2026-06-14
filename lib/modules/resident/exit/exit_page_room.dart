@@ -14,7 +14,7 @@ class ExitPageRoom extends StatelessWidget {
     StageRegistry.register(
       StageContract(
         roomId: roomId,
-        zone: StageZone.main,
+        zone: StageZone.firstFloor_main,
         keepAlive: false,
         builder: (context) => const ExitPageRoom(),
       ),

@@ -6,11 +6,27 @@ import '../../../core/data/repositories/media_repository.dart';
 /// 异步加载状态枚举
 enum MediaLoadState { idle, loading, loaded, error }
 
+class MediaImmersiveParams {
+  final String itemId;
+  final String? mediaType;
+  final int startPositionTicks;
+  final bool forceStartOver;
+
+  MediaImmersiveParams({
+    required this.itemId,
+    this.mediaType,
+    this.startPositionTicks = 0,
+    this.forceStartOver = false,
+  });
+}
+
 /// 🌍 影视服务中心 (Application-level Media Service)
 /// 管理分类选择状态、条目列表，并通过 MediaRepository SWR 流实现本地优先秒出 + 后台静默更新。
 class MediaService extends ChangeNotifier {
   static final MediaService instance = MediaService._();
   MediaService._();
+
+  MediaImmersiveParams? immersiveParams;
 
   // ---------------------------------------------------------------------------
   // 状态
