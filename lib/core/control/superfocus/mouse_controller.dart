@@ -101,9 +101,15 @@ class MouseController extends BaseInteractionController {
       final newPath = <String>{};
       _fillAncestorPath(roomId, newPath);
 
+      final Set<String> logicalPath = Set.from(newPath);
+      for (final entry in state.portalStack) {
+        _fillAncestorPath(entry.returnTo, logicalPath);
+      }
+
       state.topologyNotifier.value = FocusTopology(
         activeRoom: roomId,
         activePath: newPath,
+        logicalPath: logicalPath,
       );
 
       final deactivated = oldPath.difference(newPath);

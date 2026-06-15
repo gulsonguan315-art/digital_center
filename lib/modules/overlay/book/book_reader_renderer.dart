@@ -20,8 +20,14 @@ class BookReaderRenderer extends StatelessWidget {
   const BookReaderRenderer({super.key});
 
   String _cleanHtmlText(String html) {
+    // 0. 彻底移除整个 <head> 头部区域（包括其中的 <title>、<style> 等所有内容）
+    String text = html.replaceAll(
+      RegExp(r'<head\b[^>]*>([\s\S]*?)</head>', caseSensitive: false),
+      '',
+    );
+
     // 1. 移除 HTML 源码中的原生换行（在 HTML 中只等价于空格）
-    String text = html.replaceAll(RegExp(r'\r?\n'), ' ');
+    text = text.replaceAll(RegExp(r'\r?\n'), ' ');
 
     // 1.5. 移除所有的超链接注释标签及内容 (如 <a href="...">1</a>)
     text = text.replaceAll(

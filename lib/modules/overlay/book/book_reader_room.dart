@@ -36,13 +36,7 @@ class _BookReaderRoomState extends State<BookReaderRoom> {
         backgroundColor: Colors.black, // 纯黑底色，和 Media 保持一致
         body: SuperFocusRoom(
           id: BookModel.bookOverlayId,
-          child: const Stack(
-            children: [
-              Positioned.fill(child: BookReaderView()),
-              // 约束保护：强制空气节点用 Positioned.fill 包裹
-              Positioned.fill(child: SuperFocusAirNode()),
-            ],
-          ),
+          child: const BookReaderView(),
         ),
       ),
     );

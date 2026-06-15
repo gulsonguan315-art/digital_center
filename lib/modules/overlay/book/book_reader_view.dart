@@ -95,13 +95,22 @@ class _BookReaderViewState extends State<BookReaderView> {
                 ),
               ),
               
+              // 约束保护：空气节点置于阅读正文之上、控制面板之下，既可接收空白处点击，又不会遮挡控制面板
+              const Positioned.fill(child: SuperFocusAirNode()),
+              
               if (hasActiveOverlay) ...[
                 Positioned.fill(
-                  child: ClipRect(
-                    child: BackdropFilter(
-                      filter: ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.0),
-                      child: Container(
-                        color: Colors.black.withValues(alpha: 0.15), // 稍微调暗，提升对比度
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.translucent,
+                    onTap: () {
+                      FocusAPI.dispatchBackCommand();
+                    },
+                    child: ClipRect(
+                      child: BackdropFilter(
+                        filter: ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.0),
+                        child: Container(
+                          color: Colors.black.withValues(alpha: 0.15), // 稍微调暗，提升对比度
+                        ),
                       ),
                     ),
                   ),
