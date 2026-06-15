@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:superfocus/core/control/superfocus/interaction_state.dart';
+import 'package:superfocus/core/control/superfocus/core/interaction_state.dart';
 import '../../../../core/control/superfocus/focus_api.dart';
 import '../../../../core/engine/theme/theme_api.dart';
-import '../../../../core/control/superfocus/focus_scroll_policy.dart';
+import 'package:superfocus/core/control/superfocus/scroll/focus_scroll_policy.dart';
 import '../../../../core/layout/grid/grid.dart';
 import 'core/media_detail_controller.dart';
 import 'views_components/hero_metadata_view.dart';

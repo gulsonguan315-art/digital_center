@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../../../core/engine/theme/theme_api.dart';
 import '../../../../../core/data/models/media_item.dart';
-import '../../../../../core/control/superfocus/focus_scroll_policy.dart';
+import 'package:superfocus/core/control/superfocus/scroll/focus_scroll_policy.dart';
 import '../../../../../core/control/superfocus/focus_api.dart';
 import '../media_callback.dart';
 import '../../media_service.dart';

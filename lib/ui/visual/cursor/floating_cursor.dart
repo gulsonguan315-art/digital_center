@@ -4,11 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/scheduler.dart';
 import 'dart:math' as math;
-import '../../../core/control/superfocus/focus_scroll_policy.dart';
-import '../../../core/control/superfocus/interaction_manager.dart';
+import 'package:superfocus/core/control/superfocus/scroll/focus_scroll_policy.dart';
+import 'package:superfocus/core/control/superfocus/core/interaction_manager.dart';
 import '../../../core/engine/theme/theme_api.dart';
-import '../../../core/control/superfocus/focus_geometry.dart';
-import '../../../core/control/superfocus/focus_report.dart';
+import 'package:superfocus/core/control/superfocus/navigation/focus_geometry.dart';
+import 'package:superfocus/core/control/superfocus/navigation/focus_report.dart';
 
 class FloatingHighlightBox extends StatefulWidget {
   const FloatingHighlightBox({super.key});

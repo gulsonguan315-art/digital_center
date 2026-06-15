@@ -1,11 +1,11 @@
 import 'package:flutter/widgets.dart';
-import 'package:superfocus/core/control/superfocus/interaction_manager.dart';
-import 'interaction_controller.dart';
-import 'interaction_state.dart';
-import 'scoped_2d_scanner.dart';
-import 'building_map.dart';
-import '../../log/log_api.dart';
-import 'auto_scroll_dispatcher.dart';
+import 'package:superfocus/core/control/superfocus/core/interaction_manager.dart';
+import 'package:superfocus/core/control/superfocus/core/interaction_controller.dart';
+import 'package:superfocus/core/control/superfocus/core/interaction_state.dart';
+import 'package:superfocus/core/control/superfocus/navigation/scoped_2d_scanner.dart';
+import 'package:superfocus/core/control/superfocus/topology/building_map.dart';
+import '../../../log/log_api.dart';
+import 'package:superfocus/core/control/superfocus/scroll/auto_scroll_dispatcher.dart';
 
 mixin FocusTraceLogger {
   void logCancel(String? target) {
@@ -269,6 +269,7 @@ class FocusController extends BaseInteractionController with FocusTraceLogger {
     }
   }
 
+  @override
   void onRoomEnter(String roomId, {bool printLog = true, Rect? heroRect}) {
     if (currentRoomId != roomId) {
       final oldPath = state.topologyNotifier.value.activePath;
@@ -391,6 +392,7 @@ class FocusController extends BaseInteractionController with FocusTraceLogger {
     }
   }
 
+  @override
   void onAction(String sourceRoom, String id, {bool asTerminalRoom = false}) {
     _actionDispatched = true;
     _pendingHeroRect = state.cursorReportNotifier.value?.rect; // 🌟 抓取跳跃源点

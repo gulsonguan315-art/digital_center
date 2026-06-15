@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../core/control/superfocus/focus_api.dart';
-import '../../../core/control/superfocus/interaction_manager.dart';
-import '../../../core/control/superfocus/building_map.dart';
+import 'package:superfocus/core/control/superfocus/core/interaction_manager.dart';
+import 'package:superfocus/core/control/superfocus/topology/building_map.dart';
 import '../../../core/stage/stage_manager.dart';
 import '../media/media_service.dart';
 import '../book/book_service.dart';

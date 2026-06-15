@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 
-import '../../../core/control/superfocus/focus_widgets.dart';
+import 'package:superfocus/core/control/superfocus/widgets/focus_widgets.dart';
 import '../../../core/control/superfocus/focus_api.dart';
 import '../../../../core/engine/theme/theme_api.dart';
 

@@ -3,9 +3,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../../../core/data/data_manager.dart';
 import '../../../core/data/models/poetry_data.dart';
-import '../../../core/control/superfocus/interaction_manager.dart'; // 🌟 引入焦点管理器以触发 backCommand
+import 'package:superfocus/core/control/superfocus/core/interaction_manager.dart'; // 🌟 引入焦点管理器以触发 backCommand
 import '../../../core/control/superfocus/focus_api.dart';
-import '../../../core/control/superfocus/focus_widgets.dart';
+import 'package:superfocus/core/control/superfocus/widgets/focus_widgets.dart';
 import '../../../core/engine/theme/theme_api.dart';
 import '../../../core/stage/stage_contract.dart';
 import '../../../core/stage/stage_models.dart';
@@ -22,7 +22,7 @@ class PoetryOverlayRoom extends StatelessWidget {
     StageRegistry.register(
       StageContract(
         roomId: roomId,
-        zone: StageZone.thirdFloor_overlay,
+        zone: StageZone.thirdFloorOverlay,
         keepAlive: false,
         builder: (context) => const PoetryOverlayRoom(),
       ),

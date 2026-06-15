@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/control/superfocus/focus_api.dart';
-import '../../../core/control/superfocus/interaction_manager.dart';
+import 'package:superfocus/core/control/superfocus/core/interaction_manager.dart';
 import '../../../core/engine/theme/theme_api.dart';
 import '../../../core/engine/audio/app_audio_service.dart';
 import '../../../core/stage/stage_contract.dart';
@@ -29,7 +29,7 @@ class MusicRoom extends StatefulWidget {
     StageRegistry.register(
       StageContract(
         roomId: roomId,
-        zone: StageZone.firstFloor_main,
+        zone: StageZone.firstFloorMain,
         keepAlive: true,
         builder: (context) => const MusicRoom(),
       ),

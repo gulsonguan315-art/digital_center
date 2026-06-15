@@ -1,6 +1,6 @@
 // lib/core/control/superfocus/focus_scroll_engine.dart
 
-import 'focus_alignment.dart';
+import 'package:superfocus/core/control/superfocus/scroll/focus_alignment.dart';
 
 class FocusScrollEngine {
   /// 计算单轴滚动补偿量

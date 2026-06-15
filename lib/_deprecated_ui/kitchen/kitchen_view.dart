@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../ui/base/input/ui_base_button.dart';
-import '../../core/control/superfocus/focus_widgets.dart';
+import 'package:superfocus/core/control/superfocus/widgets/focus_widgets.dart';
 import 'kitchen_room.dart';
 
 class KitchenView extends StatelessWidget {

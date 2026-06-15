@@ -1,12 +1,12 @@
 library focus_api;
 
 import 'package:flutter/material.dart';
-import 'interaction_manager.dart';
-import 'focus_widgets.dart';
-import 'focus_report.dart';
+import 'package:superfocus/core/control/superfocus/core/interaction_manager.dart';
+import 'package:superfocus/core/control/superfocus/widgets/focus_widgets.dart';
+import 'package:superfocus/core/control/superfocus/navigation/focus_report.dart';
 
 // 1. 【暴露组件】
-export 'focus_widgets.dart'
+export 'package:superfocus/core/control/superfocus/widgets/focus_widgets.dart'
     show
         SuperFocusRoom,
         FocusIdentity,
@@ -17,10 +17,10 @@ export 'focus_widgets.dart'
         MouseDismissRegion;
 
 // 2. 【暴露模型】
-export 'interaction_state.dart' show FocusTopology;
-export 'focus_report.dart' show FocusTransitionMode;
-export 'focus_alignment.dart' show FocusAlignment;
-export 'focus_geometry.dart'
+export 'package:superfocus/core/control/superfocus/core/interaction_state.dart' show FocusTopology;
+export 'package:superfocus/core/control/superfocus/navigation/focus_report.dart' show FocusTransitionMode;
+export 'package:superfocus/core/control/superfocus/scroll/focus_alignment.dart' show FocusAlignment;
+export 'package:superfocus/core/control/superfocus/navigation/focus_geometry.dart'
     show FocusGeometry, RoundedRectFocusGeometry, SidebarTileFocusGeometry;
 
 /// 3. 【暴露命令】UI 发号施令的唯一遥控器

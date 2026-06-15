@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../../core/control/superfocus/focus_widgets.dart';
+import 'package:superfocus/core/control/superfocus/widgets/focus_widgets.dart';
 import '../../../../core/engine/theme/theme_api.dart';
 import '../../../../core/stage/stage_contract.dart';
 import '../../../../core/stage/stage_models.dart';
@@ -16,7 +16,7 @@ class BookReaderRoom extends StatefulWidget {
     StageRegistry.register(
       StageContract(
         roomId: BookModel.bookOverlayId,
-        zone: StageZone.thirdFloor_overlay,
+        zone: StageZone.thirdFloorOverlay,
         keepAlive: false,
         builder: (context) => const BookReaderRoom(),
       ),

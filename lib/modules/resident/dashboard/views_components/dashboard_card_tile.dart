@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/control/superfocus/focus_api.dart';
-import '../../../../core/control/superfocus/interaction_manager.dart';
+import 'package:superfocus/core/control/superfocus/core/interaction_manager.dart';
 import '../../../../core/engine/theme/theme_api.dart';
 import '../engine/dashboard_controller.dart';
 import '../engine/dashboard_models.dart';

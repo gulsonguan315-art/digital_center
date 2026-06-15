@@ -1,9 +1,9 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter/rendering.dart';
-import 'focus_scroll_engine.dart';
-import 'focus_scroll_policy.dart';
-import 'focus_alignment.dart';
-import '../../log/log_api.dart';
+import 'package:superfocus/core/control/superfocus/scroll/focus_scroll_engine.dart';
+import 'package:superfocus/core/control/superfocus/scroll/focus_scroll_policy.dart';
+import 'package:superfocus/core/control/superfocus/scroll/focus_alignment.dart';
+import '../../../log/log_api.dart';
 
 class AutoScrollDispatcher {
   /// 确保节点在安全区内，否则触发带有“呼吸回弹”的滚动

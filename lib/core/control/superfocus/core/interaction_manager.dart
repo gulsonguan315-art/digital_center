@@ -1,11 +1,11 @@
 import 'package:flutter/widgets.dart';
-import 'focus_report.dart';
-import 'interaction_state.dart';
-import 'interaction_controller.dart';
-import 'focus_controller.dart';
-import 'mouse_controller.dart';
-import 'building_map.dart';
-import '../../stage/stage_manager.dart';
+import 'package:superfocus/core/control/superfocus/navigation/focus_report.dart';
+import 'package:superfocus/core/control/superfocus/core/interaction_state.dart';
+import 'package:superfocus/core/control/superfocus/core/interaction_controller.dart';
+import 'package:superfocus/core/control/superfocus/core/focus_controller.dart';
+import 'package:superfocus/core/control/superfocus/core/mouse_controller.dart';
+import 'package:superfocus/core/control/superfocus/topology/building_map.dart';
+import '../../../stage/stage_manager.dart';
 
 class SuperInteractionManager {
   static final SuperInteractionManager instance =

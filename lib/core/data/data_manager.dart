@@ -106,7 +106,10 @@ class DataManager {
         'Loaded user settings from persistent storage. Path: $formattedPath, Interaction Mode: ${userSettings.interactionMode}, Poetry: ${endpoints.poetryBaseUrl}, Gonic: ${endpoints.gonicBaseUrl}',
       );
     } catch (e) {
-      print('🚀 [System] Failed to load custom user settings. Using defaults.');
+      Log.d(
+        LogGroup.system,
+        'Failed to load custom user settings. Using defaults: $e',
+      );
       Log.d(
         LogGroup.network,
         'Failed to load custom user settings. Using defaults.',

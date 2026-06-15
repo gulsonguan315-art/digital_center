@@ -1,5 +1,5 @@
 import 'package:flutter/widgets.dart';
-import 'focus_report.dart';
+import 'package:superfocus/core/control/superfocus/navigation/focus_report.dart';
 
 class FocusTopology {
   final String? activeRoom;

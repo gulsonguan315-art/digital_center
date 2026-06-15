@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../core/engine/theme/theme_api.dart';
-import '../../../core/control/superfocus/focus_widgets.dart';
+import 'package:superfocus/core/control/superfocus/widgets/focus_widgets.dart';
 import '../../../core/stage/stage_contract.dart';
 import '../../../core/stage/stage_models.dart';
 import '../../../core/stage/stage_registry.dart';
@@ -23,7 +23,7 @@ class SettingPageRoom extends StatelessWidget {
     StageRegistry.register(
       StageContract(
         roomId: roomId,
-        zone: StageZone.firstFloor_main,
+        zone: StageZone.firstFloorMain,
         keepAlive: false,
         builder: (context) => const SettingPageRoom(),
       ),

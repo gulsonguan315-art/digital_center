@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../core/control/superfocus/focus_widgets.dart';
-import '../../core/control/superfocus/building_map.dart';
+import 'package:superfocus/core/control/superfocus/widgets/focus_widgets.dart';
+import 'package:superfocus/core/control/superfocus/topology/building_map.dart';
 
 /// 健身房主房间 (Standalone Hub)
 class GymRoom extends StatelessWidget {

@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../resident/music/music_service.dart';
-import '../../../core/control/superfocus/focus_widgets.dart';
+import 'package:superfocus/core/control/superfocus/widgets/focus_widgets.dart';
 import '../../../core/control/superfocus/focus_api.dart';
-import '../../../core/control/superfocus/interaction_manager.dart';
+import 'package:superfocus/core/control/superfocus/core/interaction_manager.dart';
 import '../../../core/control/device_manager/device_manager.dart';
 import '../../../core/data/data_manager.dart';
 import 'styles/immersive_scrolling_style.dart';

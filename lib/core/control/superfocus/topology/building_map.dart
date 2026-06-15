@@ -1,5 +1,5 @@
-import 'building_map_data.dart';
-export 'building_map_data.dart';
+import 'package:superfocus/core/control/superfocus/topology/building_map_data.dart';
+export 'package:superfocus/core/control/superfocus/topology/building_map_data.dart';
 
 class BuildingMap {
   static Set<String> get roots => BuildingMapData.roots;

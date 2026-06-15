@@ -21,7 +21,7 @@ class TestPageRoom extends StatelessWidget {
     StageRegistry.register(
       StageContract(
         roomId: roomId,
-        zone: StageZone.firstFloor_main,
+        zone: StageZone.firstFloorMain,
         keepAlive: false,
         builder: (context) => const TestPageRoom(),
       ),

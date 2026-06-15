@@ -1,11 +1,11 @@
 import 'package:flutter/widgets.dart';
-import 'interaction_state.dart';
-import 'interaction_manager.dart';
-import 'focus_geometry.dart';
-import 'focus_report.dart';
-import 'auto_scroll_dispatcher.dart';
-import '../device_manager/device_manager.dart';
-import 'focus_alignment.dart';
+import 'package:superfocus/core/control/superfocus/core/interaction_state.dart';
+import 'package:superfocus/core/control/superfocus/core/interaction_manager.dart';
+import 'package:superfocus/core/control/superfocus/navigation/focus_geometry.dart';
+import 'package:superfocus/core/control/superfocus/navigation/focus_report.dart';
+import 'package:superfocus/core/control/superfocus/scroll/auto_scroll_dispatcher.dart';
+import '../../device_manager/device_manager.dart';
+import 'package:superfocus/core/control/superfocus/scroll/focus_alignment.dart';
 
 typedef FocusShape = RoundedRectFocusGeometry;
 typedef FocusIdentity = SuperFocusItem;

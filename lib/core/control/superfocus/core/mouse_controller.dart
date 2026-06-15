@@ -1,8 +1,8 @@
 import 'package:flutter/widgets.dart';
-import 'interaction_controller.dart';
-import 'interaction_state.dart';
-import 'building_map.dart';
-import '../../log/log_api.dart';
+import 'package:superfocus/core/control/superfocus/core/interaction_controller.dart';
+import 'package:superfocus/core/control/superfocus/core/interaction_state.dart';
+import 'package:superfocus/core/control/superfocus/topology/building_map.dart';
+import '../../../log/log_api.dart';
 
 class MouseController extends BaseInteractionController {
   @override

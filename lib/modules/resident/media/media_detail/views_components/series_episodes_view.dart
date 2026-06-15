@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../../../core/engine/theme/theme_api.dart';
 import '../../../../../core/layout/grid/grid.dart';
 import '../../../../../core/control/superfocus/focus_api.dart';
-import '../../../../../core/control/superfocus/focus_widgets.dart';
+import 'package:superfocus/core/control/superfocus/widgets/focus_widgets.dart';
 import '../../media_service.dart';
 
 class SeriesEpisodesView extends StatefulWidget {

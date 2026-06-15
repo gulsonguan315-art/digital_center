@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'focus_geometry.dart';
+import 'package:superfocus/core/control/superfocus/navigation/focus_geometry.dart';
 
 enum FocusTransitionMode {
   slide,

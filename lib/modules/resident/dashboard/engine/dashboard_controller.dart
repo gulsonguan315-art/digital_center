@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../../../core/data/data_manager.dart';
-import '../../../../core/control/superfocus/interaction_manager.dart';
+import 'package:superfocus/core/control/superfocus/core/interaction_manager.dart';
 import 'dashboard_models.dart';
 import 'dashboard_grid_engine.dart';
 

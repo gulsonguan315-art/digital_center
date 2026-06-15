@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../../core/control/superfocus/focus_api.dart';
-import '../../../../../core/control/superfocus/focus_widgets.dart';
+import 'package:superfocus/core/control/superfocus/widgets/focus_widgets.dart';
 
 class MediaHomeConfirmDialog extends StatelessWidget {
   final VoidCallback onCancel;

@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flutter/widgets.dart';
-import 'interaction_state.dart';
-import '../../log/log_api.dart';
+import 'package:superfocus/core/control/superfocus/core/interaction_state.dart';
+import '../../../log/log_api.dart';
 
 /// 交互控制器基类
 /// 定义了外部系统（如按键、UI 组件）可以触发的标准动作。

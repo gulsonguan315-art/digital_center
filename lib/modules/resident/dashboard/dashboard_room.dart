@@ -19,7 +19,7 @@ class DashboardRoom extends StatelessWidget {
     StageRegistry.register(
       StageContract(
         roomId: roomId,
-        zone: StageZone.firstFloor_main,
+        zone: StageZone.firstFloorMain,
         keepAlive: true,
         builder: (context) => const DashboardRoom(),
       ),

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:superfocus/core/stage/stage_manager.dart';
 import '../control/superfocus/focus_api.dart';
-import '../control/superfocus/interaction_manager.dart';
+import 'package:superfocus/core/control/superfocus/core/interaction_manager.dart';
 import 'stage_models.dart';
 import 'stage_registry.dart';
 import 'stage_physical_frame.dart';
@@ -70,7 +70,7 @@ class _StageViewState extends State<StageView> {
     for (final roomId in neededRoomIds) {
       final contract = StageRegistry.getContract(roomId);
       if (contract != null) {
-        if (contract.zone == StageZone.secondFloor_screen) {
+        if (contract.zone == StageZone.secondFloorScreen) {
           hasSecondFloor = true;
         }
         if (!_suspendedRooms.containsKey(roomId)) {
@@ -158,11 +158,11 @@ class _StageViewState extends State<StageView> {
         heroRect: topology.heroRect,
       );
 
-      if (contract.zone == StageZone.thirdFloor_overlay) {
+      if (contract.zone == StageZone.thirdFloorOverlay) {
         thirdFloorSlots.add(wrappedWidget);
-      } else if (contract.zone == StageZone.secondFloor_screen) {
+      } else if (contract.zone == StageZone.secondFloorScreen) {
         secondFloorSlots.add(wrappedWidget);
-      } else if (contract.zone == StageZone.firstFloor_main) {
+      } else if (contract.zone == StageZone.firstFloorMain) {
         firstFloorSlots.add(wrappedWidget);
       }
     });
@@ -197,7 +197,7 @@ class _StageViewState extends State<StageView> {
       return contract.customTransition!(context, wrapped, isVisible, heroRect);
     }
 
-    if (contract.zone == StageZone.firstFloor_main || contract.zone == StageZone.secondFloor_screen) {
+    if (contract.zone == StageZone.firstFloorMain || contract.zone == StageZone.secondFloorScreen) {
       return StageRoomTransition(isVisible: isVisible, child: wrapped);
     }
 

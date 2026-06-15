@@ -1,7 +1,7 @@
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import '../superfocus/focus_api.dart';
-import '../superfocus/interaction_manager.dart';
+import 'package:superfocus/core/control/superfocus/core/interaction_manager.dart';
 import '../../engine/audio/app_audio_service.dart';
 import '../../log/log_api.dart';
 import 'components/keyboard/keyboard_source.dart';

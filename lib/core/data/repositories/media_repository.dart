@@ -764,6 +764,3 @@ class MediaRepository {
     }
   }
 }
-
-// 工具函数：忽略 Future 返回值（用于显式标记"不等待"）
-void unawaited(Future<void> f) {}

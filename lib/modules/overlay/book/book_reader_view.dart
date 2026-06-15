@@ -1,8 +1,8 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../../../../core/control/superfocus/focus_api.dart';
-import '../../../../core/control/superfocus/focus_widgets.dart';
-import '../../../../core/control/superfocus/interaction_manager.dart';
+import 'package:superfocus/core/control/superfocus/widgets/focus_widgets.dart';
+import 'package:superfocus/core/control/superfocus/core/interaction_manager.dart';
 import '../../../../core/control/device_manager/device_manager.dart';
 import '../../../../core/engine/theme/theme_api.dart';
 import '../../resident/book/book_model.dart';

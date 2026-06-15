@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:superfocus/core/control/superfocus/focus_widgets.dart';
+import 'package:superfocus/core/control/superfocus/widgets/focus_widgets.dart';
 import '../../../../core/control/superfocus/focus_api.dart';
-import '../../../../core/control/superfocus/interaction_manager.dart';
+import 'package:superfocus/core/control/superfocus/core/interaction_manager.dart';
 import '../../../../core/layout/grid/grid.dart';
 import '../core/media_immersive_controller.dart';
 

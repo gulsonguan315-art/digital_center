@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../../../core/engine/theme/theme_api.dart';
 import '../../../../../core/data/models/book_data.dart';
-import '../../../../../core/control/superfocus/focus_scroll_policy.dart';
+import 'package:superfocus/core/control/superfocus/scroll/focus_scroll_policy.dart';
 import '../../../../../core/control/superfocus/focus_api.dart';
 import '../../../../../core/layout/grid/grid_extensions.dart';
 import '../../book_service.dart';
