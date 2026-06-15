@@ -11,6 +11,7 @@ import 'book_reader_renderer.dart';
 import 'views_components/book_chapter_panel.dart';
 import 'views_components/book_control_panel.dart';
 import 'views_components/book_settings_panel.dart';
+import 'views_components/book_reader_header.dart';
 
 class BookReaderView extends StatefulWidget {
   const BookReaderView({super.key});
@@ -20,6 +21,16 @@ class BookReaderView extends StatefulWidget {
 }
 
 class _BookReaderViewState extends State<BookReaderView> {
+  @override
+  void initState() {
+    super.initState();
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+  }
+
   bool _handleLocalInput(InputSignal signal) {
     final isBottomMenuVisible = SuperFocusManager.instance.state.checkIsActive('book_control');
     final isChapterPanelVisible = SuperFocusManager.instance.state.checkIsActive('book_menu');
@@ -34,21 +45,23 @@ class _BookReaderViewState extends State<BookReaderView> {
     } else {
       switch (signal) {
         case InputSignal.down:
-          final sc = BookService.instance.readerController.scrollController;
+          final controller = BookService.instance.readerController;
+          final sc = controller.scrollController;
           if (sc.hasClients) {
-            final fontSize = BookService.instance.readerController.fontSize;
-            final lineHeight = BookService.instance.readerController.lineHeight;
-            final double scrollAmount = fontSize * lineHeight * 3; 
+            final fontSize = controller.fontSize;
+            final lineHeight = controller.lineHeight;
+            final double scrollAmount = fontSize * lineHeight * controller.scrollLines; 
             final target = (sc.offset + scrollAmount).clamp(0.0, sc.position.maxScrollExtent);
             sc.animateTo(target, duration: const Duration(milliseconds: 150), curve: Curves.easeInOut);
           }
           return true;
         case InputSignal.up:
-          final sc = BookService.instance.readerController.scrollController;
+          final controller = BookService.instance.readerController;
+          final sc = controller.scrollController;
           if (sc.hasClients) {
-            final fontSize = BookService.instance.readerController.fontSize;
-            final lineHeight = BookService.instance.readerController.lineHeight;
-            final double scrollAmount = fontSize * lineHeight * 3; 
+            final fontSize = controller.fontSize;
+            final lineHeight = controller.lineHeight;
+            final double scrollAmount = fontSize * lineHeight * controller.scrollLines; 
             final target = (sc.offset - scrollAmount).clamp(0.0, sc.position.maxScrollExtent);
             sc.animateTo(target, duration: const Duration(milliseconds: 150), curve: Curves.easeInOut);
           }
@@ -91,7 +104,14 @@ class _BookReaderViewState extends State<BookReaderView> {
               Positioned.fill(
                 child: Container(
                   color: colors.surface,
-                  child: const BookReaderRenderer(),
+                  child: Column(
+                    children: [
+                      const BookReaderHeader(),
+                      const Expanded(
+                        child: BookReaderRenderer(),
+                      ),
+                    ],
+                  ),
                 ),
               ),
               

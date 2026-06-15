@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:epub_plus/epub_plus.dart';
 import 'package:archive/archive.dart';
@@ -51,6 +50,9 @@ class BookReaderController extends ChangeNotifier {
   String _themeMode = 'default'; // 'default', 'parchment', 'eye_care'
   String get themeMode => _themeMode;
 
+  int _scrollLines = 3; // Number of lines scrolled per Up/Down press
+  int get scrollLines => _scrollLines;
+
   FontWeight get fontWeight {
     return switch (_fontWeightIndex) {
       0 => FontWeight.normal,
@@ -71,6 +73,7 @@ class BookReaderController extends ChangeNotifier {
       _fontWeightIndex = prefs.getInt('book_font_weight_index') ?? 0;
       _lineHeight = prefs.getDouble('book_line_height') ?? 1.8;
       _themeMode = prefs.getString('book_theme_mode') ?? 'default';
+      _scrollLines = prefs.getInt('book_scroll_lines') ?? 3;
       notifyListeners();
     } catch (_) {}
   }
@@ -285,6 +288,15 @@ class BookReaderController extends ChangeNotifier {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('book_theme_mode', _themeMode);
+    } catch (_) {}
+  }
+
+  void adjustScrollLines(int delta) async {
+    _scrollLines = (_scrollLines + delta).clamp(1, 15);
+    notifyListeners();
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt('book_scroll_lines', _scrollLines);
     } catch (_) {}
   }
 }

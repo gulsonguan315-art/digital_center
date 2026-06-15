@@ -142,6 +142,8 @@ class BookSettingsPanel extends StatelessWidget {
     );
   }
 
+
+
   @override
   Widget build(BuildContext context) {
     final colors = context.useTheme().colors;
@@ -270,10 +272,33 @@ class BookSettingsPanel extends StatelessWidget {
                         ),
                         colors: colors,
                       ),
-
-                      const SizedBox(height: 16),
-                      Divider(color: colors.border.withValues(alpha: 0.5)),
-                      const SizedBox(height: 16),
+                      // 3.5. 按键滚动行数
+                      _buildSettingRow(
+                        title: '按键滚动行数',
+                        leftControl: _buildFocusButton(
+                          id: 'scroll_lines_minus',
+                          text: '减小',
+                          icon: Icons.remove,
+                          onPressed: () => controller.adjustScrollLines(-1),
+                          colors: colors,
+                        ),
+                        valueWidget: Text(
+                          '${controller.scrollLines}',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: colors.textPrimary,
+                          ),
+                        ),
+                        rightControl: _buildFocusButton(
+                          id: 'scroll_lines_plus',
+                          text: '增大',
+                          icon: Icons.add,
+                          onPressed: () => controller.adjustScrollLines(1),
+                          colors: colors,
+                        ),
+                        colors: colors,
+                      ),
 
                       // 4. 背景主题
                       Text(

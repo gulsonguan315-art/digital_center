@@ -141,6 +141,8 @@ class BuildingMapData {
       '*font_weight_plus',
       '*line_height_minus',
       '*line_height_plus',
+      '*scroll_lines_minus',
+      '*scroll_lines_plus',
       '*theme_default',
       '*theme_parchment',
       '*theme_eye_care',

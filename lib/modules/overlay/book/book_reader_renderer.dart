@@ -194,100 +194,50 @@ class BookReaderRenderer extends StatelessWidget {
         // 动态主题配色
         Color surfaceColor = colors.surface;
         Color textPrimaryColor = colors.textPrimary;
-        Color textSecondaryColor = colors.textSecondary;
-        Color borderColor = colors.border;
 
         final readerTheme = controller.themeMode;
         if (readerTheme == 'parchment') {
           surfaceColor = const Color(0xFFF4ECD8);
           textPrimaryColor = const Color(0xFF3E2723);
-          textSecondaryColor = const Color(0xFF795548);
-          borderColor = const Color(0xFFD7CCC8);
         } else if (readerTheme == 'eye_care') {
           surfaceColor = const Color(0xFFCCE8CF); // 经典的豆沙绿/护眼绿
           textPrimaryColor = const Color(0xFF1B5E20);
-          textSecondaryColor = const Color(0xFF4CAF50);
-          borderColor = const Color(0xFFA5D6A7);
         }
 
         return Container(
           color: surfaceColor,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  color: textPrimaryColor.withValues(alpha: 0.04),
-                  border: Border(
-                    bottom: BorderSide(
-                      color: borderColor.withValues(alpha: 0.2),
-                      width: 1.0,
-                    ),
-                  ),
-                ),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 48.0,
-                  vertical: 24.0,
-                ),
+          child: SingleChildScrollView(
+            controller: controller.scrollController,
+            physics: const BouncingScrollPhysics(),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 48.0,
+              vertical: 24.0,
+            ),
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 800.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (chapter.ancestors.isNotEmpty) ...[
-                      Text(
-                        chapter.ancestors.join(' · '),
+                  children: elements.map((element) {
+                    if (element is EpubTextElement) {
+                      return Text(
+                        element.text,
                         style: TextStyle(
                           fontFamily: 'LeMiHuiYuan',
-                          fontSize: 16,
-                          color: textSecondaryColor,
-                          fontWeight: FontWeight.w500,
+                          fontSize: controller.fontSize,
+                          fontWeight: controller.fontWeight,
+                          height: controller.lineHeight,
+                          color: textPrimaryColor.withValues(alpha: 0.9),
                         ),
-                      ),
-                      const SizedBox(height: 6),
-                    ],
-                    Text(
-                      chapter.title,
-                      style: TextStyle(
-                        fontFamily: 'LeMiHuiYuan',
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                        color: textPrimaryColor,
-                      ),
-                    ),
-                  ],
+                      );
+                    } else if (element is EpubImageElement) {
+                      return _buildEpubImage(element.src, book, colors);
+                    }
+                    return const SizedBox.shrink();
+                  }).toList(),
                 ),
               ),
-              Expanded(
-                child: SingleChildScrollView(
-                  controller: controller.scrollController,
-                  physics: const BouncingScrollPhysics(),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 48.0,
-                    vertical: 24.0,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: elements.map((element) {
-                      if (element is EpubTextElement) {
-                        return Text(
-                          element.text,
-                          style: TextStyle(
-                            fontFamily: 'LeMiHuiYuan',
-                            fontSize: controller.fontSize,
-                            fontWeight: controller.fontWeight,
-                            height: controller.lineHeight,
-                            color: textPrimaryColor.withValues(alpha: 0.9),
-                          ),
-                        );
-                      } else if (element is EpubImageElement) {
-                        return _buildEpubImage(element.src, book, colors);
-                      }
-                      return const SizedBox.shrink();
-                    }).toList(),
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
         );
       },
