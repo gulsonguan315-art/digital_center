@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 import '../local/local_config_store.dart';
@@ -73,7 +72,9 @@ class MediaRepository {
 
   /// 强制刷新分类 → Library 的映射表（用于启动后配置了 Jellyfin、或之前失败时手动恢复）。
   Future<void> refreshLibraryMappings() async {
+    _cachedEndpoints = null;
     _libraryMap.clear();
+    _memCache.clear();
     await _buildLibraryMapFromViews();
   }
 
@@ -226,7 +227,7 @@ class MediaRepository {
   String streamUrl(String itemId) {
     final ep = _cachedEndpoints;
     if (ep == null || ep.jellyfinBaseUrl.isEmpty) return '';
-    return '${ep.jellyfinBaseUrl}/Videos/$itemId/stream?Static=true&mediaSourceId=$itemId&api_key=${ep.jellyfinToken}';
+    return '${ep.jellyfinBaseUrl}/Videos/$itemId/stream.mkv?Static=true&mediaSourceId=$itemId&api_key=${ep.jellyfinToken}';
   }
 
   /// 获取单个条目的详细数据（用于详情页，不使用缓存）
@@ -471,35 +472,37 @@ class MediaRepository {
           )
           .toList();
 
-      // 对比变化：ID 集合不同视为有更新
+      // 对比变化：检查条目数量、顺序、ID、海报 Tag (Primary ImageTag)、标题、年份等元数据是否有更新
       final oldList = _memCache[category] ?? [];
-      final oldIds = oldList.map((e) => e.id).toSet();
-      final newIds = fresh.map((e) => e.id).toSet();
-      bool hasChange = !setEquals(oldIds, newIds);
-
-      // 兼容旧版本缓存升级：如果旧数据缺失 jellyfinType 字段，强制视为有变化以刷新本地缓存
-      if (!hasChange && oldList.isNotEmpty && fresh.isNotEmpty) {
-        if (oldList.any((e) => e.jellyfinType == null) &&
-            fresh.any((e) => e.jellyfinType != null)) {
-          hasChange = true;
-          Log.d(
-            LogGroup.media,
-            '🔄 [Media] 侦测到旧版本缓存缺失 jellyfinType，强制更新缓存以完成迁移',
-          );
+      bool hasChange = oldList.length != fresh.length;
+      if (!hasChange) {
+        for (int i = 0; i < oldList.length; i++) {
+          final oldItem = oldList[i];
+          final newItem = fresh[i];
+          if (oldItem.id != newItem.id ||
+              oldItem.posterTag != newItem.posterTag ||
+              oldItem.title != newItem.title ||
+              oldItem.year != newItem.year ||
+              oldItem.rating != newItem.rating ||
+              oldItem.genre != newItem.genre ||
+              oldItem.jellyfinType != newItem.jellyfinType) {
+            hasChange = true;
+            break;
+          }
         }
       }
 
       if (hasChange) {
         Log.d(
           LogGroup.media,
-          '🆕 [Media] $category 内容已更新 (旧: ${oldIds.length} 条 → 新: ${fresh.length} 条)',
+          '🆕 [Media] $category 内容/海报已更新 (旧: ${oldList.length} 条 → 新: ${fresh.length} 条)',
         );
         _memCache[category] = fresh;
         _emit(category, fresh);
         // 异步写盘，不阻塞 UI
         unawaited(_localStore.media.writeCache(category, fresh));
       } else {
-        Log.d(LogGroup.media, '✅ [Media] $category 内容无变化，保持缓存');
+        Log.d(LogGroup.media, '✅ [Media] $category 内容与海报无变化，保持缓存');
       }
     } catch (e) {
       Log.d(LogGroup.media, '⚠️ [Media] 后台同步异常 [$category]: $e');

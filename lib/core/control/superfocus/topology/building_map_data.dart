@@ -1,7 +1,8 @@
 /// 大楼树状图配置文件 (Building Map Data)
 /// 这是 UI 层唯一需要手动注册房间的地方。
+///
 /// ## 前缀语法速查
-
+///
 /// | 前缀    | 示例               | 含义                             | FocusScope  |
 /// |---------|--------------------|----------------------------------|-------------|
 /// | `/`     | `/客厅`            | 子房间（独立作用域）              | 独立         |
@@ -55,8 +56,8 @@ class BuildingMapData {
     'media_menu': [
       '/media_menu_speed',
       '/media_menu_skip',
-      '*media_menu_subtitle',
-      '*media_menu_audio',
+      '/media_menu_subtitle',
+      '/media_menu_audio',
     ],
     'media_menu_speed': [
       '*media_menu_speed_back',
@@ -71,6 +72,16 @@ class BuildingMapData {
       '*media_menu_skip_toggle',
       '*media_menu_skip_intro',
       '*media_menu_skip_outro',
+    ],
+    'media_menu_subtitle': [
+      '*media_menu_subtitle_back',
+      '*media_menu_subtitle_off',
+      '/*',
+    ],
+    'media_menu_audio': [
+      '*media_menu_audio_back',
+      '*media_menu_audio_auto',
+      '/*',
     ],
     'media_home_confirm': ['*media_home_cancel', '*media_home_ok'],
 

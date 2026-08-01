@@ -31,11 +31,32 @@ class PlayerEngine {
     this.onEpisodeSwitched,
   }) {
     player = Player();
+    _configureMpvSubtitles();
     player.setVolume(AppAudioService.instance.volume * 100.0);
     videoController = VideoController(player);
     seekController = MediaSeekController(player, interactionStreamController);
     reporter = MediaPlaybackReporter(player);
     currentItemIdNotifier = ValueNotifier(initialItemId);
+  }
+
+  void _configureMpvSubtitles() {
+    if (player.platform is NativePlayer) {
+      final nativePlayer = player.platform as NativePlayer;
+      // 1. 设置优先语言为中文（简中/繁中/Chinese），自动优先选中中文字幕轨
+      nativePlayer.setProperty(
+        'slang',
+        'chs,sc,zh,zh-CN,zh-TW,chi,chinese,eng',
+      );
+      // 2. 设置 Windows 中文字体回退，解决 ASS/SRT 字幕因缺字体导致中文字符乱码或无法渲染
+      nativePlayer.setProperty('sub-font', 'Microsoft YaHei');
+      // 3. 自动识别 GBK / UTF-8 等中文字幕编码
+      nativePlayer.setProperty('sub-codepage', 'auto');
+      // 4. 自动挂载影片内部与外部的所有字幕
+      nativePlayer.setProperty('sub-auto', 'all');
+      // 5. 开启字幕原生显示并保留 ASS 特效字幕原本的样式与定位
+      nativePlayer.setProperty('sub-visibility', 'yes');
+      nativePlayer.setProperty('sub-ass-override', 'no');
+    }
   }
 
   void init({int startPositionTicks = 0}) {

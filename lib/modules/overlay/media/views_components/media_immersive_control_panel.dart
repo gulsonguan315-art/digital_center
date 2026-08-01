@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:media_kit/media_kit.dart';
 import 'package:superfocus/core/control/superfocus/widgets/focus_widgets.dart';
 import '../../../../core/control/superfocus/focus_api.dart';
 import 'package:superfocus/core/control/superfocus/core/interaction_manager.dart';
@@ -69,6 +70,7 @@ class MediaImmersiveControlPanel extends StatelessWidget {
                         ? FontWeight.w700
                         : FontWeight.w500,
                     letterSpacing: 1.0,
+                    decoration: TextDecoration.none,
                   ),
                 ),
               ),
@@ -112,16 +114,24 @@ class MediaImmersiveControlPanel extends StatelessWidget {
         _buildItem(
           grid: grid,
           id: 'media_menu_subtitle',
-          label: '选择字幕 (暂未实现)',
+          label: '选择字幕',
           icon: Icons.subtitles_outlined,
+          trailing: Icon(
+            Icons.chevron_right,
+            color: Colors.white.withValues(alpha: 0.5),
+          ),
           onPressed: () {},
         ),
         SizedBox(height: grid.units(1)),
         _buildItem(
           grid: grid,
           id: 'media_menu_audio',
-          label: '选择音轨 (暂未实现)',
+          label: '选择音轨',
           icon: Icons.audiotrack_rounded,
+          trailing: Icon(
+            Icons.chevron_right,
+            color: Colors.white.withValues(alpha: 0.5),
+          ),
           onPressed: () {},
         ),
       ],
@@ -251,6 +261,200 @@ class MediaImmersiveControlPanel extends StatelessWidget {
     );
   }
 
+  Widget _buildSubtitleMenu(GridContext grid) {
+    final player = controller.playerEngine.player;
+
+    return StreamBuilder<Track>(
+      stream: player.stream.track,
+      initialData: player.state.track,
+      builder: (context, trackSnapshot) {
+        return StreamBuilder<Tracks>(
+          stream: player.stream.tracks,
+          initialData: player.state.tracks,
+          builder: (context, tracksSnapshot) {
+            final tracks =
+                tracksSnapshot.data?.subtitle ?? player.state.tracks.subtitle;
+            final currentTrack =
+                trackSnapshot.data?.subtitle ?? player.state.track.subtitle;
+
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _buildItem(
+                  grid: grid,
+                  id: 'media_menu_subtitle_back',
+                  label: '返回上一级',
+                  icon: Icons.arrow_back_rounded,
+                  onPressed: () {
+                    FocusAPI.dispatchBackCommand();
+                  },
+                ),
+                SizedBox(height: grid.units(2)),
+                Flexible(
+                  child: SingleChildScrollView(
+                    physics: const BouncingScrollPhysics(),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _buildItem(
+                          grid: grid,
+                          id: 'media_menu_subtitle_off',
+                          label: '关闭字幕',
+                          icon: currentTrack == SubtitleTrack.no()
+                              ? Icons.radio_button_checked
+                              : Icons.radio_button_unchecked,
+                          isSelected: currentTrack == SubtitleTrack.no(),
+                          onPressed: () {
+                            player.setSubtitleTrack(SubtitleTrack.no());
+                          },
+                        ),
+                        SizedBox(height: grid.units(1)),
+                        if (tracks.isEmpty)
+                          Padding(
+                            padding:
+                                EdgeInsets.symmetric(vertical: grid.units(2)),
+                            child: Text(
+                              '未检测到字幕轨',
+                              style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.5),
+                                fontSize: grid.units(1.6),
+                                decoration: TextDecoration.none,
+                              ),
+                            ),
+                          )
+                        else
+                          ...tracks.map((track) {
+                            final isSelected = currentTrack == track;
+                            String title = track.title ?? track.language ?? '';
+                            if (title.isEmpty) {
+                              title = '字幕 (${track.id})';
+                            }
+                            return Padding(
+                              padding: EdgeInsets.only(bottom: grid.units(1)),
+                              child: _buildItem(
+                                grid: grid,
+                                id: 'media_menu_subtitle_${track.id}',
+                                label: title,
+                                icon: isSelected
+                                    ? Icons.radio_button_checked
+                                    : Icons.radio_button_unchecked,
+                                isSelected: isSelected,
+                                onPressed: () {
+                                  player.setSubtitleTrack(track);
+                                },
+                              ),
+                            );
+                          }),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildAudioMenu(GridContext grid) {
+    final player = controller.playerEngine.player;
+
+    return StreamBuilder<Track>(
+      stream: player.stream.track,
+      initialData: player.state.track,
+      builder: (context, trackSnapshot) {
+        return StreamBuilder<Tracks>(
+          stream: player.stream.tracks,
+          initialData: player.state.tracks,
+          builder: (context, tracksSnapshot) {
+            final tracks =
+                tracksSnapshot.data?.audio ?? player.state.tracks.audio;
+            final currentTrack =
+                trackSnapshot.data?.audio ?? player.state.track.audio;
+
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _buildItem(
+                  grid: grid,
+                  id: 'media_menu_audio_back',
+                  label: '返回上一级',
+                  icon: Icons.arrow_back_rounded,
+                  onPressed: () {
+                    FocusAPI.dispatchBackCommand();
+                  },
+                ),
+                SizedBox(height: grid.units(2)),
+                Flexible(
+                  child: SingleChildScrollView(
+                    physics: const BouncingScrollPhysics(),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _buildItem(
+                          grid: grid,
+                          id: 'media_menu_audio_auto',
+                          label: '默认音轨',
+                          icon: currentTrack == AudioTrack.auto()
+                              ? Icons.radio_button_checked
+                              : Icons.radio_button_unchecked,
+                          isSelected: currentTrack == AudioTrack.auto(),
+                          onPressed: () {
+                            player.setAudioTrack(AudioTrack.auto());
+                          },
+                        ),
+                        SizedBox(height: grid.units(1)),
+                        if (tracks.isEmpty)
+                          Padding(
+                            padding:
+                                EdgeInsets.symmetric(vertical: grid.units(2)),
+                            child: Text(
+                              '未检测到音轨',
+                              style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.5),
+                                fontSize: grid.units(1.6),
+                                decoration: TextDecoration.none,
+                              ),
+                            ),
+                          )
+                        else
+                          ...tracks.map((track) {
+                            final isSelected = currentTrack == track;
+                            String title = track.title ?? track.language ?? '';
+                            if (title.isEmpty) {
+                              title = '音轨 (${track.id})';
+                            }
+                            return Padding(
+                              padding: EdgeInsets.only(bottom: grid.units(1)),
+                              child: _buildItem(
+                                grid: grid,
+                                id: 'media_menu_audio_${track.id}',
+                                label: title,
+                                icon: isSelected
+                                    ? Icons.radio_button_checked
+                                    : Icons.radio_button_unchecked,
+                                isSelected: isSelected,
+                                onPressed: () {
+                                  player.setAudioTrack(track);
+                                },
+                              ),
+                            );
+                          }),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
   Widget _buildMenuLayer(bool isActive, Widget Function() builder) {
     return IgnorePointer(
       ignoring: !isActive,
@@ -267,58 +471,81 @@ class MediaImmersiveControlPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     final grid = GridContext.fromViewport(MediaQuery.sizeOf(context));
 
-    return Container(
-      width: grid.units(38),
-      padding: EdgeInsets.only(
-        top: grid.units(8),
-        bottom: grid.units(2),
-        left: grid.units(2),
-        right: grid.units(2),
-      ),
-      decoration: BoxDecoration(
-        color: Colors.black,
-        borderRadius: BorderRadius.circular(grid.units(2.5)),
-        border: Border.all(
-          color: Colors.white.withValues(alpha: 0.1),
-          width: 1.0,
+    return Material(
+      type: MaterialType.transparency,
+      child: Container(
+        width: grid.units(38),
+        padding: EdgeInsets.only(
+          top: grid.units(8),
+          bottom: grid.units(2),
+          left: grid.units(2),
+          right: grid.units(2),
         ),
-      ),
-      child: SuperFocusRoom(
-        id: 'media_menu',
-        child: ValueListenableBuilder(
-          valueListenable: SuperFocusManager.instance.topologyNotifier,
-          builder: (context, topology, _) {
-            final isSpeed = SuperFocusManager.instance.state.checkIsActive('media_menu_speed');
-            final isSkip = SuperFocusManager.instance.state.checkIsActive('media_menu_skip');
-            final isMain = !isSpeed && !isSkip;
+        decoration: BoxDecoration(
+          color: Colors.black,
+          borderRadius: BorderRadius.circular(grid.units(2.5)),
+          border: Border.all(
+            color: Colors.white.withValues(alpha: 0.1),
+            width: 1.0,
+          ),
+        ),
+        child: SuperFocusRoom(
+          id: 'media_menu',
+          child: ValueListenableBuilder(
+            valueListenable: SuperFocusManager.instance.topologyNotifier,
+            builder: (context, topology, _) {
+              final isSpeed = SuperFocusManager.instance.state
+                  .checkIsActive('media_menu_speed');
+              final isSkip = SuperFocusManager.instance.state
+                  .checkIsActive('media_menu_skip');
+              final isSubtitle = SuperFocusManager.instance.state
+                  .checkIsActive('media_menu_subtitle');
+              final isAudio = SuperFocusManager.instance.state
+                  .checkIsActive('media_menu_audio');
+              final isMain = !isSpeed && !isSkip && !isSubtitle && !isAudio;
 
-            return Stack(
-              clipBehavior: Clip.none,
-              alignment: Alignment.topCenter,
-              children: [
-                const Positioned.fill(child: SuperFocusAirNode()),
-                _buildMenuLayer(isMain, () => _buildMainMenu(grid)),
-                SuperFocusRoom(
-                  id: 'media_menu_speed',
-                  child: Builder(
-                    builder: (ctx) {
+              return Stack(
+                clipBehavior: Clip.none,
+                alignment: Alignment.topCenter,
+                children: [
+                  const Positioned.fill(child: SuperFocusAirNode()),
+                  _buildMenuLayer(isMain, () => _buildMainMenu(grid)),
+                  SuperFocusRoom(
+                    id: 'media_menu_speed',
+                    child: Builder(builder: (ctx) {
                       final isActive = RoomScope.of(ctx)?.isActive ?? false;
-                      return _buildMenuLayer(isActive, () => _buildSpeedMenu(grid));
-                    }
+                      return _buildMenuLayer(
+                          isActive, () => _buildSpeedMenu(grid));
+                    }),
                   ),
-                ),
-                SuperFocusRoom(
-                  id: 'media_menu_skip',
-                  child: Builder(
-                    builder: (ctx) {
+                  SuperFocusRoom(
+                    id: 'media_menu_skip',
+                    child: Builder(builder: (ctx) {
                       final isActive = RoomScope.of(ctx)?.isActive ?? false;
-                      return _buildMenuLayer(isActive, () => _buildSkipMenu(grid));
-                    }
+                      return _buildMenuLayer(
+                          isActive, () => _buildSkipMenu(grid));
+                    }),
                   ),
-                ),
-              ],
-            );
-          }
+                  SuperFocusRoom(
+                    id: 'media_menu_subtitle',
+                    child: Builder(builder: (ctx) {
+                      final isActive = RoomScope.of(ctx)?.isActive ?? false;
+                      return _buildMenuLayer(
+                          isActive, () => _buildSubtitleMenu(grid));
+                    }),
+                  ),
+                  SuperFocusRoom(
+                    id: 'media_menu_audio',
+                    child: Builder(builder: (ctx) {
+                      final isActive = RoomScope.of(ctx)?.isActive ?? false;
+                      return _buildMenuLayer(
+                          isActive, () => _buildAudioMenu(grid));
+                    }),
+                  ),
+                ],
+              );
+            },
+          ),
         ),
       ),
     );
