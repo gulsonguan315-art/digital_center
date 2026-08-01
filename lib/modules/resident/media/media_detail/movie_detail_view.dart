@@ -19,20 +19,23 @@ class MovieDetailView extends StatelessWidget {
 
     if (people.isEmpty) return const SizedBox.shrink();
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: EdgeInsets.only(left: grid.pageInset + context.units(8.0), right: grid.units(6)),
-          child: Text(
-            '演职人员',
-            style: TextStyle(
-              fontSize: grid.units(2.4),
-              fontWeight: FontWeight.bold,
-              color: material.colors.textPrimary,
+    return Material(
+      type: MaterialType.transparency,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: EdgeInsets.only(left: grid.pageInset + context.units(8.0), right: grid.units(6)),
+            child: Text(
+              '演职人员',
+              style: TextStyle(
+                fontSize: grid.units(2.4),
+                fontWeight: FontWeight.bold,
+                color: material.colors.textPrimary,
+                decoration: TextDecoration.none,
+              ),
             ),
           ),
-        ),
         SizedBox(height: grid.units(2)),
         SizedBox(
           height: grid.units(32), // Height for portrait cards + text
@@ -60,6 +63,7 @@ class MovieDetailView extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
+    ),
+  );
+}
 }

@@ -81,6 +81,7 @@ class PersonPortraitCard extends StatelessWidget {
                       color: material.colors.accent,
                       fontWeight: FontWeight.bold,
                       letterSpacing: 1.0,
+                      decoration: TextDecoration.none,
                     ),
                   ),
                 ),
@@ -94,6 +95,7 @@ class PersonPortraitCard extends StatelessWidget {
                   fontSize: grid.units(1.6),
                   fontWeight: FontWeight.w600,
                   color: material.colors.textPrimary,
+                  decoration: TextDecoration.none,
                 ),
               ),
               // Role
@@ -106,6 +108,7 @@ class PersonPortraitCard extends StatelessWidget {
                   style: TextStyle(
                     fontSize: grid.units(1.4),
                     color: material.colors.textSecondary,
+                    decoration: TextDecoration.none,
                   ),
                 ),
             ],

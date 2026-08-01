@@ -5,6 +5,8 @@ import 'package:superfocus/core/control/superfocus/topology/building_map.dart';
 import '../../../log/log_api.dart';
 
 class MouseController extends BaseInteractionController {
+  bool _actionDispatched = false;
+
   @override
   void init(InteractionState state) {
     super.init(state);
@@ -40,7 +42,17 @@ class MouseController extends BaseInteractionController {
 
   @override
   void onBack() {
-    // 鼠标模式下支持 ESC/返回 退出 Overlay 页面（沿拓扑路径回退）
+    // 优先弹出 Overlay 传送门栈
+    if (state.portalStack.isNotEmpty) {
+      final currentRoom = state.topologyNotifier.value.activeRoom;
+      if (state.portalStack.last.landedIn == currentRoom) {
+        final entry = state.portalStack.removeLast();
+        onRoomEnter(entry.returnTo);
+        return;
+      }
+    }
+
+    // 鼠标模式下支持 ESC/返回 沿拓扑路径回退
     final path = state.topologyNotifier.value.activePath;
     if (path.length > 1) {
       final currentRoom = state.topologyNotifier.value.activeRoom;
@@ -63,22 +75,20 @@ class MouseController extends BaseInteractionController {
 
   @override
   void onPointerClick(String targetId) {
-    // 处理鼠标点击事件，查字典找到对应房间并直接进入，绕过一切父子限制，实现空间瞬移
+    // 处理鼠标点击事件，定位节点并触发关联回调和动作
     final info = state.nodeRegistry[targetId];
     if (info != null) {
-      Log.d(LogGroup.focus, '🖱️ 鼠标瞬间跃迁：点击目标 [$targetId] -> 所属房间 [${info.roomId}]');
+      Log.d(LogGroup.focus, '🖱️ 鼠标点击：目标 [$targetId] -> 所属房间 [${info.roomId}]');
 
-      // 补丁 3：拓扑图的“空间瞬移”垃圾回收 (Topology GC)
-      _topologyGC();
-
-      // 直接进入该房间，刷新 UI 状态
+      // 进入该房间，刷新 UI 拓扑
       onRoomEnter(info.roomId);
 
-      // 根据 BuildingMap 检查并执行可能的拓扑跳转 (例如 Overlay 的传送门)
-      onAction(info.roomId, targetId);
-
-      // 触发目标的动作 (例如 Navigator.push)
+      _actionDispatched = false;
       info.onPressed?.call();
+
+      if (!_actionDispatched) {
+        onAction(info.roomId, targetId);
+      }
     }
   }
 
@@ -135,10 +145,18 @@ class MouseController extends BaseInteractionController {
 
   @override
   void onAction(String sourceRoom, String id, {bool asTerminalRoom = false}) {
+    _actionDispatched = true;
     // 鼠标模式下的空间跳转：直接计算目标房间并跃迁，不产生任何等待状态和动画延迟
     final String? portalTarget = BuildingMap.resolvePortalDestination(sourceRoom, id);
     if (portalTarget != null) {
       Log.d(LogGroup.focus, '🖱️ 鼠标跃迁 (传送门)：[$sourceRoom:$id] -> [Portal:$portalTarget]');
+      state.portalStack.add(
+        PortalEntry(
+          landedIn: portalTarget,
+          returnTo: sourceRoom,
+          returnToFocusNode: null,
+        ),
+      );
       onRoomEnter(portalTarget);
       return;
     }

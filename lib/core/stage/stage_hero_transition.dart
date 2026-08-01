@@ -15,9 +15,15 @@ class StageHeroTransition extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 如果没有源坐标，直接回退为普通显示（虽然不该发生）
+    // 如果没有源坐标，直接回退为普通显示（例如鼠标模式无全局焦点矩形）
     if (heroRect == null) {
-      return Offstage(offstage: !isVisible, child: child);
+      return Offstage(
+        offstage: !isVisible,
+        child: Material(
+          type: MaterialType.transparency,
+          child: child,
+        ),
+      );
     }
 
     // 全屏 Rect（因为目前二楼已经处于独立的无 Padding 全屏层级）

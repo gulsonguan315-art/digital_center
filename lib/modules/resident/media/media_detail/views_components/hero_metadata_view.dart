@@ -64,6 +64,7 @@ class HeroMetadataView extends StatelessWidget {
               fontSize: grid.units(2.2),
               color: material.colors.textSecondary,
               fontWeight: FontWeight.w600,
+              decoration: TextDecoration.none,
             ),
             child: Wrap(
               spacing: grid.units(1.5),
@@ -94,6 +95,7 @@ class HeroMetadataView extends StatelessWidget {
                   fontSize: grid.units(1.8),
                   color: material.colors.textSecondary,
                   height: 1.5,
+                  decoration: TextDecoration.none,
                 ),
               ),
             ),
@@ -183,6 +185,7 @@ class HeroMetadataView extends StatelessWidget {
         color: material.colors.textPrimary,
         height: 1.1,
         letterSpacing: -0.5,
+        decoration: TextDecoration.none,
       ),
     );
   }
@@ -250,6 +253,7 @@ class HeroMetadataView extends StatelessWidget {
                   color: fgColor,
                   fontSize: grid.units(2.2),
                   fontWeight: FontWeight.w600,
+                  decoration: TextDecoration.none,
                 ),
               ),
             ],

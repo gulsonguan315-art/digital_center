@@ -53,9 +53,11 @@ class _MediaDetailRoomState extends State<MediaDetailRoom> {
         FocusTransitionMode.teleport,
         delay: Duration(milliseconds: 350),
       ),
-      child: ThemeIdentity(
-        role: ThemeRole.appBackground,
-        child: Builder(
+      child: Material(
+        type: MaterialType.transparency,
+        child: ThemeIdentity(
+          role: ThemeRole.appBackground,
+          child: Builder(
           builder: (context) {
             final material = context.useTheme();
             final grid = GridContext.fromViewport(MediaQuery.sizeOf(context));
@@ -186,6 +188,7 @@ class _MediaDetailRoomState extends State<MediaDetailRoom> {
           },
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }
