@@ -55,6 +55,7 @@ class MediaRepository {
     // 给 mov / tv 也加上常见名称关键词作为兜底（很多用户会把 Library 起名为“电视剧”“剧集”“电影”等）
     'tv': ['tv', 'show', 'series', '电视剧', '剧集', 'tvshow', 'tvshows', 'shows'],
     'mov': ['movie', 'movies', '电影', '片库'],
+    'adt': ['成人', 'adult', 'jav', 'porn', 'r18', '18+'],
   };
 
   // ---------------------------------------------------------------------------
@@ -122,15 +123,18 @@ class MediaRepository {
           }
         }
 
-        // 2. Name 关键词匹配（现在 mov/tv/ani/doc 都支持名称兜底）
+        // 2. Name 关键词匹配（现在 mov/tv/ani/doc/adt 都支持名称兜底）
         for (final entry in _categoryNameKeywords.entries) {
           if (!_libraryMap.containsKey(entry.key)) {
             for (final kw in entry.value) {
               if (name.contains(kw)) {
                 _libraryMap[entry.key] = id;
-                // 动漫 Library 已单独归入 ani，从 tv 映射中移除（如果误匹配）
-                if (entry.key == 'ani' && _libraryMap['tv'] == id) {
+                // 特定细分分类（ani, doc, adt）如果误占用了主分类（mov, tv），则释放主分类
+                if (entry.key != 'tv' && _libraryMap['tv'] == id) {
                   _libraryMap.remove('tv');
+                }
+                if (entry.key != 'mov' && _libraryMap['mov'] == id) {
+                  _libraryMap.remove('mov');
                 }
                 Log.d(
                   LogGroup.media,
@@ -143,16 +147,35 @@ class MediaRepository {
         }
       }
 
-      // 3. tv 被动漫占用时，重新找第一个 tvshows 非动漫 Library（兜底）
+      // 3. tv 被细分分类占用时，重新找第一个 tvshows 非细分的 Library（兜底）
       if (!_libraryMap.containsKey('tv')) {
         for (final raw in items) {
           final item = raw as Map<String, dynamic>;
           final id = item['Id'] as String? ?? '';
           final type = (item['CollectionType'] as String? ?? '').toLowerCase();
-          final libId = _libraryMap['ani'];
-          if (type == 'tvshows' && id != libId) {
+          if (type == 'tvshows' &&
+              id != _libraryMap['ani'] &&
+              id != _libraryMap['doc'] &&
+              id != _libraryMap['adt']) {
             _libraryMap['tv'] = id;
             Log.d(LogGroup.media, '✅ [Media] 重新绑定 tv Library: $id');
+            break;
+          }
+        }
+      }
+
+      // 4. mov 被细分分类占用时，重新找第一个 movies 非细分的 Library（兜底）
+      if (!_libraryMap.containsKey('mov')) {
+        for (final raw in items) {
+          final item = raw as Map<String, dynamic>;
+          final id = item['Id'] as String? ?? '';
+          final type = (item['CollectionType'] as String? ?? '').toLowerCase();
+          if (type == 'movies' &&
+              id != _libraryMap['ani'] &&
+              id != _libraryMap['doc'] &&
+              id != _libraryMap['adt']) {
+            _libraryMap['mov'] = id;
+            Log.d(LogGroup.media, '✅ [Media] 重新绑定 mov Library: $id');
             break;
           }
         }
@@ -539,6 +562,7 @@ class MediaRepository {
       'tv' => 'Series',
       'ani' => 'Movie,Series', // 动漫可能包含剧场版(Movie)或番剧(Series)
       'doc' => 'Movie,Series', // 纪录片可能被建为 Movie 或 Series 库
+      'adt' => 'Movie,Series', // 成人内容可能包含电影或剧集
       _ => 'Movie', // mov
     };
   }
