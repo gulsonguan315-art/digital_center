@@ -136,12 +136,14 @@ class SuperInputManager {
   }
 
   void _handleSignal(InputSignal signal) {
+    debugPrint('【信号分发】接收到信号: $signal');
     Log.d(LogGroup.system, '信号接收：$signal', subGroup: 'DeviceManager');
 
     // 【全局等待锁】当系统处于关键异步期（如跨界瞬移、页面缩放转场，或网络读数据），
     // 强制拦截除音量控制外的一切用户指令，避免盲操造成焦点暴走或状态混乱。
     if (FocusAPI.isInputLocked) {
       if (signal != InputSignal.volumeUp && signal != InputSignal.volumeDown) {
+        debugPrint('【信号拦截】当前为锁定状态，忽略 $signal (原因 -> waiting: ${FocusAPI.isCursorWaiting}, teleporting: ${FocusAPI.isCursorTeleporting}, intention: ${SuperFocusManager.instance.intentionRoomId.value})');
         Log.d(
           LogGroup.system, 
           '拦截生效：当前为锁定状态，忽略 $signal (原因 -> waiting: ${FocusAPI.isCursorWaiting}, teleporting: ${FocusAPI.isCursorTeleporting}, intention: ${SuperFocusManager.instance.intentionRoomId.value})', 
@@ -154,6 +156,7 @@ class SuperInputManager {
     // 1. 优先遍历拦截器（栈顶优先 LIFO）
     for (final interceptor in _interceptors.reversed) {
       if (interceptor(signal)) { // 如果拦截器返回 true，代表已消费
+        debugPrint('【信号拦截】信号 [$signal] 被拦截器消费');
         Log.d(LogGroup.system, '信号 [$signal] 被拦截器消费', subGroup: 'DeviceManager');
         return; // 立即终止，不触发全局动作
       }
@@ -191,14 +194,23 @@ class SuperInputManager {
   /// 在 main.dart 中挂载，利用 Flutter 事件冒泡：
   /// TextField 等原生输入组件优先消费自己的按键，未消费的才到达这里。
   KeyEventResult handleRootKeyEvent(FocusNode node, KeyEvent event) {
+    if (event is KeyDownEvent) {
+      debugPrint('【按键捕获】物理键按下: logicalKey=${event.logicalKey} (${event.logicalKey.debugName}), physicalKey=${event.physicalKey}');
+    }
     // 【修复：多 HID 设备路由】遍历所有具备处理 KeyEvent 能力的输入源，直到有人消费
     for (final source in _sources) {
       if (source is KeyEventHandler) {
         final result = (source as KeyEventHandler).handleKey(node, event);
         if (result == KeyEventResult.handled) {
+          if (event is KeyDownEvent) {
+            debugPrint('【按键捕获】按键被设备源 [${source.name}] 成功消费并转换为信号');
+          }
           return KeyEventResult.handled;
         }
       }
+    }
+    if (event is KeyDownEvent) {
+      debugPrint('【按键捕获】按键未被任何输入源消费');
     }
     return KeyEventResult.ignored;
   }

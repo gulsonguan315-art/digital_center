@@ -131,7 +131,7 @@ class HeroMetadataView extends StatelessWidget {
 
                   MediaService.instance.immersiveParams = MediaImmersiveParams(
                     itemId: targetItemId,
-                    mediaType: controller.type,
+                    mediaType: controller.type == 'Series' ? 'Episode' : controller.type,
                     startPositionTicks: ticks,
                   );
                   FocusAPI.dispatchAction(roomId, 'media_overlay');
@@ -159,8 +159,9 @@ class HeroMetadataView extends StatelessWidget {
 
                   MediaService.instance.immersiveParams = MediaImmersiveParams(
                     itemId: targetItemId,
-                    mediaType: controller.type,
+                    mediaType: controller.type == 'Series' ? 'Episode' : controller.type,
                     startPositionTicks: 0,
+                    forceStartOver: true,
                   );
                   FocusAPI.dispatchAction(roomId, 'media_overlay');
                 },

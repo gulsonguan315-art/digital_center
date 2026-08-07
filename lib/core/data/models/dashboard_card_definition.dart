@@ -24,6 +24,7 @@ class DashboardRegistry {
   static const String systemMonitorCardId = 'dash_system_monitor';
   static const String widgetManagerCardId = 'dash_widget_manager';
   static const String weatherCardId = 'dash_weather';
+  static const String aria2CardId = 'dash_aria2';
 
   static final List<DashboardCardDefinition> definitions = [
     const DashboardCardDefinition(
@@ -74,6 +75,16 @@ class DashboardRegistry {
         x: 0,
         y: 4,
         spanX: 4,
+        spanY: 2,
+      ),
+    ),
+    const DashboardCardDefinition(
+      id: aria2CardId,
+      defaultConfig: DashboardItemConfig(
+        id: aria2CardId,
+        x: 0,
+        y: 6,
+        spanX: 2,
         spanY: 2,
       ),
     ),

@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../../../core/data/data_manager.dart';
 import '../../../core/engine/theme/theme_api.dart';
 import '../../../core/layout/grid/grid_extensions.dart';
+import '../../../core/control/device_manager/device_manager.dart';
+import 'package:superfocus/core/control/superfocus/widgets/focus_widgets.dart';
 import 'dashboard_model.dart';
 import 'engine/dashboard_controller.dart';
 import 'views_components/dashboard_card_tile.dart';
@@ -54,13 +56,21 @@ class _DashboardViewState extends State<DashboardView> {
               return ListenableBuilder(
                 listenable: _controller,
                 builder: (context, _) {
-                  return DashboardEditListener(
-                    controller: _controller,
-                    child: GestureDetector(
-                      behavior: HitTestBehavior.translucent,
-                      onSecondaryTap: () {
+                  return InputInterceptor(
+                    onSignal: (signal) {
+                      if (signal == InputSignal.menu) {
                         _controller.setEditMode(!_controller.isEditMode);
-                      },
+                        return true;
+                      }
+                      return false;
+                    },
+                    child: DashboardEditListener(
+                      controller: _controller,
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.translucent,
+                        onSecondaryTap: () {
+                          _controller.setEditMode(!_controller.isEditMode);
+                        },
                       child: Stack(
                         key: _gridKey,
                         clipBehavior: Clip.none,
@@ -128,8 +138,9 @@ class _DashboardViewState extends State<DashboardView> {
                         ],
                       ),
                     ),
-                  );
-                },
+                  ),
+                );
+              },
               );
             },
           ),

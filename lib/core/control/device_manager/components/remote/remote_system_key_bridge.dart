@@ -30,6 +30,8 @@ class RemoteSystemKeyBridge {
         'home' => InputSignal.home,
         'volumeUp' => InputSignal.volumeUp,
         'volumeDown' => InputSignal.volumeDown,
+        'back' => InputSignal.back,
+        'menu' => InputSignal.menu,
         _ => null,
       };
 

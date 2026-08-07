@@ -42,22 +42,6 @@ class MediaRepository {
   // 分类映射表（内部常量）
   // ---------------------------------------------------------------------------
 
-  /// 我们的分类 ID → Jellyfin CollectionType 或 Library Name 关键词
-  /// collectionType 优先匹配，name 关键词兜底（对 mov/tv 也做名称兜底，提升对各种命名的兼容性）
-  static const _categoryCollectionType = <String, String>{
-    'mov': 'movies',
-    'tv': 'tvshows',
-  };
-
-  static const _categoryNameKeywords = <String, List<String>>{
-    'ani': ['动漫', 'anime', '二次元'],
-    'doc': ['纪录片', '记录片', 'documentary', 'doc'],
-    // 给 mov / tv 也加上常见名称关键词作为兜底（很多用户会把 Library 起名为“电视剧”“剧集”“电影”等）
-    'tv': ['tv', 'show', 'series', '电视剧', '剧集', 'tvshow', 'tvshows', 'shows'],
-    'mov': ['movie', 'movies', '电影', '片库'],
-    'adt': ['成人', 'adult', 'jav', 'porn', 'r18', '18+'],
-  };
-
   // ---------------------------------------------------------------------------
   // 初始化
   // ---------------------------------------------------------------------------
@@ -78,6 +62,14 @@ class MediaRepository {
     _memCache.clear();
     await _buildLibraryMapFromViews();
   }
+
+  static const _hardcodedLibraryNames = <String, String>{
+    'mov': '电影',
+    'tv': '电视剧',
+    'ani': '动漫',
+    'doc': '纪录片',
+    'adt': '成人',
+  };
 
   /// 实际执行 /Views 请求并构建映射的内部逻辑。
   Future<void> _buildLibraryMapFromViews() async {
@@ -107,75 +99,18 @@ class MediaRepository {
       for (final raw in items) {
         final item = raw as Map<String, dynamic>;
         final id = item['Id'] as String? ?? '';
-        final type = (item['CollectionType'] as String? ?? '').toLowerCase();
-        final name = (item['Name'] as String? ?? '').toLowerCase();
+        final name = (item['Name'] as String? ?? '');
 
         if (id.isEmpty) continue;
 
-        // 1. CollectionType 直接匹配（mov / tv）
-        for (final entry in _categoryCollectionType.entries) {
-          if (type == entry.value && !_libraryMap.containsKey(entry.key)) {
+        for (final entry in _hardcodedLibraryNames.entries) {
+          // 严格精确匹配用户在 Jellyfin 里建立的库名称
+          if (name == entry.value) {
             _libraryMap[entry.key] = id;
             Log.d(
               LogGroup.media,
-              '✅ [Media] 分类 ${entry.key} → Library "$name" ($id)',
+              '✅ [Media] 分类 ${entry.key} → Library "$name" ($id) [硬编码精准匹配]',
             );
-          }
-        }
-
-        // 2. Name 关键词匹配（现在 mov/tv/ani/doc/adt 都支持名称兜底）
-        for (final entry in _categoryNameKeywords.entries) {
-          if (!_libraryMap.containsKey(entry.key)) {
-            for (final kw in entry.value) {
-              if (name.contains(kw)) {
-                _libraryMap[entry.key] = id;
-                // 特定细分分类（ani, doc, adt）如果误占用了主分类（mov, tv），则释放主分类
-                if (entry.key != 'tv' && _libraryMap['tv'] == id) {
-                  _libraryMap.remove('tv');
-                }
-                if (entry.key != 'mov' && _libraryMap['mov'] == id) {
-                  _libraryMap.remove('mov');
-                }
-                Log.d(
-                  LogGroup.media,
-                  '✅ [Media] 分类 ${entry.key} → Library "$name" ($id) [name匹配]',
-                );
-                break;
-              }
-            }
-          }
-        }
-      }
-
-      // 3. tv 被细分分类占用时，重新找第一个 tvshows 非细分的 Library（兜底）
-      if (!_libraryMap.containsKey('tv')) {
-        for (final raw in items) {
-          final item = raw as Map<String, dynamic>;
-          final id = item['Id'] as String? ?? '';
-          final type = (item['CollectionType'] as String? ?? '').toLowerCase();
-          if (type == 'tvshows' &&
-              id != _libraryMap['ani'] &&
-              id != _libraryMap['doc'] &&
-              id != _libraryMap['adt']) {
-            _libraryMap['tv'] = id;
-            Log.d(LogGroup.media, '✅ [Media] 重新绑定 tv Library: $id');
-            break;
-          }
-        }
-      }
-
-      // 4. mov 被细分分类占用时，重新找第一个 movies 非细分的 Library（兜底）
-      if (!_libraryMap.containsKey('mov')) {
-        for (final raw in items) {
-          final item = raw as Map<String, dynamic>;
-          final id = item['Id'] as String? ?? '';
-          final type = (item['CollectionType'] as String? ?? '').toLowerCase();
-          if (type == 'movies' &&
-              id != _libraryMap['ani'] &&
-              id != _libraryMap['doc'] &&
-              id != _libraryMap['adt']) {
-            _libraryMap['mov'] = id;
-            Log.d(LogGroup.media, '✅ [Media] 重新绑定 mov Library: $id');
             break;
           }
         }

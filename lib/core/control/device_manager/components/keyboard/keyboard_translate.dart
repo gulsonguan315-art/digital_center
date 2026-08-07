@@ -30,11 +30,13 @@ abstract final class KeyboardTranslate {
       // ── 返回键 ──────────────────────────────────────────────────────────
       LogicalKeyboardKey.escape => InputSignal.back,
       LogicalKeyboardKey.backspace => InputSignal.back,
+      LogicalKeyboardKey.browserBack => InputSignal.back,
 
       // ── 主页键 ──────────────────────────────────────────────────────────
       LogicalKeyboardKey.home => InputSignal.home,
 
       // ── 菜单键 ──────────────────────────────────────────────────────────
+      LogicalKeyboardKey.contextMenu => InputSignal.menu,
       LogicalKeyboardKey.keyM => InputSignal.menu,
 
       // ── 全局音量控制 ───────────────────────────────────────────────────

@@ -5,6 +5,7 @@ import '../../widgets/poetry/poetry_view.dart';
 import '../../widgets/system_monitor/system_monitor_view.dart';
 import '../../widgets/widget_manager/widget_manager_view.dart';
 import '../../widgets/weather/weather_view.dart';
+import '../../widgets/aria2/aria2_view.dart';
 
 /// 📂 看板卡片展示元数据 (Dashboard Card Presentation Metadata)
 class DashboardCardPresentation {
@@ -54,6 +55,11 @@ class DashboardModel {
       title: '天气看板',
       icon: Icons.cloud_rounded,
       widget: WeatherView(),
+    ),
+    DashboardRegistry.aria2CardId: const DashboardCardPresentation(
+      title: 'Aria2下载',
+      icon: Icons.download_for_offline_rounded,
+      widget: Aria2View(),
     ),
   };
 }

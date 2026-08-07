@@ -30,6 +30,10 @@ class ApiEndpoints {
   final String absBaseUrl;
   final String absApiKey;
 
+  // Aria2 (下载服务)
+  final String aria2BaseUrl;
+  final String aria2Secret;
+
   const ApiEndpoints({
     required this.poetryBaseUrl,
     this.weatherBaseUrl = '',
@@ -46,6 +50,8 @@ class ApiEndpoints {
     this.jellyfinDeviceVersion = '1.0.0',
     this.absBaseUrl = 'http://192.168.0.2:13378',
     this.absApiKey = '',
+    this.aria2BaseUrl = 'http://192.168.0.2:6800/jsonrpc',
+    this.aria2Secret = '',
   });
 
   factory ApiEndpoints.fromJson(Map<String, dynamic> json) {
@@ -54,6 +60,7 @@ class ApiEndpoints {
     final mediaSec = (json['media'] as Map<String, dynamic>?) ?? json;
     final gonicSec = (json['gonic'] as Map<String, dynamic>?) ?? json;
     final bookSec = (json['book'] as Map<String, dynamic>?) ?? json;
+    final aria2Sec = (json['aria2'] as Map<String, dynamic>?) ?? json;
 
     return ApiEndpoints(
       poetryBaseUrl: _sanitizeUrl(
@@ -78,6 +85,8 @@ class ApiEndpoints {
       jellyfinDeviceVersion:(mediaSec['jellyfin_device_version'] ?? json['jellyfin_device_version']) as String? ?? '1.0.0',
       absBaseUrl: _sanitizeUrl((bookSec['abs_api_base'] ?? json['abs_api_base']) as String? ?? 'http://192.168.0.2:13378'),
       absApiKey:  (bookSec['abs_api_keys'] ?? json['abs_api_keys']) as String? ?? '',
+      aria2BaseUrl: _sanitizeUrl((aria2Sec['aria2_api_base'] ?? json['aria2_api_base']) as String? ?? 'http://192.168.0.2:6800/jsonrpc'),
+      aria2Secret:  (aria2Sec['aria2_secret'] ?? json['aria2_secret']) as String? ?? '',
     );
   }
 
@@ -110,6 +119,11 @@ class ApiEndpoints {
       'abs_api_base': absBaseUrl,
       'abs_api_keys': absApiKey,
     },
+    'aria2': {
+      '_help': 'Aria2 下载服务配置（填写你的 JSON-RPC 地址，如 http://192.168.0.2:6800/jsonrpc）',
+      'aria2_api_base': aria2BaseUrl,
+      'aria2_secret': aria2Secret,
+    },
   };
 
   /// 默认内置公网域名配置 (Out-of-the-box Defaults)
@@ -125,6 +139,8 @@ class ApiEndpoints {
     jellyfinDeviceVersion: '1.0.0',
     absBaseUrl: 'http://192.168.0.2:13378',
     absApiKey: '',
+    aria2BaseUrl: 'http://192.168.0.2:6800/jsonrpc',
+    aria2Secret: '',
   );
 
   /// 🛡️ URL 自愈清洗器 (Automatic Url Sanitization Filter)

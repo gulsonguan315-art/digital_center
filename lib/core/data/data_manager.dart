@@ -101,6 +101,7 @@ class DataManager {
       Log.d(LogGroup.system, 'Gonic: ${endpoints.gonicBaseUrl}');
       Log.d(LogGroup.system, 'Jellyfin: ${endpoints.jellyfinBaseUrl}');
       Log.d(LogGroup.system, 'Book: ${endpoints.absBaseUrl}');
+      Log.d(LogGroup.system, 'Aria2: ${endpoints.aria2BaseUrl}');
       Log.d(
         LogGroup.network,
         'Loaded user settings from persistent storage. Path: $formattedPath, Interaction Mode: ${userSettings.interactionMode}, Poetry: ${endpoints.poetryBaseUrl}, Gonic: ${endpoints.gonicBaseUrl}',
