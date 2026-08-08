@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import '../../../core/control/superfocus/focus_api.dart';
@@ -21,11 +22,38 @@ class ExitPageRoom extends StatelessWidget {
     );
   }
 
-  Future<void> _executeUpdate() async {
+  Future<void> _executeUpdate(BuildContext context) async {
     try {
+      // 🌟 1. 优先读取并校验 NAS 部署锁定状态 deploy_status.json
+      final File statusFile = File(
+        r'\\192.168.0.2\data\Gulson_Lab\digital_center\deploy_status.json',
+      );
+      if (await statusFile.exists()) {
+        try {
+          final String content = await statusFile.readAsString();
+          final dynamic data = jsonDecode(content);
+          if (data is Map && data['updatable'] == false) {
+            final String msg =
+                (data['message'] as String?) ?? '新版本正在打包部署中，请稍后再试';
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('⚠️ 暂无法更新：$msg'),
+                  backgroundColor: Colors.orange.shade800,
+                  duration: const Duration(seconds: 4),
+                ),
+              );
+            }
+            return;
+          }
+        } catch (e) {
+          debugPrint('Error parsing deploy_status.json: $e');
+        }
+      }
+
       final String exePath = Platform.resolvedExecutable;
       final String appDir = File(exePath).parent.path;
-      
+
       // 注意转义和空格处理
       final String batContent = '''
 @echo off
@@ -35,30 +63,30 @@ echo Waiting for the main application to exit...
 timeout /t 3 /nobreak >nul
 
 echo Synchronizing files from NAS...
-robocopy "\\\\192.168.0.2\\data\\Gulson_Lab\\digital_center" "$appDir" /MIR /XF user_settings.json update_digital_center.bat
+robocopy "\\\\192.168.0.2\\data\\Gulson_Lab\\digital_center" "$appDir" /MIR /XF user_settings.json deploy_status.json update_digital_center.bat
 
 echo Restarting Digital Center...
 start "" "$exePath"
 exit
 ''';
-      
+
       // 按照您的规划，存放在 \AppData\Roaming\digital_center\ 下
       final String roamingDir = DataManager.instance.configDirPath;
       final String batFilePath = '$roamingDir\\update_digital_center.bat';
       final File batFile = File(batFilePath);
-      
+
       if (!batFile.parent.existsSync()) {
         batFile.parent.createSync(recursive: true);
       }
       await batFile.writeAsString(batContent);
-      
+
       // 以后台 detached 模式启动，加上 '""' 防止路径中带有空格导致 start 命令解析为 title
       await Process.start(
         'cmd.exe',
         ['/c', 'start', '""', batFile.path],
         mode: ProcessStartMode.detached,
       );
-      
+
       // 立刻自杀退出，让出文件锁
       exit(0);
     } catch (e) {
@@ -87,8 +115,12 @@ exit
             mainAxisSize: MainAxisSize.min,
             children: [
               const Text(
-                '系统操作', 
-                style: TextStyle(fontSize: 36, color: Colors.white, fontWeight: FontWeight.bold)
+                '系统操作',
+                style: TextStyle(
+                  fontSize: 36,
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 60),
               _buildButton(
@@ -103,7 +135,7 @@ exit
                 id: 'btn_update',
                 label: '更新系统',
                 icon: Icons.system_update_alt,
-                onPressed: _executeUpdate,
+                onPressed: () => _executeUpdate(context),
               ),
               const SizedBox(height: 30),
               _buildButton(

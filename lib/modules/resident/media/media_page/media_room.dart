@@ -94,8 +94,6 @@ class MediaRoom extends StatefulWidget {
 }
 
 class _MediaRoomState extends State<MediaRoom> {
-  String? _lastExpandedBoxSetId;
-
   @override
   Widget build(BuildContext context) {
     return SuperFocusRoom(
@@ -111,22 +109,17 @@ class _MediaRoomState extends State<MediaRoom> {
               final topology =
                   SuperFocusManager.instance.topologyNotifier.value;
 
-              // 判断合集展开状态
+              // 🌟 重新设计的合集展开状态判断：
+              // 只要当前的逻辑拓扑路径（logicalPath）中包含 mediaExpand_ 房间
+              // （即处于合集展开中，或正处于合集内某子项的详情页），即保持合集展开状态！
+              // 绝对防止进入/返回详情页时合集手风琴被误销毁导致焦点丢失！
               String? expandedBoxSetId;
-              final activeRoom = topology.activeRoom;
-              if (activeRoom != null) {
-                if (activeRoom.startsWith('mediaExpand_')) {
-                  expandedBoxSetId = activeRoom.replaceFirst('mediaExpand_', '');
-                  _lastExpandedBoxSetId = expandedBoxSetId;
-                } else if (activeRoom == MediaRoom.roomId ||
-                    (!activeRoom.startsWith('media_') &&
-                        !activeRoom.startsWith('movieDetail_') &&
-                        !activeRoom.startsWith('seriesDetail_'))) {
-                  expandedBoxSetId = null;
-                  _lastExpandedBoxSetId = null;
-                } else {
-                  expandedBoxSetId = _lastExpandedBoxSetId;
-                }
+              final expandRoom = topology.logicalPath.firstWhere(
+                (r) => r.startsWith('mediaExpand_'),
+                orElse: () => '',
+              );
+              if (expandRoom.isNotEmpty) {
+                expandedBoxSetId = expandRoom.replaceFirst('mediaExpand_', '');
               }
 
               // 订阅 MediaService 状态（分类 / 条目列表 / 加载状态）

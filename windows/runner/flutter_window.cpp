@@ -92,22 +92,9 @@ FlutterWindow::MessageHandler(HWND hwnd, UINT const message,
           return 0;
       }
       break;
-    case WM_CONTEXTMENU: {
-      const int x = static_cast<int>(static_cast<short>(LOWORD(lparam)));
-      const int y = static_cast<int>(static_cast<short>(HIWORD(lparam)));
-      // If the coordinate is -1, -1, it means it was triggered by keyboard/remote (VK_APPS)
-      if (x == -1 && y == -1) {
-        DispatchRemoteSystemCommand("menu");
-        return 0;
-      }
-      break;
-    }
     case WM_APPCOMMAND: {
       const int command = GET_APPCOMMAND_LPARAM(lparam);
       switch (command) {
-        case APPCOMMAND_BROWSER_BACKWARD:
-          DispatchRemoteSystemCommand("back");
-          return 1;
         case APPCOMMAND_BROWSER_HOME:
           DispatchRemoteSystemCommand("home");
           return 1;
